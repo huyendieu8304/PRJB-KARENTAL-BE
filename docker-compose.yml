@@ -1,0 +1,34 @@
+version: '3.8'
+
+name: karental
+
+services:
+  mysql:
+    image: mysql:8.0.41
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: karental
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: mysqld --lower_case_table_names=1 --character_set_server=utf8mb4 --explicit_defaults_for_timestamp
+    healthcheck:
+      test: [ 'CMD', 'mysql', '-e', 'SHOW DATABASES;' ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+
+volumes:
+  mysql_data:
+
+networks:
+  internal:
+    driver: bridge
