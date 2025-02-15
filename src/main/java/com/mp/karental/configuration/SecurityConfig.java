@@ -10,6 +10,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 /**
  * This class is responsible for security configuration in the application
@@ -58,6 +61,35 @@ public class SecurityConfig {
         ).csrf(AbstractHttpConfigurer :: disable);
 
         return http.build();
+    }
+
+    /**
+     * Config the CORS filter for the application
+     *
+     * <p>
+     * This method set up CORS configuration, allow request from {@code http://localhost:3000} in all methods
+     * for all endpoint of the application
+     * </p>
+     *
+     * @return {@code CorsFilter} allow request from localhost:3000
+     *
+     * @author DieuTTH4
+     *
+     * @version 1.0
+     */
+    @Bean
+    public CorsFilter corsFilter() {
+
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.addAllowedOrigin("http://localhost:3000"); //Allow this app to be accessed from localhost:3000
+        corsConfiguration.addAllowedMethod("*"); //allow all method
+        corsConfiguration.addAllowedHeader("*"); //allow all header
+
+        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
+        //apply CORS configuration for all endpoints in the application
+        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
+
+        return new CorsFilter(urlBasedCorsConfigurationSource);
     }
 
     /**

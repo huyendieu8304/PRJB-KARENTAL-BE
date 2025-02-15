@@ -55,7 +55,7 @@ public class UserService {
         Account account = userMapper.toAccount(request);
         //set role for the account
         Optional<Role> role = roleRepository
-                .findByName(request.isCustomer() ? ERole.CUSTOMER : ERole.CAR_OWNER);
+                .findByName(request.getIsCustomer().equals("true") ? ERole.CUSTOMER : ERole.CAR_OWNER);
         if (role.isPresent()){
             account.setRole(role.get());
         }
