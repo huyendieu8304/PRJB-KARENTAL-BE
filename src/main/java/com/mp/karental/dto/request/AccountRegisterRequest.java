@@ -28,8 +28,8 @@ import lombok.experimental.FieldDefaults;
 public class AccountRegisterRequest {
 
     @NotBlank(message = "REQUIRED_FIELD")
-    //The name can only contain alphabet characters
-    @Pattern(regexp = "^[a-zA-Z]+$", message = "INVALID_NAME")
+    //The name can only contain alphabet characters (accept unicode), spaces and hyphens -
+    @Pattern(regexp = "^[\\p{L}\\s-]+$", message = "INVALID_NAME")
     String fullName;
 
     @NotBlank(message = "REQUIRED_FIELD")

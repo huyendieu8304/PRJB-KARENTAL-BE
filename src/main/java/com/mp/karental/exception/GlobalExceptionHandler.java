@@ -109,7 +109,7 @@ public class GlobalExceptionHandler {
                 : errorCode.getMessage());
 
         return ResponseEntity
-                .status(errorCode.getCode())
+                .status(errorCode.getHttpStatusCode())
                 .body(apiResponse);
     }
 
