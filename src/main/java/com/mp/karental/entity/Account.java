@@ -8,6 +8,17 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Represents a user account entity in the system.
+ * <p>
+ * This entity maps to a database table for storing account information,
+ * including email, password, role, status, timestamps, and associated user profile.
+ * </p>
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Entity
 @Getter
 @Setter

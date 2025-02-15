@@ -15,6 +15,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for handling user-related operations.
+ * <p>
+ * This controller provides endpoints for user management functionalities,
+ * including user registration.
+ * </p>
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
@@ -23,7 +34,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     UserService userService;
-
+    /**
+     * Registers a new user account.
+     * <p>
+     * This method accepts a validated {@code AccountRegisterRequest} containing
+     * the registration details, delegates the account creation to the {@code UserService},
+     * and wraps the resulting {@code UserResponse} in a standardized {@code ApiResponse}.
+     * </p>
+     *
+     * @param request the registration details for the new account
+     * @return an {@code ApiResponse} containing the created user information
+     *
+     * @author DieuTTH4
+     *
+     * @version 1.0
+     */
     @PostMapping("/register")
     ApiResponse<UserResponse> registerAccount(@RequestBody @Valid AccountRegisterRequest request){
         log.info("Registering account {}", request);

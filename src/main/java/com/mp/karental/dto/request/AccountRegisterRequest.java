@@ -9,6 +9,17 @@ import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Represents the request payload for registering a new user account.
+ * <p>
+ * This class encapsulates the necessary data required to create a new account,
+ * including personal information and authentication credentials.
+ * </p>
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,21 +27,27 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class AccountRegisterRequest {
 
-    @NotBlank(message = "INVALID_NAME")
+    @NotBlank(message = "REQUIRED_FIELD")
+    //The name can only contain alphabet characters
+    @Pattern(regexp = "^[a-zA-Z]+$", message = "INVALID_NAME")
     String fullName;
 
+    @NotBlank(message = "REQUIRED_FIELD")
     @Email (message = "INVALID_EMAIL")
     @UniqueEmail(message = "NOT_UNIQUE_EMAIL")
     String email;
 
-    @Pattern(regexp = "^0[\\d]{10}$", message = "INVALID_PHONE_NUMBER")
+    @NotBlank(message = "REQUIRED_FIELD")
+    //The phone number must start with 0 and having 10 digits in total
+    @Pattern(regexp = "^0[\\d]{9}$", message = "INVALID_PHONE_NUMBER")
     @UniquePhoneNumber(message = "NOT_UNIQUE_PHONE_NUMBER")
     String phoneNumber;
 
-    @NotBlank
+    @NotBlank(message = "REQUIRED_FIELD")
+    //The password must have at least 1 character, 1 digit and 7 characters
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).{9,}$", message = "INVALID_PASSWORD")
     String password;
 
-    @NotNull(message = "Must choose one role, customer or car owner, to register account.")
+    @NotNull(message = "REQUIRED_FIELD")
     boolean isCustomer;
 }

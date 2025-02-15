@@ -6,6 +6,17 @@ import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
 
+/**
+ * Represents a user profile entity in the system.
+ * <p>
+ * This entity maps to a database table for storing user information,
+ * including full name, date of birth, national id, phone number, address, driving licence and associated user account.
+ * </p>
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Entity
 @Getter
 @Setter

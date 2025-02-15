@@ -11,6 +11,13 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * This class contains init configuration for the application and would be run fist.
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Configuration
 @RequiredArgsConstructor()
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -18,6 +25,20 @@ import org.springframework.context.annotation.Configuration;
 public class ApplicationInitConfig {
     RoleRepository roleRepository;
 
+    /**
+     * Initializes some default data for the application.
+     * <p>
+     * This method checks if the default roles, such as CAR_OWNER and CUSTOMER,
+     * already exist in the database. If they do not exist, they will be created and saved to the database.
+     * </p>
+     *
+     * @param roleRepository The RoleRepository responsible for handling Role entities in the database.
+     * @return An ApplicationRunner that executes when the application starts.
+     *
+     * @author DieuTTH4
+     *
+     * @version 1.0
+     */
     @Bean
     ApplicationRunner init(RoleRepository roleRepository) {
         return args -> {

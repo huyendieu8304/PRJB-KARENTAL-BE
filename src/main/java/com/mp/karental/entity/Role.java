@@ -8,6 +8,17 @@ import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
+/**
+ * Represents a role entity in the system.
+ * <p>
+ * This entity maps to a database table for storing role information,
+ * including role id, role's name, and associated user account.
+ * </p>
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Entity
 @Getter
 @Setter

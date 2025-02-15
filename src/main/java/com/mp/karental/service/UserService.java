@@ -20,6 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+/**
+ * Service class for handling user account operations.
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -34,6 +41,16 @@ public class UserService {
 
     PasswordEncoder passwordEncoder;
 
+    /**
+     * Creates a new user account along with the associated user profile.
+     *
+     * @param request the account registration request containing the user's details
+     * @return a {@code UserResponse} DTO containing the details of the newly created account and profile
+     *
+     * @author DieuTTH4
+     *
+     * @version 1.0
+     */
     public UserResponse addNewAccount(AccountRegisterRequest request) {
         Account account = userMapper.toAccount(request);
         //set role for the account
@@ -41,8 +58,6 @@ public class UserService {
                 .findByName(request.isCustomer() ? ERole.CUSTOMER : ERole.CAR_OWNER);
         if (role.isPresent()){
             account.setRole(role.get());
-        } else {
-//
         }
         account.setActive(true); //set status of the account
         //encode password
