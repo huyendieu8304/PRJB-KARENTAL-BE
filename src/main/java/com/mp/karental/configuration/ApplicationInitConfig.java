@@ -23,6 +23,8 @@ import org.springframework.context.annotation.Configuration;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class ApplicationInitConfig {
+
+    LoggingConfig loggingConfig;
     RoleRepository roleRepository;
 
     /**
@@ -31,17 +33,20 @@ public class ApplicationInitConfig {
      * This method checks if the default roles, such as CAR_OWNER and CUSTOMER,
      * already exist in the database. If they do not exist, they will be created and saved to the database.
      * </p>
-     *
-     * @param roleRepository The RoleRepository responsible for handling Role entities in the database.
+     **
      * @return An ApplicationRunner that executes when the application starts.
      *
      * @author DieuTTH4
      *
-     * @version 1.0
+     * @version 1.1
      */
     @Bean
-    ApplicationRunner init(RoleRepository roleRepository) {
+    ApplicationRunner init() {
         return args -> {
+            //set up logging for the application
+            loggingConfig.setupLogging();
+
+            //create 2 roles Customer and car owner
             if (roleRepository.findByName(ERole.CAR_OWNER).isEmpty()) {
                 roleRepository.save(Role.builder()
                         .name(ERole.CAR_OWNER)
@@ -54,7 +59,6 @@ public class ApplicationInitConfig {
                         .build());
                 log.info("Create role Customer");
             }
-
         };
     }
 }

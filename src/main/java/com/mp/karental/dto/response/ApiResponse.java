@@ -23,17 +23,17 @@ public class ApiResponse<T>{
      * By default, it would be 1000, means that the request is successfully resolved
      */
     @Builder.Default
-    private int code = 1000;
+    int code = 1000;
 
     /**
      * Short message inform client about the result of processing the request
      * By default, it would be "Success"
      */
     @Builder.Default
-    private String message = "Success";
+    String message = "Success";
 
     /**
      * An object which is data return for the client.
      */
-    private T data;
+    T data;
 }

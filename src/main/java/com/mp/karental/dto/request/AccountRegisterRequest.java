@@ -49,5 +49,5 @@ public class AccountRegisterRequest {
     String password;
 
     @NotNull(message = "REQUIRED_FIELD")
-    boolean isCustomer;
+    String isCustomer;
 }
