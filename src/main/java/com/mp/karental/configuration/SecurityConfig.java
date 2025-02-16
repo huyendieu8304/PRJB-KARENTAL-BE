@@ -1,6 +1,5 @@
 package com.mp.karental.configuration;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -12,12 +11,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * This class is responsible for security configuration in the application
@@ -32,9 +30,16 @@ public class SecurityConfig {
     /**
      * Define public endpoints, the endpoint that could be accessed without needing to provide any authentication header
      */
-    private String[] PUBLIC_ENDPOINTS = {
+    private final String[] PUBLIC_ENDPOINTS = {
             "/user/register"
     };
+
+    /**
+     * Allow request from other origins below
+     */
+    private final List<String> ALLOWED_CORS_URL = List.of(new String[]{
+            "http://localhost:3000"
+    });
 
     /**
      * Configures the security filter chain for the application.
@@ -60,9 +65,7 @@ public class SecurityConfig {
                                 //open public endpoints
                                 .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
                                 .anyRequest().authenticated()
-                ).csrf(AbstractHttpConfigurer::disable);
-
-
+        ).csrf(AbstractHttpConfigurer::disable);
         return http.build();
     }
 
@@ -83,14 +86,14 @@ public class SecurityConfig {
 
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         //list origins allowed, separate by ,
-        corsConfiguration.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
+        corsConfiguration.setAllowedOrigins(ALLOWED_CORS_URL);
         //allow all methods
         corsConfiguration.setAllowedMethods(Collections.singletonList("*"));
         //true: allow credentials or cookies when call backend API
         corsConfiguration.setAllowCredentials(true);
-
+        //accept all header
         corsConfiguration.setAllowedHeaders(Collections.singletonList("*"));
-        corsConfiguration.setExposedHeaders(Arrays.asList("Authorization"));
+        corsConfiguration.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
         //apply CORS configuration for all endpoints in the application
