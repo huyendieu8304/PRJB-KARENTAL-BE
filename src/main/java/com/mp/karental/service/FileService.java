@@ -58,13 +58,13 @@ public class FileService {
      * Generates a presigned URL for accessing a file stored in the S3 bucket.
      * This URL is temporary and valid for 30 minutes.
      *
-     * @param key the key (path/filename) of the file stored in the S3 bucket
+     * @param uri the key (path/filename) of the file stored in the S3 bucket
      * @return the presigned URL as a String
      */
-    public String getPresignedUrl(String key) {
+    public String getFileUrl(String uri) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucketName)
-                .key(key)
+                .key(uri)
                 .build();
 
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
@@ -74,4 +74,5 @@ public class FileService {
 
         return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
+
 }

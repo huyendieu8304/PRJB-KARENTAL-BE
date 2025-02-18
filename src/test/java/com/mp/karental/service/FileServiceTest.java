@@ -9,7 +9,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -104,7 +103,7 @@ class FileServiceTest {
         when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
 
         // Act
-        String actualUrl = fileService.getPresignedUrl(key);
+        String actualUrl = fileService.getFileUrl(key);
 
         // Assert: Kiểm tra URL trả về có bằng expectedUrl không
         assertEquals(expectedUrl, actualUrl);
