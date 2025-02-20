@@ -18,4 +18,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
+cloud:
+  aws:
+    region:
+      static: ap-southeast-1
+    s3:
+      buckets:
+        name: karental
 

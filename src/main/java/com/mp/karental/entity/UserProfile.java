@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Represents a user profile entity in the system.
@@ -47,5 +48,7 @@ public class UserProfile {
     @Column(unique = true, columnDefinition = "VARCHAR(12)")
     String drivingLicense;
 
+    @OneToMany(mappedBy = "accountId", cascade = CascadeType.ALL)
+    List<Car> cars;
 
 }
