@@ -25,7 +25,7 @@ public enum ErrorCode {
     REQUIRED_FIELD(2000, "This field is required.", HttpStatus.BAD_REQUEST),
     INVALID_NAME(2001, "The full name can only contain alphabet characters.", HttpStatus.BAD_REQUEST),
 
-    INVALID_EMAIL(2002, "Invalid email.", HttpStatus.BAD_REQUEST),
+    INVALID_EMAIL(2002, "Please enter a valid email address", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_EMAIL(2003, "Email already existed. Please try another email.", HttpStatus.BAD_REQUEST),
 
     INVALID_PHONE_NUMBER(2004, "Invalid phone number.", HttpStatus.BAD_REQUEST),
@@ -36,10 +36,17 @@ public enum ErrorCode {
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),
+//    ACCOUNT_NOT_FOUND_IN_DB(3003, "The email has not been registered.", HttpStatus.NOT_FOUND),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.BAD_REQUEST),
+    INVALID_LOGIN_INFORMATION(4002, "Either email address or password is incorrect. Please try again", HttpStatus.UNAUTHORIZED),
+    //TODO: xem lại cái message và cái http status ở chỗ này cũng như cái tên của nó luôn
+    UNAUTHENTICATED(4003, "Unauthenticated access. The access token is invalid", HttpStatus.UNAUTHORIZED), //401
+    UNAUTHORIZED(4004, "User doesn't have permission to access the endpoint.", HttpStatus.FORBIDDEN), //403
+    ACCESS_TOKEN_EXPIRED(4005, "The access token is expired. Please try again", HttpStatus.UNAUTHORIZED),
+//    WRONG_PASSWORD(4003, "The password is incorrect.", HttpStatus.UNAUTHORIZED),
     ;
 
     /**

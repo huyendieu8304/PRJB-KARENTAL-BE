@@ -3,6 +3,17 @@ server:
   servlet:
     context-path: /karental
 
+application:
+  security:
+    jwt:
+      #cái key này phải bỏ vào biến môi trường
+      secret-key: 65a4806f4b655d14bcdab9e12e173a1d0789372fe59f53cbde8c440cbe752617
+#      access-token-expiration: 86400000 #milisecond ~ 24 hours
+#      refresh-token-expiration: 604800000 #~7days
+      #for testc
+      access-token-expiration: 15000 #milisecond ~ 15s
+      refresh-token-expiration: 60000 #~1 minute
+
 spring:
   application:
     name: karental
