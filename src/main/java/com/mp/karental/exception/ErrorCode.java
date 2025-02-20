@@ -21,7 +21,7 @@ import org.springframework.http.HttpStatusCode;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum ErrorCode {
-
+    //range 2xxx
     REQUIRED_FIELD(2000, "This field is required.", HttpStatus.BAD_REQUEST),
     INVALID_NAME(2001, "The full name can only contain alphabet characters.", HttpStatus.BAD_REQUEST),
 
@@ -37,9 +37,11 @@ public enum ErrorCode {
     NOT_UNIQUE_LICENSE(2008, "License plate already existed. Please try another license plate", HttpStatus.BAD_REQUEST),
     INVALID_COLOR(2009, "Your color is not alive. Please try another color", HttpStatus.BAD_REQUEST),
     INVALID_ADDITIONAL_FUNTION(2010, "Your additional functions were not predefined. Please try another color", HttpStatus.BAD_REQUEST),
-
+    //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),
+
+    //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.BAD_REQUEST),
     ;

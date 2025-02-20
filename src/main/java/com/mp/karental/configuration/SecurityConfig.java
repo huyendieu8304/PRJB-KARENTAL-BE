@@ -1,5 +1,6 @@
 package com.mp.karental.configuration;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -11,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
@@ -65,42 +67,22 @@ public class SecurityConfig {
                                 //open public endpoints
                                 .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
                                 .anyRequest().authenticated()
-        ).csrf(AbstractHttpConfigurer::disable);
+        ).cors(corsConfig -> corsConfig.configurationSource(new CorsConfigurationSource() {
+                    @Override
+                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                        CorsConfiguration config = new CorsConfiguration();
+                        config.setAllowedOrigins(ALLOWED_CORS_URL);
+                        config.setAllowedMethods(Collections.singletonList("*"));
+                        config.setAllowedHeaders(Collections.singletonList("*"));
+                        config.setExposedHeaders(Collections.singletonList("Authorization"));
+                        config.setAllowCredentials(true);
+                        return config;
+                    }
+        })).csrf(AbstractHttpConfigurer::disable);
+
         return http.build();
     }
 
-    /**
-     * Config the CORS filter for the application
-     *
-     * <p>
-     * This method set up CORS configuration, allow request from {@code http://localhost:3000} in all methods
-     * for all endpoint of the application
-     * </p>
-     *
-     * @return {@code CorsFilter} allow request from localhost:3000
-     * @author DieuTTH4
-     * @version 1.0
-     */
-    @Bean
-    public CorsFilter corsFilter() {
-
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
-        //list origins allowed, separate by ,
-        corsConfiguration.setAllowedOrigins(ALLOWED_CORS_URL);
-        //allow all methods
-        corsConfiguration.setAllowedMethods(Collections.singletonList("*"));
-        //true: allow credentials or cookies when call backend API
-        corsConfiguration.setAllowCredentials(true);
-        //accept all header
-        corsConfiguration.setAllowedHeaders(Collections.singletonList("*"));
-        corsConfiguration.setExposedHeaders(List.of("Authorization"));
-
-        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
-        //apply CORS configuration for all endpoints in the application
-        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
-
-        return new CorsFilter(urlBasedCorsConfigurationSource);
-    }
 
     /**
      * Configures the password encoder for the application.

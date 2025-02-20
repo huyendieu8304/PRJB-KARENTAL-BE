@@ -6,6 +6,8 @@ import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
 import com.mp.karental.entity.UserProfile;
+import com.mp.karental.exception.AppException;
+import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.RoleRepository;
@@ -97,7 +99,32 @@ class UserServiceTest {
 
         assertTrue(account.isActive(), "Account must be active");
         assertEquals("encodedPassword", account.getPassword(), "Password must be encoded");
+    }
 
+    @Test
+    public void addNewAccount_RoleNotFound() {
+        // Arrange
+        AccountRegisterRequest request = new AccountRegisterRequest();
+        request.setIsCustomer("true");
+        request.setPassword("password");
 
+        // mapper
+        Account account = new Account();
+        account.setPassword(request.getPassword()); // not encoded
+        when(userMapper.toAccount(request)).thenReturn(account);
+
+        // Mock role not found (Optional.empty())
+        when(roleRepository.findByName(ERole.CUSTOMER)).thenReturn(Optional.empty());
+
+        // Act & Assert:
+        AppException exception = assertThrows(AppException.class, () -> {
+            userService.addNewAccount(request);
+        });
+
+        assertEquals(ErrorCode.ROLE_NOT_FOUND_IN_DB, exception.getErrorCode());
+
+        // Verify methods befor exception thrown
+        verify(userMapper).toAccount(request);
+        verify(roleRepository).findByName(ERole.CUSTOMER);
     }
 }

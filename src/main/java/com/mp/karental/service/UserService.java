@@ -6,6 +6,8 @@ import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
 import com.mp.karental.entity.UserProfile;
+import com.mp.karental.exception.AppException;
+import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.RoleRepository;
@@ -58,6 +60,8 @@ public class UserService {
                 .findByName(request.getIsCustomer().equals("true") ? ERole.CUSTOMER : ERole.CAR_OWNER);
         if (role.isPresent()){
             account.setRole(role.get());
+        } else {
+            throw new AppException(ErrorCode.ROLE_NOT_FOUND_IN_DB);
         }
         account.setActive(true); //set status of the account
         //encode password
