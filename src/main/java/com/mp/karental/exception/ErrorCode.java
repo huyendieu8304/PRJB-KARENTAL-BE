@@ -46,7 +46,8 @@ public enum ErrorCode {
     UNAUTHENTICATED(4003, "Unauthenticated access. The access token is invalid", HttpStatus.UNAUTHORIZED), //401
     UNAUTHORIZED(4004, "User doesn't have permission to access the endpoint.", HttpStatus.FORBIDDEN), //403
     ACCESS_TOKEN_EXPIRED(4005, "The access token is expired. Please try again", HttpStatus.UNAUTHORIZED),
-//    WRONG_PASSWORD(4003, "The password is incorrect.", HttpStatus.UNAUTHORIZED),
+    ACCOUNT_IS_INACTIVE(4006, "Your account is inactive.", HttpStatus.FORBIDDEN),
+    UNABLE_TO_SET_USER_AUTHENTICATION(4007, "Cannot set user authentication.", HttpStatus.INTERNAL_SERVER_ERROR)
     ;
 
     /**

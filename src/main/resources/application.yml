@@ -6,6 +6,7 @@ server:
 application:
   security:
     jwt:
+      cookieName: karental
       #cái key này phải bỏ vào biến môi trường
       secret-key: 65a4806f4b655d14bcdab9e12e173a1d0789372fe59f53cbde8c440cbe752617
 #      access-token-expiration: 86400000 #milisecond ~ 24 hours

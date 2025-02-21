@@ -1,6 +1,5 @@
 package com.mp.karental.configuration;
 
-import com.mp.karental.logging.TraceIdInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -29,9 +28,9 @@ public class WebConfig implements WebMvcConfigurer {
      *
      * @version 1.0
      */
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        //Register TraceIdInterceptor for all request
-        registry.addInterceptor(new TraceIdInterceptor());
-    }
+//    @Override
+//    public void addInterceptors(InterceptorRegistry registry) {
+//        //Register TraceIdInterceptor for all request
+//        registry.addInterceptor(new TraceIdInterceptor());
+//    }
 }
