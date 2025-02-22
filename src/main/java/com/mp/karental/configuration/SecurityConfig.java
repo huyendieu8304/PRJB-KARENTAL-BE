@@ -1,17 +1,15 @@
 package com.mp.karental.configuration;
 
-import com.mp.karental.security.*;
-import com.mp.karental.security.jwt.AuthEntryPointJwt;
-import com.mp.karental.security.jwt.AuthTokenFilter;
+import com.mp.karental.security.auth.AuthEntryPointJwt;
+import com.mp.karental.security.auth.AuthTokenFilter;
+import com.mp.karental.security.auth.CustomAccessDeniedHandler;
 import com.mp.karental.security.service.UserDetailsServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;

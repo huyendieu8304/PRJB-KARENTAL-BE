@@ -1,4 +1,4 @@
-package com.mp.karental.entity;
+package com.mp.karental.security.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,7 +12,7 @@ import java.util.Date;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class InvalidateRefreshToken {
+public class InvalidateAccessToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;

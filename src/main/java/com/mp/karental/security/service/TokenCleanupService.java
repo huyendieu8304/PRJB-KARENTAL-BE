@@ -1,13 +1,12 @@
 package com.mp.karental.security.service;
 
-import com.mp.karental.repository.InvalidateAccessTokenRepo;
+import com.mp.karental.security.repository.InvalidateAccessTokenRepo;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.Date;
 
 @Service

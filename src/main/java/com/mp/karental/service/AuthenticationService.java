@@ -2,17 +2,17 @@ package com.mp.karental.service;
 
 import com.mp.karental.dto.request.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.AuthenticationResponse;
+import com.mp.karental.dto.response.LoginResponse;
 import com.mp.karental.entity.Account;
-import com.mp.karental.entity.InvalidateAccessToken;
-import com.mp.karental.entity.InvalidateRefreshToken;
+import com.mp.karental.security.entity.InvalidateAccessToken;
+import com.mp.karental.security.entity.InvalidateRefreshToken;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.repository.AccountRepository;
-import com.mp.karental.repository.InvalidateAccessTokenRepo;
-import com.mp.karental.repository.InvalidateRefreshTokenRepo;
-import com.mp.karental.security.jwt.JwtUtils;
-import com.mp.karental.security.service.UserDetailsImpl;
+import com.mp.karental.security.repository.InvalidateAccessTokenRepo;
+import com.mp.karental.security.repository.InvalidateRefreshTokenRepo;
+import com.mp.karental.security.JwtUtils;
+import com.mp.karental.security.entity.UserDetailsImpl;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
@@ -92,8 +92,8 @@ public class AuthenticationService {
 
         //put role in response
         String role = userDetails.getRole().getName().toString();
-        ApiResponse<AuthenticationResponse> apiResponse = ApiResponse.<AuthenticationResponse>builder()
-                .data(new AuthenticationResponse(role))
+        ApiResponse<LoginResponse> apiResponse = ApiResponse.<LoginResponse>builder()
+                .data(new LoginResponse(role))
                 .build();
 
         return sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);

@@ -1,8 +1,9 @@
-package com.mp.karental.security.jwt;
+package com.mp.karental.security.auth;
 
 import com.mp.karental.configuration.SecurityConfig;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
+import com.mp.karental.security.JwtUtils;
 import com.mp.karental.security.service.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

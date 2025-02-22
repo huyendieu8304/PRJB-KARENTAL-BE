@@ -1,6 +1,6 @@
 package com.mp.karental.security;
 
-import com.mp.karental.security.service.UserDetailsImpl;
+import com.mp.karental.security.entity.UserDetailsImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**

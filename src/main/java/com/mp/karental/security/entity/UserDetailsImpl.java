@@ -1,4 +1,4 @@
-package com.mp.karental.security.service;
+package com.mp.karental.security.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mp.karental.entity.Account;

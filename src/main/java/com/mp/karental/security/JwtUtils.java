@@ -1,4 +1,4 @@
-package com.mp.karental.security.jwt;
+package com.mp.karental.security;
 
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;

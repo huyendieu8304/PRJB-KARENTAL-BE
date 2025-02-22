@@ -1,7 +1,6 @@
-package com.mp.karental.repository;
+package com.mp.karental.security.repository;
 
-import com.mp.karental.entity.InvalidateAccessToken;
-import com.mp.karental.entity.InvalidateRefreshToken;
+import com.mp.karental.security.entity.InvalidateRefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
