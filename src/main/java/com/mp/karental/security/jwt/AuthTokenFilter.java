@@ -1,5 +1,6 @@
 package com.mp.karental.security.jwt;
 
+import com.mp.karental.configuration.SecurityConfig;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.security.service.UserDetailsServiceImpl;
@@ -8,8 +9,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,7 +33,20 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws
             ServletException, IOException {
+        String uri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        String path = uri.substring(contextPath.length());
+        //Skip authentication with public endpoints
+        for(String publicEndpoint : SecurityConfig.PUBLIC_ENDPOINTS){
+            System.out.println(path+" "+publicEndpoint);
+            if(path.equals(publicEndpoint)){
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
+
         try {
+            System.out.println("HELLO");
             //get jwt from the HTTP Cookies
             String jwt = jwtUtils.getJwtFromCookie(request);
 

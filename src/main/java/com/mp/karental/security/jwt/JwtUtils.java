@@ -1,5 +1,6 @@
 package com.mp.karental.security.jwt;
 
+import com.mp.karental.entity.Account;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.security.service.UserDetailsImpl;
@@ -20,9 +21,13 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
-    @Value("${application.security.jwt.cookieName}")
+    @Value("${application.security.jwt.access-token-cookie-name}")
     @NonFinal
-    private String cookieName;
+    private String jwtCookieName;
+
+    @Value("${application.security.jwt.refresh-token-cookie-name}")
+    @NonFinal
+    private String jwtRefreshCookieName;
 
     @Value("${application.security.jwt.secret-key}")
     @NonFinal
@@ -32,17 +37,43 @@ public class JwtUtils {
     @NonFinal
     private long accessTokenExpiration;
 
-    @Value("${application.security.jwt.refresh-token-expiration}")
+    @Value("${server.servlet.context-path}")
     @NonFinal
-    private long refreshTokenExpiration;
+    private String contextPath;
+
+    @NonFinal
+    private String refreshTokenUrl =  "/karental/auth/refreshToken";
 
     /**
-     * Get the cookie out from the request
+     * ==================================================================================
+     * Get jwt from coookies
+     */
+    /**
+     * Get the access token out from the request
+     * @param request
+     * @return
+     */
+    public String getJwtRefreshFromCookie(HttpServletRequest request) {
+        return getCookieValueByName(request, jwtRefreshCookieName);
+    }
+
+    /**
+     * Get the refresh token out from the request
      * @param request
      * @return
      */
     public String getJwtFromCookie(HttpServletRequest request) {
-        Cookie cookie = WebUtils.getCookie(request, cookieName);
+        return getCookieValueByName(request, jwtCookieName);
+    }
+
+    /**
+     * get the value of the cookie using it's name (key-value)
+     * @param request
+     * @param name
+     * @return
+     */
+    private String getCookieValueByName(HttpServletRequest request, String name) {
+        Cookie cookie = WebUtils.getCookie(request, name);
         if (cookie != null) {
             return cookie.getValue();
         } else {
@@ -51,23 +82,82 @@ public class JwtUtils {
     }
 
 
-    public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
-        String jwt = generateTokenFromUserEmail(userPrincipal.getEmail());
-        //TODO: sửa lại dòng này, đang fix cứng domain
+    /**
+     * ==================================================================================
+     * Generate jwt cookies
+     */
+
+    /**
+     * Generate token from user's email
+     * @param email
+     * @return
+     */
+    private String generateTokenFromUserEmail(String email) {
+        return Jwts.builder()
+                .subject(email)
+                .issuer("${spring.application.name}")
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration)) //set expiration date for token
+                .signWith(key()) //the algorithm is automatically determine by the api of jjwt
+                .compact();
+    }
+
+    private ResponseCookie generateCookie(String cookieName, String cookieValue, String path) {
         return ResponseCookie
-                .from(cookieName, jwt)
-                .path("/karental")
-                .maxAge(24 * 60 * 60)
+                .from(cookieName, cookieValue)
+                .path(path)
+                .maxAge(24*60*60) // seconds ~ 1days
                 .httpOnly(true)
                 .build();
-
     }
+
+    /**
+     * Generate access token cookie
+     * @param userPrincipal
+     * @return
+     */
+    public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal){
+        String token = generateTokenFromUserEmail(userPrincipal.getEmail());
+        return generateCookie(jwtCookieName, token, contextPath);
+    }
+
+
+    public ResponseCookie generateJwtCookie(Account account){
+        String token = generateTokenFromUserEmail(account.getEmail());
+        return generateCookie(jwtCookieName, token, contextPath);
+    }
+
+    /**
+     * Generate refresh token cookie
+     * @param refreshToken
+     * @return
+     */
+    public ResponseCookie generateJwtRefreshCookie(String refreshToken) {
+        return generateCookie(jwtRefreshCookieName, refreshToken, refreshTokenUrl);
+    }
+
+//    public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
+//        String jwt = generateTokenFromUserEmail(userPrincipal.getEmail());
+//        //TODO: sửa lại dòng này, đang fix cứng domain
+//        return ResponseCookie
+//                .from(jwtCookieName, jwt)
+//                .path("/karental")
+//                .maxAge(24 * 60 * 60)
+//                .httpOnly(true)
+//                .build();
+//
+//    }
 
 //    public ResponseCookie getCleanJwtCookie() {
 //        ResponseCookie cookie = ResponseCookie.from(jwtCookie, null).path("/api").build();
 //        return cookie;
 //    }
 
+    /**
+     * decode the token then get the email from the claim "sub"
+     * @param token
+     * @return
+     */
     public String getUserEmailFromJwtToken(String token) {
         return Jwts.parser()
                 .verifyWith(key())
@@ -86,7 +176,11 @@ public class JwtUtils {
     }
 
 
-
+    /**
+     * Validate the token
+     * @param authToken
+     * @return
+     */
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parser()
@@ -108,15 +202,7 @@ public class JwtUtils {
         }
     }
 
-    public String generateTokenFromUserEmail(String email) {
-        return Jwts.builder()
-                .subject(email)
-                .issuer("${spring.application.name}")
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration)) //set expiration date for token
-                .signWith(key()) //the algorithm is automatically determine by the api of jjwt
-                .compact();
-    }
+
 
 
 

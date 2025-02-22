@@ -53,7 +53,4 @@ public class Account {
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
     UserProfile profile;
 
-    @OneToMany (mappedBy = "account") //the Token would kep the foreign key in the properties account
-    List<Token> tokens;
-
 }

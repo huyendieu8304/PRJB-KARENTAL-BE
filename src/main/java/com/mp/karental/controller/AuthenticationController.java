@@ -1,9 +1,8 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.LoginRequest;
-import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.AuthenticationResponse;
 import com.mp.karental.service.AuthenticationService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -34,6 +33,11 @@ public class AuthenticationController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         return authenticationService.login(loginRequest);
+    }
+
+    @PostMapping("/refreshToken")
+    public ResponseEntity<?> refreshToken(HttpServletRequest request) {
+        return authenticationService.refreshToken(request);
     }
 
 

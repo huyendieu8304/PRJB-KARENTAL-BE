@@ -42,11 +42,12 @@ public class SecurityConfig{
     /**
      * Define public endpoints, the endpoint that could be accessed without needing to provide any authentication header
      */
-    private final String[] PUBLIC_ENDPOINTS = {
+    //TODO: tìm cách khác để define cái public enpoints này, dùng static không ổn lắm
+    public static final String[] PUBLIC_ENDPOINTS = {
             "/user/register",
-            "/auth/login"
+            "/auth/login",
+            "/auth/refreshToken"
     };
-
     /**
      * Allow request from other origins below
      */
@@ -98,7 +99,7 @@ public class SecurityConfig{
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint)) //unauthorized request
                 .exceptionHandling(e -> e.accessDeniedHandler(new CustomAccessDeniedHandler()))//unauthorized access
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //make each request independently
-                .authorizeHttpRequests(
+                .authorizeHttpRequests( //authorization in http url
                         request -> request
                                 //open public endpoints
                                 .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
