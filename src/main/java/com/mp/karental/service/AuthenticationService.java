@@ -3,6 +3,7 @@ package com.mp.karental.service;
 import com.mp.karental.dto.request.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.AuthenticationResponse;
+import com.mp.karental.entity.Account;
 import com.mp.karental.entity.RefreshToken;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
@@ -21,7 +22,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +36,8 @@ public class AuthenticationService {
     JwtUtils jwtUtils;
     RefreshTokenService refreshTokenService;
 
-    public ResponseEntity<?> login(LoginRequest request){
+    public ResponseEntity<?> login(LoginRequest request) {
+        //authenticate user's login information
         Authentication authentication = authenticationManager
                 .authenticate(
                         new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
@@ -48,49 +49,59 @@ public class AuthenticationService {
         //generate cookies
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         //Generate access token cookie
-        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
+        ResponseCookie accessTokenCookie = jwtUtils.generateAccessTokenCookie(userDetails);
 
         //Generate refresh token cookie
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getAccoutnId());
-        ResponseCookie jwtRefreshCookie = jwtUtils.generateJwtRefreshCookie(refreshToken.getToken());
+        ResponseCookie refreshTokenCookie = jwtUtils.generateRefreshTokenCookie(refreshToken.getToken());
 
-        //TODO: phải nhét role vào Response
+        //put role in response
         String role = userDetails.getRole().getName().toString();
-
+        ApiResponse<AuthenticationResponse> apiResponse = ApiResponse.<AuthenticationResponse>builder()
+                .data(new AuthenticationResponse(role))
+                .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString()) //return access token to cookies
-                .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString()) //return refresh token to cookies
-                .body(
-                        ApiResponse.<AuthenticationResponse>builder().data(new AuthenticationResponse(role)).build()
-                );
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString()) //return access token to cookies
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()) //return refresh token to cookies
+                .body(apiResponse);
 
     }
 
     public ResponseEntity<?> refreshToken(HttpServletRequest request) {
         //get the refresh token out from cookies
-        String refreshToken = jwtUtils.getJwtRefreshFromCookie(request);
+        String refreshToken = jwtUtils.getRefreshTokenFromCookie(request);
 
-        //refresh token exist in the cookies
-        if(refreshToken != null && !refreshToken.isEmpty()) {
-            return refreshTokenService.findByToken(refreshToken)
-                    .map(refreshTokenService::verifyExpiration)
-                    .map(RefreshToken::getAccount)
-                    .map(account -> {
-                        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(account);
-
-                        ApiResponse apiResponse = ApiResponse.<String>builder()
-                                .data("Successfully refresh token")
-                                .build();
-                        return ResponseEntity.ok()
-                                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
-                                .body(apiResponse);
-                    })
-                    .orElseThrow(() -> new AppException(ErrorCode.INVALID_REFRESH_TOKEN)); //refresh token not exist in db
-        } else {
-            //refresh token is empty
+        //refresh token not exist in the cookies
+        if (refreshToken == null || refreshToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
+
+        //find the token in the db
+        RefreshToken refreshTk = refreshTokenService.findByToken(refreshToken)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REFRESH_TOKEN)); //refresh token not exist in db
+
+        //verify the expiration of the refresh token
+        refreshTokenService.verifyExpiration(refreshTk);
+
+        //refresh token exist in db and not expired
+        Account account = refreshTk.getAccount();
+        //create new access token cookie
+        ResponseCookie accessTokenCookie = jwtUtils.generateAccessTokenCookie(account);
+
+        //delete old refresh token in db
+        refreshTokenService.deleteToken(refreshTk);
+        //create new refresh token cookie
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(account.getId()); //save to db
+        ResponseCookie refreshTokenCookie = jwtUtils.generateRefreshTokenCookie(newRefreshToken.getToken());
+
+        ApiResponse<String> apiResponse = ApiResponse.<String>builder()
+                .data("Successfully refresh token")
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(apiResponse);
     }
 
 

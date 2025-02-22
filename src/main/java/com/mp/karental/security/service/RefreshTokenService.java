@@ -1,6 +1,5 @@
 package com.mp.karental.security.service;
 
-import com.mp.karental.entity.Account;
 import com.mp.karental.entity.RefreshToken;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
@@ -17,12 +16,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class RefreshTokenService {
 
     @Value("${application.security.jwt.refresh-token-expiration}")
     @NonFinal
-//    private long refreshTokenExpiration;
-    private long refreshTokenDurationMs;
+    private long refreshTokenExpiration;
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
@@ -38,7 +37,7 @@ public class RefreshTokenService {
         //create an entity to save to the db
         RefreshToken refreshToken = RefreshToken.builder()
                 .account(accountRepository.findById(accountId).get())
-                .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
+                .expiryDate(Instant.now().plusMillis(refreshTokenExpiration))
                 .token(UUID.randomUUID().toString())
                 .build();
 
@@ -46,20 +45,23 @@ public class RefreshTokenService {
         return refreshToken;
     }
 
-    public RefreshToken verifyExpiration(RefreshToken refreshToken) {
+    public void verifyExpiration(RefreshToken refreshToken) {
         if(refreshToken.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(refreshToken);
             throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
-        return refreshToken;
     }
 
-    @Transactional
+
     public int deleteByAccountId(String accountId){
         //TODO: tối ưu lại hàm này
         return refreshTokenRepository.deleteByAccount(accountRepository.findById(accountId).get());
     }
 
+
+    public void deleteToken(RefreshToken refreshToken){
+        refreshTokenRepository.delete(refreshToken);
+    }
 
 
 

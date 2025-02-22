@@ -23,11 +23,11 @@ public class JwtUtils {
 
     @Value("${application.security.jwt.access-token-cookie-name}")
     @NonFinal
-    private String jwtCookieName;
+    private String accessTokenCookieName;
 
     @Value("${application.security.jwt.refresh-token-cookie-name}")
     @NonFinal
-    private String jwtRefreshCookieName;
+    private String refreshTokenCookieName;
 
     @Value("${application.security.jwt.secret-key}")
     @NonFinal
@@ -46,15 +46,15 @@ public class JwtUtils {
 
     /**
      * ==================================================================================
-     * Get jwt from coookies
+     * Get token from cookies
      */
     /**
      * Get the access token out from the request
      * @param request
      * @return
      */
-    public String getJwtRefreshFromCookie(HttpServletRequest request) {
-        return getCookieValueByName(request, jwtRefreshCookieName);
+    public String getRefreshTokenFromCookie(HttpServletRequest request) {
+        return getCookieValueByName(request, refreshTokenCookieName);
     }
 
     /**
@@ -62,8 +62,8 @@ public class JwtUtils {
      * @param request
      * @return
      */
-    public String getJwtFromCookie(HttpServletRequest request) {
-        return getCookieValueByName(request, jwtCookieName);
+    public String getAccessTokenFromCookie(HttpServletRequest request) {
+        return getCookieValueByName(request, accessTokenCookieName);
     }
 
     /**
@@ -92,7 +92,7 @@ public class JwtUtils {
      * @param email
      * @return
      */
-    private String generateTokenFromUserEmail(String email) {
+    private String generateAccessTokenFromUserEmail(String email) {
         return Jwts.builder()
                 .subject(email)
                 .issuer("${spring.application.name}")
@@ -116,15 +116,15 @@ public class JwtUtils {
      * @param userPrincipal
      * @return
      */
-    public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal){
-        String token = generateTokenFromUserEmail(userPrincipal.getEmail());
-        return generateCookie(jwtCookieName, token, contextPath);
+    public ResponseCookie generateAccessTokenCookie(UserDetailsImpl userPrincipal){
+        String token = generateAccessTokenFromUserEmail(userPrincipal.getEmail());
+        return generateCookie(accessTokenCookieName, token, contextPath);
     }
 
 
-    public ResponseCookie generateJwtCookie(Account account){
-        String token = generateTokenFromUserEmail(account.getEmail());
-        return generateCookie(jwtCookieName, token, contextPath);
+    public ResponseCookie generateAccessTokenCookie(Account account){
+        String token = generateAccessTokenFromUserEmail(account.getEmail());
+        return generateCookie(accessTokenCookieName, token, contextPath);
     }
 
     /**
@@ -132,21 +132,10 @@ public class JwtUtils {
      * @param refreshToken
      * @return
      */
-    public ResponseCookie generateJwtRefreshCookie(String refreshToken) {
-        return generateCookie(jwtRefreshCookieName, refreshToken, refreshTokenUrl);
+    public ResponseCookie generateRefreshTokenCookie(String refreshToken) {
+        return generateCookie(refreshTokenCookieName, refreshToken, refreshTokenUrl);
     }
 
-//    public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
-//        String jwt = generateTokenFromUserEmail(userPrincipal.getEmail());
-//        //TODO: sửa lại dòng này, đang fix cứng domain
-//        return ResponseCookie
-//                .from(jwtCookieName, jwt)
-//                .path("/karental")
-//                .maxAge(24 * 60 * 60)
-//                .httpOnly(true)
-//                .build();
-//
-//    }
 
 //    public ResponseCookie getCleanJwtCookie() {
 //        ResponseCookie cookie = ResponseCookie.from(jwtCookie, null).path("/api").build();
@@ -201,9 +190,5 @@ public class JwtUtils {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
     }
-
-
-
-
 
 }

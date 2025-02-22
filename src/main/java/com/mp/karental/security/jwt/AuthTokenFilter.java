@@ -48,7 +48,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         try {
             System.out.println("HELLO");
             //get jwt from the HTTP Cookies
-            String jwt = jwtUtils.getJwtFromCookie(request);
+            String jwt = jwtUtils.getAccessTokenFromCookie(request);
 
             // Validate JWT
             if (jwt == null || !jwtUtils.validateJwtToken(jwt)) {
