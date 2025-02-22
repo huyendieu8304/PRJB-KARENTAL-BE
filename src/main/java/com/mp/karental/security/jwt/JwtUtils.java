@@ -42,7 +42,7 @@ public class JwtUtils {
     private String contextPath;
 
     @NonFinal
-    private String refreshTokenUrl =  "/karental/auth/refreshToken";
+    private String refreshTokenUrl =  "/karental/auth/refresh-token";
 
     /**
      * ==================================================================================
@@ -102,6 +102,13 @@ public class JwtUtils {
                 .compact();
     }
 
+    /**
+     * Create cookie to return to the client
+     * @param cookieName the name of the cookie
+     * @param cookieValue the value of the cookie
+     * @param path the domain that this cookie sent along
+     * @return ResponseCookie object
+     */
     private ResponseCookie generateCookie(String cookieName, String cookieValue, String path) {
         return ResponseCookie
                 .from(cookieName, cookieValue)
@@ -113,15 +120,18 @@ public class JwtUtils {
 
     /**
      * Generate access token cookie
-     * @param userPrincipal
-     * @return
+     * @param userPrincipal the UserDetails object contain authenticated user's information
+     * @return ResponseCookie object
      */
     public ResponseCookie generateAccessTokenCookie(UserDetailsImpl userPrincipal){
         String token = generateAccessTokenFromUserEmail(userPrincipal.getEmail());
         return generateCookie(accessTokenCookieName, token, contextPath);
     }
-
-
+    /**
+     * Generate access token cookie
+     * @param account the Account object
+     * @return ResponseCookie object
+     */
     public ResponseCookie generateAccessTokenCookie(Account account){
         String token = generateAccessTokenFromUserEmail(account.getEmail());
         return generateCookie(accessTokenCookieName, token, contextPath);

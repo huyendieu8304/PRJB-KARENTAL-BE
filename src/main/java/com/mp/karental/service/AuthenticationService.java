@@ -105,13 +105,4 @@ public class AuthenticationService {
     }
 
 
-    //get loggin user's details
-//    UserDetails userDetails =
-//            (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-// userDetails.getUsername()
-// userDetails.getPassword()
-// userDetails.getAuthorities()
-
-
 }

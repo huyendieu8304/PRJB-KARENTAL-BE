@@ -35,13 +35,9 @@ public class AuthenticationController {
         return authenticationService.login(loginRequest);
     }
 
-    @PostMapping("/refreshToken")
+    @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(HttpServletRequest request) {
         return authenticationService.refreshToken(request);
     }
-
-
-
-
 
 }

@@ -9,9 +9,9 @@ application:
       access-token-cookie-name: karental-jwt
       refresh-token-cookie-name: karental-jwt-refresh
       #TODO: cái key này phải bỏ vào biến môi trường
-      secret-key: ${JWT_SECRET_KEY}
-      access-token-expiration: 86400000 #milisecond ~ 24 hours
-      refresh-token-expiration: 604800000 #~7days
+      secret-key: ${JWT_SECRET_KEY:65a4806f4b655d14bcdab9e12e173a1d0789372fe59f53cbde8c440cbe752617}
+      access-token-expiration: 3600000  #milisecond ~ 1 hours
+      refresh-token-expiration: 86400000 #~1day
 
       #FOR TEST
 #      access-token-expiration: 15000 #milisecond ~ 15s
