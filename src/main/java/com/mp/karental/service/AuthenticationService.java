@@ -45,9 +45,9 @@ public class AuthenticationService {
 
         //set Authentication in security context
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
         //generate cookies
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         //Generate access token cookie
         ResponseCookie accessTokenCookie = jwtUtils.generateAccessTokenCookie(userDetails);
 
@@ -89,8 +89,8 @@ public class AuthenticationService {
         //create new access token cookie
         ResponseCookie accessTokenCookie = jwtUtils.generateAccessTokenCookie(account);
 
-        //delete old refresh token in db
-        refreshTokenService.deleteToken(refreshTk);
+//        //delete old refresh token in db
+//        refreshTokenService.deleteToken(refreshTk);
         //create new refresh token cookie
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(account.getId()); //save to db
         ResponseCookie refreshTokenCookie = jwtUtils.generateRefreshTokenCookie(newRefreshToken.getToken());
@@ -105,4 +105,29 @@ public class AuthenticationService {
     }
 
 
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+
+        //get the refresh token out from cookies
+        String refreshToken = jwtUtils.getRefreshTokenFromCookie(request);
+
+        //TODO: invalidate những cái access token mà nó còn hạn
+
+        //refresh token exist in cookie
+        if (refreshToken != null && !refreshToken.isEmpty()) {
+            refreshTokenService.deleteRefreshToken(refreshToken);
+        }
+
+
+        ResponseCookie accessTokenCookie = jwtUtils.getCleanJwtCookie();
+        ResponseCookie refreshTokenCookie = jwtUtils.getCleanJwtRefreshCookie();
+        ApiResponse<String> apiResponse = ApiResponse.<String>builder()
+                .data("Successfully logged out")
+                .build();
+
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(apiResponse);
+    }
 }

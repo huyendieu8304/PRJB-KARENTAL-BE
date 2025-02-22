@@ -47,6 +47,7 @@ public class SecurityConfig{
             "/user/register",
             "/user/check-unique-email",
             "/auth/login",
+            "/auth/logout",
             "/auth/refreshToken"
     };
     /**

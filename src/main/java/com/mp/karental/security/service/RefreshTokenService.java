@@ -34,8 +34,13 @@ public class RefreshTokenService {
     }
 
     public RefreshToken createRefreshToken(String accountId) {
+        //only allow the user login in a client at the same time
+        //delete the exist refresh token of user in db
+        //TODO: tối ưu lại hàm này
+        refreshTokenRepository.deleteByAccount(accountRepository.findById(accountId).get());
         //create an entity to save to the db
         RefreshToken refreshToken = RefreshToken.builder()
+                //TODO: this is Optional Object
                 .account(accountRepository.findById(accountId).get())
                 .expiryDate(Instant.now().plusMillis(refreshTokenExpiration))
                 .token(UUID.randomUUID().toString())
@@ -53,17 +58,9 @@ public class RefreshTokenService {
     }
 
 
-    public int deleteByAccountId(String accountId){
-        //TODO: tối ưu lại hàm này
-        return refreshTokenRepository.deleteByAccount(accountRepository.findById(accountId).get());
+    public void deleteRefreshToken(String token){
+        refreshTokenRepository.delete(refreshTokenRepository.findByToken(token).get());
     }
-
-
-    public void deleteToken(RefreshToken refreshToken){
-        refreshTokenRepository.delete(refreshToken);
-    }
-
-
 
 
 }

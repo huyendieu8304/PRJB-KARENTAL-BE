@@ -146,11 +146,20 @@ public class JwtUtils {
         return generateCookie(refreshTokenCookieName, refreshToken, refreshTokenUrl);
     }
 
+    /**
+     * ==================================================================================
+     * Clean jwt cookies (used when user logout)
+     */
 
-//    public ResponseCookie getCleanJwtCookie() {
-//        ResponseCookie cookie = ResponseCookie.from(jwtCookie, null).path("/api").build();
-//        return cookie;
-//    }
+    public ResponseCookie getCleanJwtCookie() {
+        ResponseCookie cookie = ResponseCookie.from(accessTokenCookieName, null).path(contextPath).build();
+        return cookie;
+    }
+
+    public ResponseCookie getCleanJwtRefreshCookie() {
+        ResponseCookie cookie = ResponseCookie.from(refreshTokenCookieName, null).path(refreshTokenUrl).build();
+        return cookie;
+    }
 
     /**
      * decode the token then get the email from the claim "sub"
