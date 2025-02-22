@@ -45,6 +45,7 @@ public class SecurityConfig{
     //TODO: tìm cách khác để define cái public enpoints này, dùng static không ổn lắm
     public static final String[] PUBLIC_ENDPOINTS = {
             "/user/register",
+            "/user/check-unique-email",
             "/auth/login",
             "/auth/refreshToken"
     };
