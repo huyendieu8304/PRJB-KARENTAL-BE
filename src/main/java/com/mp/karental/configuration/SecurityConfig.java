@@ -33,7 +33,8 @@ public class SecurityConfig {
      * Define public endpoints, the endpoint that could be accessed without needing to provide any authentication header
      */
     private final String[] PUBLIC_ENDPOINTS = {
-            "/user/register"
+            "/user/register",
+            "/car/my-cars"
     };
 
     /**
@@ -65,7 +66,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(
                         request -> request
                                 //open public endpoints
-                                .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+                                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                 .anyRequest().authenticated()
         ).cors(corsConfig -> corsConfig.configurationSource(new CorsConfigurationSource() {
                     @Override

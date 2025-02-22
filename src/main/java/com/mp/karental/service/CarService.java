@@ -3,20 +3,19 @@ package com.mp.karental.service;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.CarResponse;
+import com.mp.karental.dto.response.ViewMyCarResponse;
 import com.mp.karental.entity.Car;
-import com.mp.karental.exception.AppException;
-import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.CarRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 /**
  * Service class for handling car operations.
@@ -103,9 +102,57 @@ public class CarService {
         car.setTermOfUse(request.getTermOfUse());
         car.setStatus(ECarStatus.AVAILABLE.name());
 
-        // Lưu vào database
+        // Stored database
         return carMapper.toCarResponse(carRepository.save(car));
     }
+
+    public ViewMyCarResponse getCarsByUserId(int page, int size) {
+        String accountId = "acc1"; // Simulate user ID
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Take List Car from DB (Car still have UserProfile)
+        Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
+
+        //TODO: add 3 **attribute** : ratings, noOfRides, pricePerDay
+        // Create List new Car haven't UserProfile
+        Page<Car> carsWithoutUserProfile = cars.map(car ->
+                new Car(
+                        car.getId(),
+                        car.getLicensePlate(),
+                        car.getBrand(),
+                        car.getModel(),
+                        car.getStatus(),
+                        car.getColor(),
+                        car.getNumberOfSeats(),
+                        car.getProductionYear(),
+                        car.getMileage(),
+                        car.getFuelConsumption(),
+                        car.getBasePrice(),
+                        car.getDeposit(),
+                        car.getReservationPrice(),
+                        car.getAddress(),
+                        car.getDescription(),
+                        car.getAdditionalFunction(),
+                        car.getTermOfUse(),
+                        car.isAutomatic(),
+                        car.isGasoline(),
+                        car.getRegistrationPaperUri(),
+                        car.isRegistrationPaperUriIsVerified(),
+                        car.getCertificateOfInspectionUri(),
+                        car.isCertificateOfInspectionUriIsVerified(),
+                        car.getInsuranceUri(),
+                        car.isInsuranceUriIsVerified(),
+                        car.getCarImageFront(),
+                        car.getCarImageBack(),
+                        car.getCarImageLeft(),
+                        car.getCarImageRight(),
+                        null // Set UserProfile to null to avoid two-way mapping.
+                )
+        );
+
+        return new ViewMyCarResponse(carsWithoutUserProfile);
+    }
+
 
 
 }
