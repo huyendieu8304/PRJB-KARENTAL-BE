@@ -8,14 +8,17 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.WebUtils;
 
 import java.io.IOException;
 
@@ -27,6 +30,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
     UserDetailsServiceImpl userDetailsService;
 
+    @Value("${application.security.jwt.access-token-cookie-name}")
+    @NonFinal
+    private String accessTokenCookieName;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -38,28 +44,24 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         String path = uri.substring(contextPath.length());
         //Skip authentication with public endpoints
         for(String publicEndpoint : SecurityConfig.PUBLIC_ENDPOINTS){
-            System.out.println(path+" "+publicEndpoint);
             if(path.equals(publicEndpoint)){
                 filterChain.doFilter(request, response);
                 return;
             }
         }
 
+        String jwt = null;
         try {
-            System.out.println("HELLO");
             //get jwt from the HTTP Cookies
-            String jwt = jwtUtils.getAccessTokenFromCookie(request);
+            jwt = WebUtils.getCookie(request, accessTokenCookieName).getValue();
+            //validate jwt
+            jwtUtils.validateJwtAccessToken(jwt);
 
-            // Validate JWT
-            if (jwt == null || !jwtUtils.validateJwtToken(jwt)) {
-                // If JWT invalid, continue filter without process Authentication
-                filterChain.doFilter(request, response);
-                return;
-            }
+            //TODO: kiêmr tra xem cái token này nó có nằm trong token bị invalidated do logout hay không
 
-            //request has JWT  and JWT is valid
+            // JWT is valid
             //get the email of the user to
-            String email = jwtUtils.getUserEmailFromJwtToken(jwt);
+            String email = jwtUtils.getUserEmailFromAccessToken(jwt);
 
             //Load UserDetails
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
@@ -74,10 +76,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             //set up UserDetails in current SecurityContext
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        } catch (Exception e) {
-            // token expired
-            throw new AppException(ErrorCode.UNABLE_TO_SET_USER_AUTHENTICATION);
+        } catch (NullPointerException e) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
+
         //continue filter chain
         filterChain.doFilter(request, response);
     }

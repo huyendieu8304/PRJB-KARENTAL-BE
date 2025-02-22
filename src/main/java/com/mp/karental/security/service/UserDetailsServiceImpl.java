@@ -21,7 +21,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Transactional
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         //TODO: check whether this exception is catched
-        Account account = accountRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.INVALID_LOGIN_INFORMATION));
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_LOGIN_INFORMATION));
 
         if (!account.isActive()){
             //the account of user has banned

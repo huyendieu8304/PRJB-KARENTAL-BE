@@ -6,10 +6,11 @@ server:
 application:
   security:
     jwt:
+      access-token-secret-key: ${JWT_ACCESS_SECRET_KEY:k6jc9lypr7vm7api0r9v7y2k1c37hr4hneeqlkm93lr355hran2nhpwhqv8pnuqvbq29a2tfsfcf9ebikbn0arzllmhjrp7hp4z3emfxqyozg2hrozcyhmxaa1wulr7s}
       access-token-cookie-name: karental-jwt
       refresh-token-cookie-name: karental-jwt-refresh
       #TODO: cái key này phải bỏ vào biến môi trường
-      secret-key: ${JWT_SECRET_KEY:65a4806f4b655d14bcdab9e12e173a1d0789372fe59f53cbde8c440cbe752617}
+      refresh-token-secret-key: ${JWT_REFRESH_SECRET_KEY:4iyhevpv5jvq34g7ugtzw1dyuegkq683gctxs9xzye9ufwee6y7w6b0pwxc00na4te7s4w0e3rw1tu5756ws3pi58unz9chg4f04bh9bw9kyfftieupth6x3gy80saus}
       access-token-expiration: 3600000  #milisecond ~ 1 hours
       refresh-token-expiration: 86400000 #~1day
 

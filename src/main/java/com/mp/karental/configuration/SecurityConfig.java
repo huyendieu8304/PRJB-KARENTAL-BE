@@ -104,7 +104,7 @@ public class SecurityConfig{
                 .authorizeHttpRequests( //authorization in http url
                         request -> request
                                 //open public endpoints
-                                .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+                                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                 //endpoints for user has role CAR_OWNER
                                 .requestMatchers("/car-owner/**").hasRole("CAR_OWNER")
                                 .requestMatchers("/customer/**").hasRole("CUSTOMER")

@@ -4,27 +4,23 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.Instant;
+import java.util.Date;
 
 @Entity
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class RefreshToken {
+public class InvalidateRefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, columnDefinition = "TEXT")
     String token;
 
-    @Column(nullable = false)
-    Instant expiryDate;
+    @Column(name = "expires_at", nullable = false)
+    Date expiresAt;
 
-    @OneToOne
-    @JoinColumn(name = "account_id", referencedColumnName = "id")
-    Account account;
 }
