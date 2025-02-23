@@ -14,7 +14,6 @@ import java.util.List;
  * </p>
  *
  * @author QuangPM20
- *
  * @version 1.0
  */
 @Entity
@@ -43,16 +42,16 @@ public class Car {
     @Column(nullable = false)
     String color;
 
-    @Column(name = "number_of_seats",nullable = false)
+    @Column(name = "number_of_seats", nullable = false)
     int numberOfSeats;
 
-    @Column(name = "production_year",nullable = false)
+    @Column(name = "production_year", nullable = false)
     int productionYear;
     @Column(nullable = false)
     float mileage;
     @Column(name = "fuel_consumption")
     float fuelConsumption;
-    @Column(name = "base_price",nullable = false)
+    @Column(name = "base_price", nullable = false)
     int basePrice;
     @Column(nullable = false)
     int deposit;
@@ -75,31 +74,32 @@ public class Car {
     boolean isGasoline = true;
 
     //documents
-    @Column(name = "registration_paper_uri",columnDefinition = "Text", nullable = false)
+    @Column(name = "registration_paper_uri")
     String registrationPaperUri;
     @Column(nullable = false)
     boolean registrationPaperUriIsVerified = true;
-    @Column(name = "certificate_of_inspection_uri",columnDefinition = "Text", nullable = false)
+    @Column(name = "certificate_of_inspection_uri")
     String certificateOfInspectionUri;
     @Column(nullable = false)
     boolean certificateOfInspectionUriIsVerified = true;
-    @Column(name = "insurance_uri",columnDefinition = "Text", nullable = false)
+    @Column(name = "insurance_uri")
     String insuranceUri;
     @Column(nullable = false)
     boolean insuranceUriIsVerified = true;
 
     //car image
-    @Column(name = "car_image_front",columnDefinition = "Text", nullable = false)
+    //TODO: set default value as a real uri in s3
+    @Column(name = "car_image_front")
     String carImageFront;
-    @Column(name = "car_image_back",columnDefinition = "Text", nullable = false)
+    @Column(name = "car_image_back")
     String carImageBack;
-    @Column(name = "car_image_left",columnDefinition = "Text", nullable = false)
+    @Column(name = "car_image_left")
     String carImageLeft;
-    @Column(name = "car_image_right",columnDefinition = "Text", nullable = false)
+    @Column(name = "car_image_right")
     String carImageRight;
 
     @ManyToOne
-    @JoinColumn(name = "account_id", referencedColumnName = "id")
-    UserProfile accountId;
+    @JoinColumn(name = "account_id")
+    Account account;
 
 }

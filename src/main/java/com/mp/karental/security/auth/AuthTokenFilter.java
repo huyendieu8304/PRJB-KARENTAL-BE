@@ -71,8 +71,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         jwtUtils.validateJwtAccessToken(jwt);
 
         //token still valid -> check whether it invalidated (by logout or something else)
-        invalidateAccessTokenRepo.findByToken(jwt)
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+////        TODO: test laij cho nay
+//        invalidateAccessTokenRepo.findByToken(jwt)
+//                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
         // JWT is valid
         //get the email of the user to

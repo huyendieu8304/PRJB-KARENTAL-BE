@@ -48,7 +48,4 @@ public class UserProfile {
     @Column(unique = true, columnDefinition = "VARCHAR(12)")
     String drivingLicense;
 
-    @OneToMany(mappedBy = "accountId", cascade = CascadeType.ALL)
-    List<Car> cars;
-
 }
