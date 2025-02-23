@@ -9,9 +9,9 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 
 /**
- * Represents the response  for list user car.
+ * Represents the response for a list of user's cars.
  * <p>
- * This class show list all car of user..
+ * This class is used to return a paginated list of cars owned by a user.
  * </p>
  *
  * @author AnhHP9
