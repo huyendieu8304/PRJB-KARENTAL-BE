@@ -56,8 +56,6 @@ public class Car {
     int basePrice;
     @Column(nullable = false)
     int deposit;
-    @Column(name = "reservation_price",nullable = false)
-    int reservationPrice;
 
     @Column(nullable = false)
     String address;
@@ -80,15 +78,15 @@ public class Car {
     @Column(name = "registration_paper_uri",columnDefinition = "Text", nullable = false)
     String registrationPaperUri;
     @Column(nullable = false)
-    boolean registrationPaperUriIsVerified;
+    boolean registrationPaperUriIsVerified = true;
     @Column(name = "certificate_of_inspection_uri",columnDefinition = "Text", nullable = false)
     String certificateOfInspectionUri;
     @Column(nullable = false)
-    boolean certificateOfInspectionUriIsVerified;
+    boolean certificateOfInspectionUriIsVerified = true;
     @Column(name = "insurance_uri",columnDefinition = "Text", nullable = false)
     String insuranceUri;
     @Column(nullable = false)
-    boolean insuranceUriIsVerified;
+    boolean insuranceUriIsVerified = true;
 
     //car image
     @Column(name = "car_image_front",columnDefinition = "Text", nullable = false)

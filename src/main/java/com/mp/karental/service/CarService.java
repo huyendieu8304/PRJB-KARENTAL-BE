@@ -35,61 +35,48 @@ public class CarService {
     CarMapper carMapper;
     FileService fileService;
 
-    public CarResponse addNewCar(AddCarRequest request) {
+    public CarResponse addNewCar(AddCarRequest request) throws AppException {
 
         Car car = carMapper.toCar(request);
 
-
         // 🖇 Upload tài liệu
-        if (request.getRegistrationPaper() != null) {
-            String s3Key = String.format("car/%s/documents/registration-paper", car.getAccountId());
-            fileService.uploadFile(request.getRegistrationPaper(), s3Key);
-            car.setRegistrationPaperUri(fileService.getFileUrl(s3Key));
-        }
+            String s3KeyRegistration = String.format("car/%s/documents/registration-paper", car.getAccountId());
+            fileService.uploadFile(request.getRegistrationPaper(), s3KeyRegistration);
+            car.setRegistrationPaperUri(fileService.getFileUrl(s3KeyRegistration));
 
-        if (request.getCertificateOfInspection() != null) {
-            String s3Key = String.format("car/%s/documents/certicipate-of-inspection", car.getAccountId());
-            fileService.uploadFile(request.getCertificateOfInspection(), s3Key);
-            car.setCertificateOfInspectionUri(fileService.getFileUrl(s3Key));
-        }
+            String s3KeyCerticipate = String.format("car/%s/documents/certicipate-of-inspection", car.getAccountId());
+            fileService.uploadFile(request.getCertificateOfInspection(), s3KeyCerticipate);
+            car.setCertificateOfInspectionUri(fileService.getFileUrl(s3KeyCerticipate));
 
-        if (request.getInsurance() != null) {
-            String s3Key = String.format("car/%s/documents/insurance", car.getAccountId());
-            fileService.uploadFile(request.getInsurance(), s3Key);
-            car.setInsuranceUri(fileService.getFileUrl(s3Key));
-        }
+            String s3KeyInsurance = String.format("car/%s/documents/insurance", car.getAccountId());
+            fileService.uploadFile(request.getInsurance(), s3KeyInsurance);
+            car.setInsuranceUri(fileService.getFileUrl(s3KeyInsurance));
 
         // 🏎 Upload hình ảnh xe
-        if (request.getCarImageFront() != null) {
-            String s3Key = String.format("car/%s/images/front", car.getAccountId());
-            fileService.uploadFile(request.getCarImageFront(), s3Key);
-            car.setCarImageFront(fileService.getFileUrl(s3Key));
-        }
+            String s3KeyImageFront = String.format("car/%s/images/front", car.getAccountId());
+            fileService.uploadFile(request.getCarImageFront(), s3KeyImageFront);
+            car.setCarImageFront(fileService.getFileUrl(s3KeyImageFront));
 
-        if (request.getCarImageBack() != null) {
-            String s3Key = String.format("car/%s/images/back", car.getAccountId());
-            fileService.uploadFile(request.getCarImageBack(), s3Key);
-            car.setCarImageBack(fileService.getFileUrl(s3Key));
-        }
+            String s3KeyImageBack = String.format("car/%s/images/back", car.getAccountId());
+            fileService.uploadFile(request.getCarImageBack(), s3KeyImageBack);
+            car.setCarImageBack(fileService.getFileUrl(s3KeyImageBack));
 
-        if (request.getCarImageLeft() != null) {
-            String s3Key = String.format("car/%s/images/left", car.getAccountId());
-            fileService.uploadFile(request.getCarImageLeft(), s3Key);
-            car.setCarImageLeft(fileService.getFileUrl(s3Key));
-        }
+            String s3KeyImageLeft = String.format("car/%s/images/left", car.getAccountId());
+            fileService.uploadFile(request.getCarImageLeft(), s3KeyImageLeft);
+            car.setCarImageLeft(fileService.getFileUrl(s3KeyImageLeft));
 
-        if (request.getCarImageRight() != null) {
-            String s3Key = String.format("car/%s/images/right", car.getAccountId());
-            fileService.uploadFile(request.getCarImageRight(), s3Key);
-            car.setCarImageRight(fileService.getFileUrl(s3Key));
-        }
+            String s3KeyImageRight = String.format("car/%s/images/right", car.getAccountId());
+            fileService.uploadFile(request.getCarImageRight(), s3KeyImageRight);
+            car.setCarImageRight(fileService.getFileUrl(s3KeyImageRight));
 
         // Lưu vào DB
         car.setLicensePlate(request.getLicensePlate());
         car.setColor(request.getColor());
         car.setBrand(request.getBrand());
         car.setModel(request.getModel());
-        car.setAdditionalFunction(request.getAdditionalFunction());
+
+        car.setAdditionalFunction(request.getAdditionalFunction() );
+
         car.setDeposit(request.getDeposit());
         car.setMileage(request.getMileage());
         car.setBasePrice(request.getBasePrice());
@@ -98,13 +85,20 @@ public class CarService {
         car.setFuelConsumption(request.getFuelConsumption());
         car.setNumberOfSeats(request.getNumberOfSeats());
         car.setProductionYear(request.getProductionYear());
-        car.setAutomatic(request.isAutomatic());
-        car.setGasoline(request.isGasoline());
         car.setTermOfUse(request.getTermOfUse());
         car.setStatus(ECarStatus.AVAILABLE.name());
+        car.setAutomatic(request.isAutomatic());
+        car.setGasoline(request.isGasoline());
+
 
         // Lưu vào database
-        return carMapper.toCarResponse(carRepository.save(car));
+        Car savedCar = carRepository.save(car);
+        System.out.println("Before mapping: isAutomatic = " + savedCar.isAutomatic() + ", isGasoline = " + savedCar.isGasoline());
+
+        CarResponse response = carMapper.toCarResponse(savedCar);
+        System.out.println("After mapping: isAutomatic = " + response.isAutomatic() + ", isGasoline = " + response.isGasoline());
+
+        return response;
     }
 
 

@@ -23,21 +23,20 @@ public class CarResponse {
     float fuelConsumption;
     int basePrice;
     int deposit;
-    int reservationPrice;
     String address;
     String description;
     String additionalFunction;
     String termOfUse;
-    boolean isAutomatic ;
+    boolean isAutomatic;
     boolean isGasoline;
 
     //documents
     String registrationPaperUri;
-    boolean registrationPaperUriIsVerified=true;
+    boolean registrationPaperUriIsVerified;
     String certificateOfInspectionUri;
-    boolean certificateOfInspectionUriIsVerified=true;
+    boolean certificateOfInspectionUriIsVerified;
     String insuranceUri;
-    boolean insuranceUriIsVerified=true;
+    boolean insuranceUriIsVerified;
 
     //car image
     String carImageFront;

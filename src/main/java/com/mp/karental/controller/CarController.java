@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,11 +21,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
+@Validated
 public class CarController {
     CarService carService;
 
     @PostMapping(value = "/addCar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<CarResponse> addNewCar(@ModelAttribute AddCarRequest request)
+    ApiResponse<CarResponse> addNewCar(@ModelAttribute @Valid AddCarRequest request)
     {
         log.info("add new car {}", request);
         return ApiResponse.<CarResponse>builder()
