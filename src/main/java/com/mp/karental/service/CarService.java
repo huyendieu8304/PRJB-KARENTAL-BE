@@ -7,6 +7,7 @@ import com.mp.karental.dto.response.ViewMyCarResponse;
 import com.mp.karental.entity.Car;
 import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.CarRepository;
+import com.mp.karental.security.SecurityUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -107,7 +108,7 @@ public class CarService {
     }
 
     public ViewMyCarResponse getCarsByUserId(int page, int size) {
-        String accountId = "acc1"; // Simulate user ID
+        String accountId = SecurityUtil.getCurrentAccountId();
         Pageable pageable = PageRequest.of(page, size);
 
         // Take List Car from DB (Car still have UserProfile)
