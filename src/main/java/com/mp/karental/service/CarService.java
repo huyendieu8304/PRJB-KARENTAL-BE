@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Sort;
 
 /**
  * Service class for handling car operations.
@@ -107,15 +108,21 @@ public class CarService {
         return carMapper.toCarResponse(carRepository.save(car));
     }
 
-    public ViewMyCarResponse getCarsByUserId(int page, int size) {
+    public ViewMyCarResponse getCarsByUserId(int page, int size, String sort) {
         String accountId = SecurityUtil.getCurrentAccountId();
-        Pageable pageable = PageRequest.of(page, size);
 
-        // Take List Car from DB (Car still have UserProfile)
+        // Define sort direction
+
+        String[] sortParams = sort.split(",");
+        String sortField = sortParams[0];
+        Sort.Direction sortDirection = Sort.Direction.fromString(sortParams[1]);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+
+        // Get list cars
         Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
 
-        //TODO: add 3 **attribute** : ratings, noOfRides, pricePerDay
-        // Create List new Car haven't UserProfile
+        // Ánh xạ dữ liệu để loại bỏ UserProfile
         Page<Car> carsWithoutUserProfile = cars.map(car ->
                 new Car(
                         car.getId(),
@@ -147,7 +154,7 @@ public class CarService {
                         car.getCarImageBack(),
                         car.getCarImageLeft(),
                         car.getCarImageRight(),
-                        null // Set UserProfile to null to avoid two-way mapping.
+                        null // Set UserProfile to null to tránh vòng lặp
                 )
         );
 
