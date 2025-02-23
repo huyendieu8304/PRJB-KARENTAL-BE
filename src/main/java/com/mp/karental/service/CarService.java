@@ -3,20 +3,23 @@ package com.mp.karental.service;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.CarResponse;
+import com.mp.karental.dto.response.ViewMyCarResponse;
 import com.mp.karental.entity.Car;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.CarRepository;
+import com.mp.karental.security.SecurityUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
+import org.springframework.data.domain.Sort;
 
 /**
  * Service class for handling car operations.
@@ -93,13 +96,65 @@ public class CarService {
 
         // Lưu vào database
         Car savedCar = carRepository.save(car);
-        System.out.println("Before mapping: isAutomatic = " + savedCar.isAutomatic() + ", isGasoline = " + savedCar.isGasoline());
 
         CarResponse response = carMapper.toCarResponse(savedCar);
-        System.out.println("After mapping: isAutomatic = " + response.isAutomatic() + ", isGasoline = " + response.isGasoline());
 
         return response;
     }
+
+    public ViewMyCarResponse getCarsByUserId(int page, int size, String sort) {
+        String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Define sort direction
+
+        String[] sortParams = sort.split(",");
+        String sortField = sortParams[0];
+        Sort.Direction sortDirection = Sort.Direction.fromString(sortParams[1]);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+
+        // Get list cars
+        Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
+
+        // Ánh xạ dữ liệu để loại bỏ UserProfile
+        Page<Car> carsWithoutUserProfile = cars.map(car ->
+                new Car(
+                        car.getId(),
+                        car.getLicensePlate(),
+                        car.getBrand(),
+                        car.getModel(),
+                        car.getStatus(),
+                        car.getColor(),
+                        car.getNumberOfSeats(),
+                        car.getProductionYear(),
+                        car.getMileage(),
+                        car.getFuelConsumption(),
+                        car.getBasePrice(),
+                        car.getDeposit(),
+                        car.getReservationPrice(),
+                        car.getAddress(),
+                        car.getDescription(),
+                        car.getAdditionalFunction(),
+                        car.getTermOfUse(),
+                        car.isAutomatic(),
+                        car.isGasoline(),
+                        car.getRegistrationPaperUri(),
+                        car.isRegistrationPaperUriIsVerified(),
+                        car.getCertificateOfInspectionUri(),
+                        car.isCertificateOfInspectionUriIsVerified(),
+                        car.getInsuranceUri(),
+                        car.isInsuranceUriIsVerified(),
+                        car.getCarImageFront(),
+                        car.getCarImageBack(),
+                        car.getCarImageLeft(),
+                        car.getCarImageRight(),
+                        null // Set UserProfile to null to tránh vòng lặp
+                )
+        );
+
+        return new ViewMyCarResponse(carsWithoutUserProfile);
+    }
+
 
 
 }

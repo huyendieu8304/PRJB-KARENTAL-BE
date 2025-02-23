@@ -224,6 +224,8 @@ public class AuthenticationService {
                 .path(path)
                 .maxAge(maxAgeMiliseconds / 1000) // seconds ~ 1days
                 .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
                 .build();
     }
 

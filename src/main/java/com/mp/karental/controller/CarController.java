@@ -3,8 +3,8 @@ package com.mp.karental.controller;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.CarResponse;
+import com.mp.karental.dto.response.ViewMyCarResponse;
 import com.mp.karental.service.CarService;
-import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -12,9 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/car")
@@ -34,4 +31,20 @@ public class CarController {
                 .build();
 
     }
+
+    @GetMapping("/my-cars")
+    public ApiResponse<ViewMyCarResponse> getCars(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "productionYear,DESC") String sort) {
+        ViewMyCarResponse cars = carService.getCarsByUserId(page, size, sort);
+        return ApiResponse.<ViewMyCarResponse>builder()
+                .data(cars)
+                .build();
+    }
+
+
+
+
+
 }
