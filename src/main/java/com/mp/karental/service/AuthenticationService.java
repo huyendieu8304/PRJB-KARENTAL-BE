@@ -78,7 +78,7 @@ public class AuthenticationService {
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
 
-    public ResponseEntity<?> login(LoginRequest request) {
+    public ResponseEntity<ApiResponse<?>> login(LoginRequest request) {
         //authenticate user's login information
         Authentication authentication = null;
 
@@ -107,7 +107,6 @@ public class AuthenticationService {
                 .build();
 
         return sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);
-
     }
 
     private ResponseEntity<ApiResponse<?>> sendApiResponseResponseEntity(String accessToken, String refreshToken, ApiResponse<?> apiResponse) {
@@ -125,7 +124,7 @@ public class AuthenticationService {
                 .body(apiResponse);
     }
 
-    public ResponseEntity<?> refreshToken(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<?>> refreshToken(HttpServletRequest request) {
         //get the refresh token out from cookies
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
 
@@ -167,7 +166,7 @@ public class AuthenticationService {
         return sendApiResponseResponseEntity(newAccessToken, newRefreshToken, apiResponse);
     }
 
-    public ResponseEntity<?> logout(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request) {
 
         //get tokens out from cookies
         String accessToken = getCookieValueByName(request, accessTokenCookieName);

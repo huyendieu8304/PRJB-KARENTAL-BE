@@ -57,6 +57,11 @@ public class UserController {
                 .build();
     }
 
+    /**
+     * this method check whether the email exist in the db or not
+     * @param request Object contain email
+     * @return ApiResponse Object
+     */
     @PostMapping("/check-unique-email")
     ApiResponse<UserResponse> registerAccount(@RequestBody @Valid CheckUniqueEmailRequest request){
         return ApiResponse.<UserResponse>builder()
@@ -64,10 +69,5 @@ public class UserController {
     }
 
 
-
-//    @GetMapping
-//    ResponseEntity<?> getResponse(){
-//        return ResponseEntity.ok()
-//    }
 
 }

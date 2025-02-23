@@ -9,6 +9,9 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,11 +27,12 @@ import org.springframework.web.util.WebUtils;
 import java.io.IOException;
 
 @Component
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class AuthTokenFilter extends OncePerRequestFilter {
-    @Autowired
+
     JwtUtils jwtUtils;
-    @Autowired
     UserDetailsServiceImpl userDetailsService;
 
     @Value("${application.security.jwt.access-token-cookie-name}")
