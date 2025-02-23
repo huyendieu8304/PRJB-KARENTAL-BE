@@ -4,6 +4,7 @@ import com.mp.karental.dto.request.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.LoginResponse;
 import com.mp.karental.entity.Account;
+import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.entity.InvalidateAccessToken;
 import com.mp.karental.security.entity.InvalidateRefreshToken;
 import com.mp.karental.exception.AppException;
@@ -25,6 +26,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -73,14 +75,21 @@ public class AuthenticationService {
     JwtUtils jwtUtils;
     InvalidateAccessTokenRepo invalidateAccessTokenRepo;
     InvalidateRefreshTokenRepo invalidateRefreshTokenRepo;
-    private final AccountRepository accountRepository;
+    AccountRepository accountRepository;
+    UserProfileRepository userProfileRepository;
 
     public ResponseEntity<?> login(LoginRequest request) {
         //authenticate user's login information
-        Authentication authentication = authenticationManager
-                .authenticate(
-                        new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-                );
+        Authentication authentication = null;
+
+        try {
+            authentication = authenticationManager
+                    .authenticate(
+                            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                    );
+        } catch (BadCredentialsException e){
+            throw new AppException(ErrorCode.INVALID_LOGIN_INFORMATION);
+        }
 
         //set Authentication in security context
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -90,10 +99,11 @@ public class AuthenticationService {
         String accessToken = jwtUtils.generateAccessTokenFromUserEmail(userDetails.getEmail());
         String refreshToken = jwtUtils.generateRefreshTokenFromAccountId(userDetails.getAccoutnId());
 
-        //put role in response
+        //put user's role and fullname in response
         String role = userDetails.getRole().getName().toString();
+        String fullName = userProfileRepository.findById(userDetails.getAccoutnId()).get().getFullName();
         ApiResponse<LoginResponse> apiResponse = ApiResponse.<LoginResponse>builder()
-                .data(new LoginResponse(role))
+                .data(new LoginResponse(role, fullName))
                 .build();
 
         return sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);
