@@ -4,6 +4,8 @@ import com.mp.karental.configuration.SecurityConfig;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.security.JwtUtils;
+import com.mp.karental.security.entity.InvalidateAccessToken;
+import com.mp.karental.security.repository.InvalidateAccessTokenRepo;
 import com.mp.karental.security.service.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,12 +34,13 @@ import java.io.IOException;
 @Slf4j
 public class AuthTokenFilter extends OncePerRequestFilter {
 
-    JwtUtils jwtUtils;
-    UserDetailsServiceImpl userDetailsService;
-
     @Value("${application.security.jwt.access-token-cookie-name}")
     @NonFinal
     private String accessTokenCookieName;
+
+    JwtUtils jwtUtils;
+    UserDetailsServiceImpl userDetailsService;
+    InvalidateAccessTokenRepo invalidateAccessTokenRepo;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -48,8 +51,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         String contextPath = request.getContextPath();
         String path = uri.substring(contextPath.length());
         //Skip authentication with public endpoints
-        for(String publicEndpoint : SecurityConfig.PUBLIC_ENDPOINTS){
-            if(path.equals(publicEndpoint)){
+        for (String publicEndpoint : SecurityConfig.PUBLIC_ENDPOINTS) {
+            if (path.equals(publicEndpoint)) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -59,31 +62,34 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         try {
             //get jwt from the HTTP Cookies
             jwt = WebUtils.getCookie(request, accessTokenCookieName).getValue();
-            //validate jwt
-            jwtUtils.validateJwtAccessToken(jwt);
-
-            //TODO: kiêmr tra xem cái token này nó có nằm trong token bị invalidated do logout hay không
-
-            // JWT is valid
-            //get the email of the user to
-            String email = jwtUtils.getUserEmailFromAccessToken(jwt);
-
-            //Load UserDetails
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails,
-                            null,
-                            userDetails.getAuthorities());
-
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-            //set up UserDetails in current SecurityContext
-            SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (NullPointerException e) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
+
+        //validate jwt
+        jwtUtils.validateJwtAccessToken(jwt);
+
+        //token still valid -> check whether it invalidated (by logout or something else)
+        invalidateAccessTokenRepo.findByToken(jwt)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+
+        // JWT is valid
+        //get the email of the user to
+        String email = jwtUtils.getUserEmailFromAccessToken(jwt);
+
+        //Load UserDetails
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(userDetails,
+                        null,
+                        userDetails.getAuthorities());
+
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+        //set up UserDetails in current SecurityContext
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         //continue filter chain
         filterChain.doFilter(request, response);

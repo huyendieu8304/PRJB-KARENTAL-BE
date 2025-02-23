@@ -114,7 +114,7 @@ public class AuthenticationService {
         ResponseCookie accessTokenCookie = generateCookie(accessTokenCookieName, accessToken, contextPath, accessTokenExpiration);
         ResponseCookie refreshTokenCookie = generateCookie(refreshTokenCookieName, refreshToken, refreshTokenUrl, refreshTokenExpiration);
         ResponseCookie accessTokenCookieLogout = generateCookie(accessTokenCookieName, accessToken, logoutUrl, accessTokenExpiration);
-        ResponseCookie refreshTokenCookieLogout = generateCookie(refreshTokenCookieName, accessToken, logoutUrl, refreshTokenExpiration);
+        ResponseCookie refreshTokenCookieLogout = generateCookie(refreshTokenCookieName, refreshToken, logoutUrl, refreshTokenExpiration);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())

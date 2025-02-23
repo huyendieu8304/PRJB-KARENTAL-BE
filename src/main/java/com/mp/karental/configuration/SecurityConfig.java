@@ -51,7 +51,7 @@ public class SecurityConfig{
             "/user/check-unique-email",
             "/auth/login",
             "/auth/logout",
-            "/auth/refreshToken"
+            "/auth/refresh-token"
     };
     /**
      * Allow request from other origins below
