@@ -131,7 +131,6 @@ public class CarService {
                         car.getFuelConsumption(),
                         car.getBasePrice(),
                         car.getDeposit(),
-                        car.getReservationPrice(),
                         car.getAddress(),
                         car.getDescription(),
                         car.getAdditionalFunction(),
