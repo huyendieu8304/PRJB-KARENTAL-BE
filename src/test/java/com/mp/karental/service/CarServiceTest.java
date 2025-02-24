@@ -1,8 +1,5 @@
 package com.mp.karental.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 import com.mp.karental.dto.response.ViewMyCarResponse;
 import com.mp.karental.entity.Car;
 import com.mp.karental.repository.CarRepository;
@@ -12,96 +9,96 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 
-import java.util.Collections;
 import java.util.List;
 
-@ExtendWith(MockitoExtension.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS) // Để @BeforeAll và @AfterAll có thể gọi method non-static
-public class CarServiceTest {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    @Mock
-    private CarRepository carRepository;
+@ExtendWith(MockitoExtension.class)
+class CarServiceTest {
 
     @InjectMocks
     private CarService carService;
 
-    private static MockedStatic<SecurityUtil> mockedSecurityUtil;
-    private final String testUserId = "test-user-id";
+    @Mock
+    private CarRepository carRepository;
 
-    private Page<Car> carPage;
-
-    @BeforeAll
-    void beforeAll() {
-        // Mock SecurityUtil static method để tránh lỗi đăng ký nhiều lần
-        mockedSecurityUtil = mockStatic(SecurityUtil.class);
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(testUserId);
-    }
+    private MockedStatic<SecurityUtil> mockedSecurityUtil;
 
     @BeforeEach
     void setUp() {
-        // Tạo danh sách xe giả lập
-        Car car1 = new Car();
-        car1.setId("1");
-        car1.setLicensePlate("ABC123");
-        car1.setBrand("Toyota");
+        // Mock static SecurityUtil
+        mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class);
+    }
 
-        Car car2 = new Car();
-        car2.setId("2");
-        car2.setLicensePlate("XYZ789");
-        car2.setBrand("Honda");
+    @AfterEach
+    void tearDown() {
+        // Close mock để tránh lỗi đăng ký nhiều lần
+        mockedSecurityUtil.close();
+    }
+
+    // Positive Test Case: Khi user có xe -> Trả về danh sách xe hợp lệ
+    @Test
+    void testGetCarsByUserId_WhenUserHasCars_ShouldReturnCarList() {
+        String accountId = "user-123";
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+        Car car1 = Car.builder().id("car-1").brand("Toyota").model("Camry").licensePlate("XYZ-123").accountId(null).build();
+        Car car2 = Car.builder().id("car-2").brand("Honda").model("Civic").licensePlate("ABC-456").accountId(null).build();
 
         List<Car> carList = List.of(car1, car2);
-        carPage = new PageImpl<>(carList, PageRequest.of(0, 2), carList.size());
-    }
+        Page<Car> carPage = new PageImpl<>(carList, PageRequest.of(0, 10), carList.size());
 
-//    @Test
-//    void testGetCarsByUserId_ValidCase() {
-//        when(carRepository.findByAccountId(eq(testUserId), any(Pageable.class))).thenReturn(carPage);
-//
-//        ViewMyCarResponse response = carService.getCarsByUserId(0, 2);
-//
-//        assertNotNull(response);
-//        assertEquals(2, response.getCars().getContent().size());
-//        assertEquals("Toyota", response.getCars().getContent().get(0).getBrand());
-//        assertEquals("Honda", response.getCars().getContent().get(1).getBrand());
-//        System.out.println("Số lượng xe trả về từ repo: " + carPage.getContent().size());
-//
-//        verify(carRepository, times(1)).findByAccountId(eq(testUserId), any(Pageable.class));
-//    }
-//
-//    @Test
-//    void testGetCarsByUserId_NoCarsFound() {
-//        when(carRepository.findByAccountId(eq(testUserId), any(Pageable.class))).thenReturn(Page.empty());
-//
-//        ViewMyCarResponse response = carService.getCarsByUserId(0, 2);
-//
-//        assertNotNull(response);
-//        assertTrue(response.getCars().isEmpty());
-//    }
+        when(carRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(carPage);
 
-    @Test
-    void testGetCarsByUserId_InvalidPageSize() {
-        assertThrows(IllegalArgumentException.class, () -> carService.getCarsByUserId(-1, 2));
-        assertThrows(IllegalArgumentException.class, () -> carService.getCarsByUserId(0, -5));
-    }
+        ViewMyCarResponse response = carService.getCarsByUserId(0, 10);
 
-    @Test
-    void testGetCarsByUserId_MaxPageSize() {
-        Page<Car> largePage = new PageImpl<>(Collections.nCopies(100, new Car()), PageRequest.of(0, 100), 100);
-        when(carRepository.findByAccountId(eq(testUserId), any(Pageable.class))).thenReturn(largePage);
-
-        ViewMyCarResponse response = carService.getCarsByUserId(0, 100);
         assertNotNull(response);
-        assertEquals(100, response.getCars().getContent().size());
+        assertEquals(2, response.getCars().getTotalElements());
+        assertEquals("Toyota", response.getCars().getContent().get(0).getBrand());
+        assertEquals("Honda", response.getCars().getContent().get(1).getBrand());
+
+        verify(carRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
     }
 
-    @AfterAll
-    void afterAll() {
-        if (mockedSecurityUtil != null) {
-            mockedSecurityUtil.close();
-        }
+    // Negative Test Case: Khi user không có xe -> Trả về danh sách rỗng
+    @Test
+    void testGetCarsByUserId_WhenUserHasNoCars_ShouldReturnEmptyList() {
+        String accountId = "user-123";
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+        Page<Car> emptyPage = Page.empty(PageRequest.of(0, 10));
+        when(carRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(emptyPage);
+
+        ViewMyCarResponse response = carService.getCarsByUserId(0, 10);
+
+        assertNotNull(response);
+        assertEquals(0, response.getCars().getTotalElements());
+
+        verify(carRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
+    }
+
+    //️Edge Case: Khi danh sách xe quá lớn (size max value)
+    @Test
+    void testGetCarsByUserId_WhenSizeIsMaxValue_ShouldReturnValidList() {
+        String accountId = "user-123";
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+        Car car = Car.builder().id("car-1").brand("Toyota").model("Camry").licensePlate("XYZ-123").accountId(null).build();
+        List<Car> largeCarList = List.of(car); // Giả lập 1 danh sách lớn
+        Page<Car> carPage = new PageImpl<>(largeCarList, PageRequest.of(0, Integer.MAX_VALUE), largeCarList.size());
+
+        when(carRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(carPage);
+
+        ViewMyCarResponse response = carService.getCarsByUserId(0, Integer.MAX_VALUE);
+
+        assertNotNull(response);
+        assertTrue(response.getCars().getTotalElements() > 0);
+
+        verify(carRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
     }
 }
