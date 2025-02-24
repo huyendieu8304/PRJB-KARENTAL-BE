@@ -139,7 +139,7 @@ public class AuthenticationService {
             if (invalidateRefreshTokenRepo.findByToken(refreshToken).isPresent()) {
                 throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
             }
-            //save to invalidate table
+            //save old refresh token to invalidate table
             invalidateRefreshTokenRepo.save(InvalidateRefreshToken.builder()
                     .token(refreshToken)
                     .expiresAt(jwtUtils.getExpirationDateFromRefreshToken(refreshToken))
@@ -184,8 +184,7 @@ public class AuthenticationService {
                         .expiresAt(jwtUtils.getExpirationDateFromRefreshToken(refreshToken))
                         .build());
             } catch (Exception e) {
-                //TODO: suar laij phaan nay
-                System.out.println("Invalid refresh token, maybe it's expired");
+                log.info("Invalid refresh token, user can not refresh access token with this refresh token -> successfully logout ");
             }
         }
 
@@ -195,12 +194,11 @@ public class AuthenticationService {
                 jwtUtils.validateJwtAccessToken(accessToken);
                 //the access token still not expire
                 invalidateAccessTokenRepo.save(InvalidateAccessToken.builder()
-                        .token(refreshToken)
+                        .token(accessToken)
                         .expiresAt(jwtUtils.getExpirationDateFromAccessToken(accessToken))
                         .build());
             } catch (Exception e) {
-                //TODO: suar laij phaan nay
-                System.out.println("Invalid access token, maybe it's expired");
+                log.info("Invalid access token, user can not be authenticated with this access token -> successfully logout ");
             }
         }
 

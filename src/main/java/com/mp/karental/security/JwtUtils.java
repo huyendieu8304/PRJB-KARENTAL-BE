@@ -111,7 +111,6 @@ public class JwtUtils {
                     .build()
                     .parse(refreshToken);
             return true;
-            //TODO: xem lại mấy cái lỗi của refresh token
         } catch (ExpiredJwtException e) {
             //JWT token is expired
             throw new  AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
