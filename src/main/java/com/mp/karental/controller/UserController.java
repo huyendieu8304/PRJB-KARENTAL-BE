@@ -1,6 +1,7 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.AccountRegisterRequest;
+import com.mp.karental.dto.request.CheckUniqueEmailRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.service.UserService;
@@ -9,11 +10,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * REST controller for handling user-related operations.
@@ -56,5 +56,18 @@ public class UserController {
                 .data(userService.addNewAccount(request))
                 .build();
     }
+
+    /**
+     * this method check whether the email exist in the db or not
+     * @param request Object contain email
+     * @return ApiResponse Object
+     */
+    @PostMapping("/check-unique-email")
+    ApiResponse<UserResponse> registerAccount(@RequestBody @Valid CheckUniqueEmailRequest request){
+        return ApiResponse.<UserResponse>builder()
+                .build();
+    }
+
+
 
 }

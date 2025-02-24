@@ -3,6 +3,21 @@ server:
   servlet:
     context-path: /karental
 
+application:
+  security:
+    jwt:
+      access-token-secret-key: ${JWT_ACCESS_SECRET_KEY:k6jc9lypr7vm7api0r9v7y2k1c37hr4hneeqlkm93lr355hran2nhpwhqv8pnuqvbq29a2tfsfcf9ebikbn0arzllmhjrp7hp4z3emfxqyozg2hrozcyhmxaa1wulr7s}
+      access-token-cookie-name: karental-jwt
+      refresh-token-cookie-name: karental-jwt-refresh
+      #TODO: cái key này phải bỏ vào biến môi trường
+      refresh-token-secret-key: ${JWT_REFRESH_SECRET_KEY:4iyhevpv5jvq34g7ugtzw1dyuegkq683gctxs9xzye9ufwee6y7w6b0pwxc00na4te7s4w0e3rw1tu5756ws3pi58unz9chg4f04bh9bw9kyfftieupth6x3gy80saus}
+      access-token-expiration: 3600000  #milisecond ~ 1 hours
+      refresh-token-expiration: 86400000 #~1day
+
+##      FOR TEST
+#      access-token-expiration: 15000 #milisecond ~ 15s
+#      refresh-token-expiration: 60000 #~1 minute
+
 spring:
   application:
     name: karental
