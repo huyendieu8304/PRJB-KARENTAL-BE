@@ -50,8 +50,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         String contextPath = request.getContextPath();
         String path = uri.substring(contextPath.length());
+        String[] publicEndpoints = SecurityConfig.PUBLIC_ENDPOINTS;
         //Skip authentication with public endpoints
-        for (String publicEndpoint : SecurityConfig.PUBLIC_ENDPOINTS) {
+        for (String publicEndpoint : publicEndpoints) {
             if (path.equals(publicEndpoint)) {
                 filterChain.doFilter(request, response);
                 return;
