@@ -246,6 +246,9 @@ public class CarService {
         Page<Car> carsWithoutUserProfile = cars.map(car -> {
                     return  Car.builder()
                             .id(car.getId())
+                            .brand(car.getBrand())
+                            .model(car.getModel())
+                            .productionYear(car.getProductionYear())
                             .status(car.getStatus())
                             .mileage(car.getMileage())
                             .basePrice(car.getBasePrice())
