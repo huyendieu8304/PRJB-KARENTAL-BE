@@ -5,14 +5,18 @@ import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.ViewMyCarResponse;
 import com.mp.karental.service.CarService;
+import com.mp.karental.service.ExcelService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/car")
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class CarController {
     CarService carService;
+    ExcelService excelService;
 
     @PostMapping(value = "/addCar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<CarResponse> addNewCar(@ModelAttribute @Valid AddCarRequest request)
@@ -43,4 +48,24 @@ public class CarController {
                 .data(cars)
                 .build();
     }
+
+    @GetMapping("/brands")
+    public ResponseEntity<List<String>> getAllBrands() {
+        return ResponseEntity.ok(excelService.getAllBrands());
+    }
+    @GetMapping("/models")
+    public ResponseEntity<List<String>> getAllModels() {
+        return ResponseEntity.ok(excelService.getAllModels());
+    }
+
+    @GetMapping("/models/{brand}")
+    public ResponseEntity<List<String>> getModelsByBrand(@PathVariable String brand) {
+        return ResponseEntity.ok(excelService.getModelsByBrand(brand));
+    }
+
+    @GetMapping("/brands/{model}")
+    public ResponseEntity<List<String>> getBrandsByModel(@PathVariable String model) {
+        return ResponseEntity.ok(excelService.getBrandsByModel(model));
+    }
+
 }
