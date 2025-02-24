@@ -1,13 +1,18 @@
 package com.mp.karental.exception;
 
 import com.mp.karental.dto.response.ApiResponse;
+import com.mp.karental.service.AllowedValuesService;
 import jakarta.validation.ConstraintViolation;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,7 +29,6 @@ import java.util.Objects;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
-
     /**
      * Handle RuntimeException
      * @param e - the exception
@@ -80,7 +84,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse> methodArgumentNotValidException(MethodArgumentNotValidException e) {
         //Get the key of error code in the validation's message attribute
-        String enumKey = e.getFieldError().getDefaultMessage();
+        ObjectError objectError = e.getBindingResult().getAllErrors().get(0);
+        String enumKey = objectError.getDefaultMessage();
 
         //In case the key in the validation message is misspelled
         ErrorCode errorCode = ErrorCode.INVALID_ERROR_KEY;
@@ -112,10 +117,10 @@ public class GlobalExceptionHandler {
                 .status(errorCode.getHttpStatusCode())
                 .body(apiResponse);
     }
-
     private String mapAttributeMessage(String message, Map<String, Object> attributes) {
 
         //Because now there isn't any attribute need to customize
         return message;
     }
+
 }

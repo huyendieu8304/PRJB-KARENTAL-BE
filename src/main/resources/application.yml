@@ -14,7 +14,7 @@ application:
       access-token-expiration: 3600000  #milisecond ~ 1 hours
       refresh-token-expiration: 86400000 #~1day
 
-      #FOR TEST
+##      FOR TEST
 #      access-token-expiration: 15000 #milisecond ~ 15s
 #      refresh-token-expiration: 60000 #~1 minute
 

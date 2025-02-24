@@ -14,7 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
  */
 public class SecurityUtil {
     /**
-     * Use this method to get the current loggin user
+     * Use this method to get the current login user
      * @return an UserDetailsImplement, where the information like accountId, or email could be extract from it
      */
     private static UserDetailsImpl getCurrentUser() {
@@ -22,7 +22,7 @@ public class SecurityUtil {
     }
 
     /**
-     * Use this method to the  account id of current loggin user
+     * Use this method to the  account id of current login user
      * @return a String of accountId
      */
     public static String getCurrentAccountId(){

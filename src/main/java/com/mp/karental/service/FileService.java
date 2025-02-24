@@ -38,8 +38,9 @@ public class FileService {
      * @param file the file to be uploaded (as MultipartFile)
      * @param key  the key (path/filename) under which the file will be stored in the S3 bucket
      * @throws AppException if there is an error during the file upload process
+     * @return true if successfully upload file
      */
-    public void uploadFile(MultipartFile file, String key) {
+    public boolean uploadFile(MultipartFile file, String key) {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -47,8 +48,8 @@ public class FileService {
                     .build();
             s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
             log.info("Upload file {} to S3 successful", key);
+            return true;
             //TODO: remove this line below
-//            log.info("Upload file {} to S3 successful", getPresignedUrl(key));
         } catch (IOException e) {
             throw new AppException(ErrorCode.UPLOAD_OBJECT_TO_S3_FAIL);
         }

@@ -5,6 +5,9 @@ import com.mp.karental.security.auth.AuthTokenFilter;
 import com.mp.karental.security.auth.CustomAccessDeniedHandler;
 import com.mp.karental.security.service.UserDetailsServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +37,8 @@ import java.util.*;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SecurityConfig{
 
 
@@ -46,7 +51,7 @@ public class SecurityConfig{
             "/user/check-unique-email",
             "/auth/login",
             "/auth/logout",
-            "/auth/refreshToken"
+            "/auth/refresh-token"
     };
     /**
      * Allow request from other origins below
@@ -56,13 +61,8 @@ public class SecurityConfig{
     });
 
 
-    @Autowired
     UserDetailsServiceImpl userDetailsService;
-
-    @Autowired
     AuthEntryPointJwt jwtAuthenticationEntryPoint;
-
-    @Autowired
     AuthTokenFilter authTokenFilter;
 
 

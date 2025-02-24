@@ -20,5 +20,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class LoginResponse {
     String userRole;
+    String fullName;
 
 }
