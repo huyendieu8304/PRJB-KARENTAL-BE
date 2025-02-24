@@ -31,15 +31,18 @@ public class CarController {
     }
 
     @GetMapping("/my-cars")
-    public ApiResponse<ViewMyCarResponse> getCars(@RequestParam(defaultValue = "0") int page,
-                                                  @RequestParam(defaultValue = "10") int size) {
-        ViewMyCarResponse cars = carService.getCarsByUserId(page, size);
+    public ApiResponse<ViewMyCarResponse> getCars(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "productionYear,DESC") String sort) {
+        ViewMyCarResponse cars = carService.getCarsByUserId(page, size, sort);
         return ApiResponse.<ViewMyCarResponse>builder()
                 .data(cars)
                 .build();
     }
 
-    
+
+
 
 
 }
