@@ -17,8 +17,7 @@ import java.util.List;
  * @version 1.0
  */
 @Entity
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -101,5 +100,8 @@ public class Car {
     @ManyToOne
     @JoinColumn(name = "account_id")
     Account account;
+
+//    @OneToMany(mappedBy = "car", cascade = CascadeType.ALL)
+//    List<Booking> bookings;
 
 }
