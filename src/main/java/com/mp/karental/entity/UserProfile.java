@@ -44,9 +44,6 @@ public class UserProfile {
 
     String address;
 
-    @Column(unique = true, columnDefinition = "VARCHAR(12)")
-    String drivingLicense;
-
-//    @Column(unique = true)
-//    String drivingLicenseUri;
+    @Column(unique = true, nullable = false)
+    String drivingLicenseUri;
 }
