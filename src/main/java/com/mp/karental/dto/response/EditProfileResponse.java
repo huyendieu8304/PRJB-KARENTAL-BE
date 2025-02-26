@@ -17,7 +17,6 @@ public class EditProfileResponse {
     String phoneNumber;
     String nationalId;
     String drivingLicenseUrl;
-    String address;
     String cityProvince;
     String district;
     String ward;

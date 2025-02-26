@@ -1,6 +1,7 @@
 package com.mp.karental.mapper;
 
 import com.mp.karental.dto.request.AccountRegisterRequest;
+import com.mp.karental.dto.request.EditProfileRequest;
 import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.UserProfile;
@@ -55,7 +56,7 @@ public interface UserMapper {
      * @param userProfile the user profile entity containing personal details
      * @return a {@code UserResponse} DTO combining information from both the account and profile
      *
-     * @author DieuTTH4
+     * @author AnhHP9
      *
      * @version 1.0
      */
@@ -64,4 +65,19 @@ public interface UserMapper {
     @Mapping(target = "phoneNumber", source = "userProfile.phoneNumber")
     @Mapping(target = "role", source = "account.role")
     UserResponse toUserResponse(Account account, UserProfile userProfile);
+    /**
+     * Updates an existing {@code UserProfile} entity with data from {@code EditProfileRequest}.
+     * <p>
+     * Only non-null fields from the request will be updated in the target entity.
+     * </p>
+     *
+     * @param request the profile edit request containing updated user information
+     * @param userProfile the existing user profile entity to be updated
+     * @return the updated {@code UserProfile} entity
+     *
+     * @version 1.1
+     */
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    void updateUserProfileFromRequest(EditProfileRequest request, @MappingTarget UserProfile userProfile);
+
 }

@@ -117,10 +117,15 @@ public class CarService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
 
         // Get list of cars
-        Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
-
         // Map cars to CarThumbnailResponse using fromCar method
-        return cars.map(car -> CarThumbnailResponse.fromCar(car, fileService));
+        Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
+        Page<CarThumbnailResponse> responses = cars.map(car -> {
+            CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
+            response.setAddress(car.getWard() + ", " + car.getCityProvince());
+            return response;
+        });
+
+        return responses;
     }
 
 }

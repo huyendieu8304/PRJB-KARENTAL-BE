@@ -71,17 +71,7 @@ public class UserController {
                 .build();
     }
 
-    @PostMapping("/edit-profile")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('CAR_OWNER')")
-    public ApiResponse<EditProfileResponse> editProfile(
-            @RequestParam("drivingLicense") MultipartFile drivingLicense,
-            @ModelAttribute @Valid EditProfileRequest request) {
 
-        log.info("Editing profile for user: {}", request.getFullName());
-        return ApiResponse.<EditProfileResponse>builder()
-                .data(userService.editProfile(request, drivingLicense))
-                .build();
-    }
 
 
 

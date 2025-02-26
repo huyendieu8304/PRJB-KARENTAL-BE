@@ -83,30 +83,5 @@ public class UserService {
     /**
      * Edits an existing user profile.
      */
-    @Transactional
-    public EditProfileResponse editProfile(EditProfileRequest request, MultipartFile drivingLicense) {
-        String userId = SecurityUtil.getCurrentAccountId();
-        UserProfile userProfile = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
-        // Cập nhật thông tin từ request
-        userProfile.setFullName(request.getFullName());
-        userProfile.setDob(request.getDob());
-        userProfile.setPhoneNumber(request.getPhoneNumber());
-        userProfile.setNationalId(request.getNationalId());
-        userProfile.setAddress(request.getAddress());
-        userProfile.setCityProvince(request.getCityProvince());
-        userProfile.setDistrict(request.getDistrict());
-        userProfile.setWard(request.getWard());
-        userProfile.setHouseNumberStreet(request.getHouseNumberStreet());
-
-        // Xử lý ảnh giấy phép lái xe
-        if (drivingLicense != null && !drivingLicense.isEmpty()) {
-            String fileUrl = FileService.upload(drivingLicense);
-            userProfile.setDrivingLicense(fileUrl);
-        }
-
-        userProfileRepository.save(userProfile);
-        return userMapper.toUserProfileResponse(userProfile);
-    }
 }
