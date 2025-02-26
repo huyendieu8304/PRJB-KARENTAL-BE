@@ -2,7 +2,9 @@ package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.AccountRegisterRequest;
 import com.mp.karental.dto.request.CheckUniqueEmailRequest;
+import com.mp.karental.dto.request.EditProfileRequest;
 import com.mp.karental.dto.response.ApiResponse;
+import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.service.UserService;
 import jakarta.validation.Valid;
@@ -14,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * REST controller for handling user-related operations.
@@ -65,6 +68,18 @@ public class UserController {
     @PostMapping("/check-unique-email")
     ApiResponse<UserResponse> registerAccount(@RequestBody @Valid CheckUniqueEmailRequest request){
         return ApiResponse.<UserResponse>builder()
+                .build();
+    }
+
+    @PostMapping("/edit-profile")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('CAR_OWNER')")
+    public ApiResponse<EditProfileResponse> editProfile(
+            @RequestParam("drivingLicense") MultipartFile drivingLicense,
+            @ModelAttribute @Valid EditProfileRequest request) {
+
+        log.info("Editing profile for user: {}", request.getFullName());
+        return ApiResponse.<EditProfileResponse>builder()
+                .data(userService.editProfile(request, drivingLicense))
                 .build();
     }
 

@@ -2,6 +2,8 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.AccountRegisterRequest;
+import com.mp.karental.dto.request.EditProfileRequest;
+import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
@@ -12,6 +14,7 @@ import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.RoleRepository;
 import com.mp.karental.repository.UserProfileRepository;
+import com.mp.karental.security.SecurityUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
@@ -74,5 +78,35 @@ public class UserService {
         userProfile = userProfileRepository.save(userProfile);
 
         return userMapper.toUserResponse(account, userProfile);
+    }
+
+    /**
+     * Edits an existing user profile.
+     */
+    @Transactional
+    public EditProfileResponse editProfile(EditProfileRequest request, MultipartFile drivingLicense) {
+        String userId = SecurityUtil.getCurrentAccountId();
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        // Cập nhật thông tin từ request
+        userProfile.setFullName(request.getFullName());
+        userProfile.setDob(request.getDob());
+        userProfile.setPhoneNumber(request.getPhoneNumber());
+        userProfile.setNationalId(request.getNationalId());
+        userProfile.setAddress(request.getAddress());
+        userProfile.setCityProvince(request.getCityProvince());
+        userProfile.setDistrict(request.getDistrict());
+        userProfile.setWard(request.getWard());
+        userProfile.setHouseNumberStreet(request.getHouseNumberStreet());
+
+        // Xử lý ảnh giấy phép lái xe
+        if (drivingLicense != null && !drivingLicense.isEmpty()) {
+            String fileUrl = FileService.upload(drivingLicense);
+            userProfile.setDrivingLicense(fileUrl);
+        }
+
+        userProfileRepository.save(userProfile);
+        return userMapper.toUserProfileResponse(userProfile);
     }
 }
