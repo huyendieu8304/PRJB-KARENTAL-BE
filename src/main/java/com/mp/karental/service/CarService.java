@@ -1,13 +1,11 @@
 package com.mp.karental.service;
 
-import ch.qos.logback.classic.spi.IThrowableProxy;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.CarResponse;
-import com.mp.karental.dto.response.ViewMyCarResponse;
+import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Car;
-import com.mp.karental.entity.UserProfile;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
@@ -106,40 +104,21 @@ public class CarService {
         return carMapper.toCarResponse(car);
     }
 
-    public ViewMyCarResponse getCarsByUserId(int page, int size, String sort) {
+    public Page<CarThumbnailResponse> getCarsByUserId(int page, int size, String sort) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
         // Define sort direction
-
         String[] sortParams = sort.split(",");
         String sortField = sortParams[0];
         Sort.Direction sortDirection = Sort.Direction.fromString(sortParams[1]);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
 
-        // Get list cars
+        // Get list of cars
         Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
 
-        Page<Car> carsWithoutUserProfile = cars.map(car -> {
-                    return  Car.builder()
-                            .id(car.getId())
-                            .brand(car.getBrand())
-                            .model(car.getModel())
-                            .productionYear(car.getProductionYear())
-                            .status(car.getStatus())
-                            .mileage(car.getMileage())
-                            .basePrice(car.getBasePrice())
-                            .address(car.getAddress())
-                            .carImageFront(fileService.getFileUrl(car.getCarImageFront())) //get url of the car front image
-                            .carImageRight(fileService.getFileUrl(car.getCarImageRight()))
-                            .carImageLeft(fileService.getFileUrl(car.getCarImageLeft()))
-                            .carImageBack(fileService.getFileUrl(car.getCarImageBack()))
-                            .build();
-                }
-        );
-
-        return new ViewMyCarResponse(carsWithoutUserProfile);
+        // Map cars to CarThumbnailResponse using fromCar method
+        return cars.map(car -> CarThumbnailResponse.fromCar(car, fileService));
     }
-
 
 }

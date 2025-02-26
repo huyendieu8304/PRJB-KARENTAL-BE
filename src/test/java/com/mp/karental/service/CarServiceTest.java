@@ -2,7 +2,7 @@ package com.mp.karental.service;
 
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.CarResponse;
-import com.mp.karental.dto.response.ViewMyCarResponse;
+import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Car;
 import com.mp.karental.exception.AppException;
@@ -18,7 +18,6 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.List;
@@ -58,57 +57,76 @@ class CarServiceTest {
         mockedSecurityUtil.close();
     }
 
+
     @Test
     void testGetCarsByUserId_WhenUserHasCars_ShouldReturnCarList() {
         String accountId = "user-123";
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
-
-        Account account = new Account();
-        account.setId(accountId);
+        Mockito.when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
 
         Car car1 = Car.builder()
                 .id("car-1")
+                .licensePlate("30A-12345")
                 .brand("Toyota")
                 .model("Corolla")
-                .productionYear(2020)
                 .status("AVAILABLE")
+                .color("White")
+                .numberOfSeats(5)
+                .productionYear(2020)
                 .mileage(10000)
+                .fuelConsumption(6.5f)
                 .basePrice(500000)
+                .deposit(100000)
                 .address("Hanoi, Vietnam")
-                .carImageFront("car/user-123/car-1/images/front")
-                .carImageBack("car/user-123/car-1/images/back")
-                .carImageLeft("car/user-123/car-1/images/left")
-                .carImageRight("car/user-123/car-1/images/right")
-                .account(account)
+                .carImageFront("front.jpg")
+                .carImageBack("back.jpg")
+                .carImageLeft("left.jpg")
+                .carImageRight("right.jpg")
                 .build();
 
-        when(carRepository.findByAccountId(eq(accountId), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(car1)));
+        Page<Car> carPage = new PageImpl<>(List.of(car1));
+
+        when(carRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(carPage);
         when(fileService.getFileUrl(anyString())).thenReturn("https://example.com/image.jpg");
 
-        ViewMyCarResponse response = carService.getCarsByUserId(0, 10, "mileage,asc");
+        Page<CarThumbnailResponse> response = carService.getCarsByUserId(0, 10, "mileage,asc");
 
         assertNotNull(response);
-        assertEquals(1, response.getCars().getTotalElements());
-        assertEquals("https://example.com/image.jpg", response.getCars().getContent().get(0).getCarImageFront());
+        assertEquals(1, response.getTotalElements());
+        assertEquals("https://example.com/image.jpg", response.getContent().get(0).getCarImageFront());
 
         verify(carRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
         verify(fileService, times(4)).getFileUrl(anyString());
     }
 
+
     @Test
     void testGetCarsByUserId_WhenUserHasNoCars_ShouldReturnEmptyList() {
         String accountId = "user-123";
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+        Mockito.when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
 
-        when(carRepository.findByAccountId(eq(accountId), any(Pageable.class)))
-                .thenReturn(Page.empty(PageRequest.of(0, 10)));
+        Page<Car> emptyPage = Page.empty(PageRequest.of(0, 10));
+        when(carRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(emptyPage);
 
-        ViewMyCarResponse response = carService.getCarsByUserId(0, 10, "mileage,asc");
+        Page<CarThumbnailResponse> response = carService.getCarsByUserId(0, 10, "mileage,asc");
 
         assertNotNull(response);
-        assertEquals(0, response.getCars().getTotalElements());
+        assertEquals(0, response.getTotalElements());
 
+        verify(carRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
+    }
+
+    @Test
+    void testGetCarsByUserId_WhenRepositoryThrowsException_ShouldThrowException() {
+        String accountId = "user-123";
+        Mockito.when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+
+        when(carRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenThrow(new RuntimeException("Database error"));
+
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            carService.getCarsByUserId(0, 10, "mileage,asc");
+        });
+
+        assertEquals("Database error", exception.getMessage());
         verify(carRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
     }
 
