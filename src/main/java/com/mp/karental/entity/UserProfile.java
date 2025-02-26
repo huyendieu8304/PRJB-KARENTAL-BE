@@ -44,6 +44,6 @@ public class UserProfile {
 
     String address;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true)
     String drivingLicenseUri;
 }
