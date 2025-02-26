@@ -20,8 +20,7 @@ import java.util.List;
  * @version 1.0
  */
 @Entity
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -35,7 +34,7 @@ public class Role {
     @Enumerated(EnumType.STRING) //to save the name as String in db
     private ERole name;
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "role")
-    private List<Account> accounts;
+//    @JsonIgnore
+//    @OneToMany(mappedBy = "role")
+//    private List<Account> accounts;
 }
