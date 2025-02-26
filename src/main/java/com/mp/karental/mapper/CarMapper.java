@@ -16,6 +16,10 @@ public interface CarMapper {
     @Mapping(target = "carImageBack", ignore = true)
     @Mapping(target = "carImageLeft", ignore = true)
     @Mapping(target = "carImageRight", ignore = true)
+    @Mapping(target = "cityProvince", ignore = true)
+    @Mapping(target = "district", ignore = true)
+    @Mapping(target = "ward", ignore = true)
+    @Mapping(target = "houseNumberStreet", ignore = true)
     Car toCar(AddCarRequest addCarRequest);
 
     @Mapping(target = "isAutomatic", source = "automatic")

@@ -36,7 +36,7 @@ public class CarThumbnailResponse {
                 .status(car.getStatus())
                 .mileage(car.getMileage())
                 .basePrice(car.getBasePrice())
-                .address(car.getAddress())
+//                .address(car.getAddress())
                 .carImageFront(fileService.getFileUrl(car.getCarImageFront()))
                 .carImageRight(fileService.getFileUrl(car.getCarImageRight()))
                 .carImageLeft(fileService.getFileUrl(car.getCarImageLeft()))

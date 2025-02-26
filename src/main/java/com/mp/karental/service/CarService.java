@@ -50,6 +50,11 @@ public class CarService {
         Car car = carMapper.toCar(request);
         car.setAccount(account);
         car.setStatus(ECarStatus.AVAILABLE.name());
+        String[] address = request.getAddress().split(",");
+        car.setCityProvince(address[0].trim());
+        car.setDistrict(address[1].trim());
+        car.setWard(address[2].trim());
+        car.setHouseNumberStreet(address[3].trim() + ", " + address[4].trim());
 
         //save car to db
         //this need to be done before upload file to s3, because the id of the car is generate in db
@@ -99,9 +104,14 @@ public class CarService {
         car.setAutomatic(request.isAutomatic());
         car.setGasoline(request.isGasoline());
 
-        car = carRepository.save(car);
 
-        return carMapper.toCarResponse(car);
+//        System.out.println("City Province: " + car.getCityProvince());
+//        System.out.println("District: " + car.getDistrict());
+//        System.out.println("Ward: " + car.getWard());
+//        System.out.println("House Number Street: " + car.getHouseNumberStreet());
+        car = carRepository.save(car);
+        CarResponse carResponse = carMapper.toCarResponse(car);
+        return carResponse;
     }
 
     public Page<CarThumbnailResponse> getCarsByUserId(int page, int size, String sort) {

@@ -1,6 +1,5 @@
 package com.mp.karental.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mp.karental.KarentalApplication;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.CarResponse;
@@ -11,27 +10,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import java.nio.charset.StandardCharsets;
-
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest(classes = KarentalApplication.class)
 @ExtendWith(MockitoExtension.class)
@@ -71,9 +61,10 @@ public class CarControllerTest {
         addCarRequest.setGasoline(true);
     }
 
+
     @Test
     void addNewCar_Success() throws Exception {
-        //given
+        // Prepare expected response
         CarResponse carResponse = new CarResponse();
         carResponse.setLicensePlate("49F-123.45");
         carResponse.setBrand("Toyota");
@@ -92,12 +83,12 @@ public class CarControllerTest {
         carResponse.setAutomatic(true);
         carResponse.setGasoline(true);
 
-
+        // Mock the car service behavior
         Mockito.when(carService.addNewCar(ArgumentMatchers.any())).thenReturn(carResponse);
+        // Mock the files for the multipart request
+        MockMultipartFile emptyFile = new MockMultipartFile("file", "", "test.properties/octet-stream", new byte[0]);
 
-        MockMultipartFile emptyFile = new MockMultipartFile("file", "", "application/octet-stream", new byte[0]);
-
-        //when,then
+        // Perform the test: Add a new car with the JWT token for authorization
         mockMvc.perform(multipart("/car/addCar")
                         .file("registrationPaper", emptyFile.getBytes())
                         .file("certificateOfInspection", emptyFile.getBytes())
@@ -151,7 +142,7 @@ public class CarControllerTest {
 
         Mockito.when(carService.addNewCar(ArgumentMatchers.any())).thenReturn(carResponse);
 
-        MockMultipartFile emptyFile = new MockMultipartFile("file", "", "application/octet-stream", new byte[0]);
+        MockMultipartFile emptyFile = new MockMultipartFile("file", "", "test.properties/octet-stream", new byte[0]);
 
         mockMvc.perform(multipart("/car/addCar")
                         .file("registrationPaper", emptyFile.getBytes())
@@ -163,7 +154,7 @@ public class CarControllerTest {
                         .file("carImageRight", emptyFile.getBytes())
                         .param("model", addCarRequest.getModel())
                         .param("address", addCarRequest.getAddress())
-                        //  Không truyền "brand"
+                        .param("brand", addCarRequest.getBrand())
                         //  Không truyền "licensePlate"
                         .param("color", addCarRequest.getColor())
                         .param("numberOfSeats", String.valueOf(addCarRequest.getNumberOfSeats()))
