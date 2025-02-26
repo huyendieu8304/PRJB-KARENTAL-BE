@@ -3,7 +3,7 @@ package com.mp.karental.controller;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.CarResponse;
-import com.mp.karental.dto.response.ViewMyCarResponse;
+import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.service.CarService;
 import com.mp.karental.service.ExcelService;
 import jakarta.validation.Valid;
@@ -11,6 +11,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -39,12 +40,12 @@ public class CarController {
     }
 
     @GetMapping("/my-cars")
-    public ApiResponse<ViewMyCarResponse> getCars(
+    public ApiResponse<Page<CarThumbnailResponse>> getCars(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "productionYear,DESC") String sort) {
-        ViewMyCarResponse cars = carService.getCarsByUserId(page, size, sort);
-        return ApiResponse.<ViewMyCarResponse>builder()
+        Page<CarThumbnailResponse> cars = carService.getCarsByUserId(page, size, sort);
+        return ApiResponse.<Page<CarThumbnailResponse>>builder()
                 .data(cars)
                 .build();
     }
