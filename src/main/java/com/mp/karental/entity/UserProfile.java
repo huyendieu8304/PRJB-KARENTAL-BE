@@ -19,8 +19,7 @@ import java.util.List;
  * @version 1.0
  */
 @Entity
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -32,7 +31,7 @@ public class UserProfile {
     @OneToOne
     @JoinColumn(name = "id")
     @MapsId
-    private Account account;
+    Account account;
 
     String fullName;
     LocalDate dob;
@@ -43,9 +42,11 @@ public class UserProfile {
     @Column(unique = true, nullable = false, columnDefinition = "VARCHAR(10)")
     String phoneNumber;
 
-    String address;
+    String cityProvince;
+    String district;
+    String ward;
+    String houseNumberStreet;
 
-    @Column(unique = true, columnDefinition = "VARCHAR(12)")
-    String drivingLicense;
-
+    @Column(unique = true)
+    String drivingLicenseUri;
 }

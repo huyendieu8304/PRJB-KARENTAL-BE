@@ -1,6 +1,5 @@
 package com.mp.karental.validation.validator;
 
-import com.mp.karental.constant.EDocumentFile;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,8 +26,8 @@ class FileDocumentValidatorTest {
 
     @Test
     void testValidFileExtensions() {
-        MultipartFile pdfFile = new MockMultipartFile("file", "document.pdf", "application/pdf", new byte[10]);
-        MultipartFile docxFile = new MockMultipartFile("file", "document.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", new byte[10]);
+        MultipartFile pdfFile = new MockMultipartFile("file", "document.pdf", "test.properties/pdf", new byte[10]);
+        MultipartFile docxFile = new MockMultipartFile("file", "document.docx", "test.properties/vnd.openxmlformats-officedocument.wordprocessingml.document", new byte[10]);
 
         assertTrue(validator.isValid(pdfFile, context));
         assertTrue(validator.isValid(docxFile, context));
@@ -37,7 +36,7 @@ class FileDocumentValidatorTest {
     @Test
     void testInvalidFileExtensions() {
         MultipartFile jpgFile = new MockMultipartFile("file", "image.jpg", "image/jpeg", new byte[10]);
-        MultipartFile exeFile = new MockMultipartFile("file", "program.exe", "application/octet-stream", new byte[10]);
+        MultipartFile exeFile = new MockMultipartFile("file", "program.exe", "test.properties/octet-stream", new byte[10]);
 
         assertTrue(validator.isValid(jpgFile, context));
         assertFalse(validator.isValid(exeFile, context));
@@ -50,14 +49,14 @@ class FileDocumentValidatorTest {
 
     @Test
     void testEmptyFile() {
-        MultipartFile emptyFile = new MockMultipartFile("file", "empty.pdf", "application/pdf", new byte[0]);
+        MultipartFile emptyFile = new MockMultipartFile("file", "empty.pdf", "test.properties/pdf", new byte[0]);
 
         assertTrue(validator.isValid(emptyFile, context));
     }
 
     @Test
     void testFileWithoutExtension() {
-        MultipartFile noExtensionFile = new MockMultipartFile("file", "document", "application/pdf", new byte[10]);
+        MultipartFile noExtensionFile = new MockMultipartFile("file", "document", "test.properties/pdf", new byte[10]);
 
         assertFalse(validator.isValid(noExtensionFile, context));
     }
