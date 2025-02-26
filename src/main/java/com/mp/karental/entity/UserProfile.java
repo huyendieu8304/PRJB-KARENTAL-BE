@@ -42,7 +42,10 @@ public class UserProfile {
     @Column(unique = true, nullable = false, columnDefinition = "VARCHAR(10)")
     String phoneNumber;
 
-    String address;
+    String cityProvince;
+    String district;
+    String ward;
+    String houseNumberStreet;
 
     @Column(unique = true)
     String drivingLicenseUri;

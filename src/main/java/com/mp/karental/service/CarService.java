@@ -252,7 +252,8 @@ public class CarService {
                             .status(car.getStatus())
                             .mileage(car.getMileage())
                             .basePrice(car.getBasePrice())
-                            .address(car.getAddress())
+                            //TODO: sửa chỗ này thành cái String trong Response, trả về cho response thì vẫn trả 1 cục, để Thanh không pahri sửa lại code front end nữa
+//                            .address(car.getWard() + ", " + car.getCityProvince())
                             .carImageFront(fileService.getFileUrl(car.getCarImageFront())) //get url of the car front image
                             .carImageRight(fileService.getFileUrl(car.getCarImageRight()))
                             .carImageLeft(fileService.getFileUrl(car.getCarImageLeft()))

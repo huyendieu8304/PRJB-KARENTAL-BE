@@ -46,17 +46,31 @@ public class Car {
 
     @Column(name = "production_year", nullable = false)
     int productionYear;
+
     @Column(nullable = false)
     float mileage;
+
     @Column(name = "fuel_consumption")
     float fuelConsumption;
+
     @Column(name = "base_price", nullable = false)
     int basePrice;
+
     @Column(nullable = false)
     int deposit;
 
+    //address
     @Column(nullable = false)
-    String address;
+    String cityProvince;
+
+    @Column(nullable = false)
+    String district;
+
+    @Column(nullable = false)
+    String ward;
+
+    @Column(nullable = false)
+    String houseNumberStreet;
 
     @Column(columnDefinition = "TEXT")
     String description;
@@ -87,7 +101,6 @@ public class Car {
     boolean insuranceUriIsVerified = true;
 
     //car image
-    //TODO: set default value as a real uri in s3
     @Column(name = "car_image_front")
     String carImageFront;
     @Column(name = "car_image_back")
