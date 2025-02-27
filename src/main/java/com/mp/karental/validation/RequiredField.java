@@ -1,7 +1,6 @@
 package com.mp.karental.validation;
 
-import com.mp.karental.validation.validator.RequireFieldValidator;
-import com.mp.karental.validation.validator.UniqueEmailValidator;
+import com.mp.karental.validation.validator.RequiredFieldValidator;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
@@ -12,12 +11,12 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = RequireFieldValidator.class)
+@Constraint(validatedBy = RequiredFieldValidator.class)
 public @interface RequiredField {
 
     String message() default "REQUIRED_FIELD";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
-    String fieldName();
+    String fieldName() default  "This field";
 
 }

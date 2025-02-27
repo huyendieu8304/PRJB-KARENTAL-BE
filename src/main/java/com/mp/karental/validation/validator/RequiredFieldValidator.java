@@ -6,13 +6,11 @@ import jakarta.validation.ConstraintValidatorContext;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class RequireFieldValidator implements ConstraintValidator<RequiredField, Object> {
-    private String fieldName;
+public class RequiredFieldValidator implements ConstraintValidator<RequiredField, Object> {
 
     @Override
     public void initialize(RequiredField constraintAnnotation) {
         ConstraintValidator.super.initialize(constraintAnnotation);
-        this.fieldName = constraintAnnotation.fieldName();
     }
 
     @Override
