@@ -113,13 +113,11 @@ public class AuthenticationService {
         //Generate token cookie
         ResponseCookie accessTokenCookie = generateCookie(accessTokenCookieName, accessToken, contextPath, accessTokenExpiration);
         ResponseCookie refreshTokenCookie = generateCookie(refreshTokenCookieName, refreshToken, refreshTokenUrl, refreshTokenExpiration);
-        ResponseCookie accessTokenCookieLogout = generateCookie(accessTokenCookieName, accessToken, logoutUrl, accessTokenExpiration);
         ResponseCookie refreshTokenCookieLogout = generateCookie(refreshTokenCookieName, refreshToken, logoutUrl, refreshTokenExpiration);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, accessTokenCookieLogout.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookieLogout.toString())
                 .body(apiResponse);
     }

@@ -104,11 +104,6 @@ public class CarService {
         car.setAutomatic(request.isAutomatic());
         car.setGasoline(request.isGasoline());
 
-
-//        System.out.println("City Province: " + car.getCityProvince());
-//        System.out.println("District: " + car.getDistrict());
-//        System.out.println("Ward: " + car.getWard());
-//        System.out.println("House Number Street: " + car.getHouseNumberStreet());
         car = carRepository.save(car);
         CarResponse carResponse = carMapper.toCarResponse(car);
         return carResponse;
