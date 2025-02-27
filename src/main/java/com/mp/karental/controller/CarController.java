@@ -39,7 +39,7 @@ public class CarController {
 
     }
 
-    @GetMapping("/my-cars")
+    @GetMapping("/car-owner/my-cars")
     public ApiResponse<Page<CarThumbnailResponse>> getCars(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

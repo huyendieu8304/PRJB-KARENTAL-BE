@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
@@ -46,6 +45,7 @@ public class UserService {
     UserMapper userMapper;
 
     PasswordEncoder passwordEncoder;
+    private final FileService fileService;
 
     /**
      * Creates a new user account along with the associated user profile.
@@ -82,6 +82,52 @@ public class UserService {
 
     /**
      * Edits an existing user profile.
+     *
+     * @param request the updated profile information
+     * @return the updated profile response
      */
+    public EditProfileResponse editProfile(EditProfileRequest request) {
+        log.info("Editing profile for user with phone number: {}", request.getPhoneNumber());
+
+        String accountID = SecurityUtil.getCurrentAccountId();
+
+        UserProfile userProfile = userProfileRepository.findById(accountID)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        userMapper.updateUserProfileFromRequest(request, userProfile);
+
+        //upload file
+        String drivingLicenseUri = "user/" + accountID + "/driving-license";
+        fileService.uploadFile(request.getDrivingLicense(), drivingLicenseUri);
+        userProfile.setDrivingLicenseUri(drivingLicenseUri);
+
+        userProfileRepository.save(userProfile);
+
+        //get image_url
+        EditProfileResponse editProfileResponse = userMapper.toEditProfileResponse(userProfile);
+        editProfileResponse.setDrivingLicenseUrl(fileService.getFileUrl(drivingLicenseUri));
+
+        return editProfileResponse;
+    }
+
+    /**
+     * Retrieves the profile of the current user.
+     *
+     * @return {@code EditProfileResponse} containing user profile details.
+     * @throws AppException if the user profile is not found in the database.
+     */
+    public EditProfileResponse getUserProfile() {
+        String userId = SecurityUtil.getCurrentAccountId();
+
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        return userMapper.toEditProfileResponse(userProfile);
+    }
+
+
+
+
+
 
 }
