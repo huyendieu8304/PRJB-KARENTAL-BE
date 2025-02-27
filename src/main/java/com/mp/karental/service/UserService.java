@@ -6,12 +6,14 @@ import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
 import com.mp.karental.entity.UserProfile;
+import com.mp.karental.entity.Wallet;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.RoleRepository;
 import com.mp.karental.repository.UserProfileRepository;
+import com.mp.karental.repository.WalletRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -38,6 +40,7 @@ public class UserService {
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
     RoleRepository roleRepository;
+    WalletRepository walletRepository;
 
     UserMapper userMapper;
 
@@ -72,6 +75,13 @@ public class UserService {
         UserProfile userProfile = userMapper.toUserProfile(request);
         userProfile.setAccount(account);
         userProfile = userProfileRepository.save(userProfile);
+
+        //create user's wallet
+        Wallet wallet = Wallet.builder()
+                .account(account)
+                .balance(0)
+                .build();
+        walletRepository.save(wallet);
 
         return userMapper.toUserResponse(account, userProfile);
     }

@@ -57,7 +57,7 @@ public class CarService {
         car.setHouseNumberStreet(address[3].trim() + ", " + address[4].trim());
 
         //save car to db
-        //this need to be done before upload file to s3, because the id of the car is generate in db
+        //this need to be done before upload file to s3, because the id of the car is generated in db
         car = carRepository.save(car);
 
         //upload file to cloud

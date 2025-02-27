@@ -20,6 +20,13 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import java.io.IOException;
 import java.time.Duration;
 
+/**
+ * This is the service handle upload file to s3 and get url of the file
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)

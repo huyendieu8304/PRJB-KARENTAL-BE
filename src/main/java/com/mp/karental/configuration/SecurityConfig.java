@@ -107,7 +107,7 @@ public class SecurityConfig{
                                 //open public endpoints
                                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                 //endpoints for user has role CAR_OWNER
-                                .requestMatchers("/car-owner/**").hasRole("CAR_OWNER")
+                                .requestMatchers("/car/car-owner/**").hasRole("CAR_OWNER")
                                 .requestMatchers("/customer/**").hasRole("CUSTOMER")
                                 .anyRequest().authenticated()
                 );
