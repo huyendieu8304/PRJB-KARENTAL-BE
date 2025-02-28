@@ -95,7 +95,7 @@ class CarServiceTest {
 
         assertNotNull(response);
         assertEquals(1, response.getTotalElements());
-        assertEquals("https://example.com/image.jpg", response.getContent().get(0).getCarImageFront());
+        assertEquals("https://example.com/image.jpg", response.getContent().get(0).getCarImageFrontUrl());
 
         verify(carRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
         verify(fileService, times(4)).getFileUrl(anyString());

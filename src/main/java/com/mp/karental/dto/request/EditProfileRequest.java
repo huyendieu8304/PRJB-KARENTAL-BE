@@ -15,32 +15,26 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class EditProfileRequest {
 
-    @NotBlank(message = "REQUIRED_FIELD")
+    @RequiredField(fieldName = "Full name")
     @Pattern(regexp = "^[\\p{L}\\s-]+$", message = "INVALID_NAME")
     String fullName;
 
     @Past(message = "DATE_OF_BIRTH_MUST_BE_IN_THE_PAST")
-    @NotNull(message = "REQUIRED_FIELD")
     LocalDate dob;
 
     @NotBlank(message = "REQUIRED_FIELD")
+    @RequiredField(fieldName = "Phone number")
     @Pattern(regexp = "^0[\\d]{9}$", message = "INVALID_PHONE_NUMBER")
-    @UniquePhoneNumber(message = "NOT_UNIQUE_PHONE_NUMBER")
     String phoneNumber;
 
+    @RequiredField(fieldName = "National ID")
+    @Pattern(regexp = "^[0-9]{12}$", message = "INVALID_NATIONAL_ID")
     @NotBlank(message = "REQUIRED_FIELD")
     String nationalId;
 
-    @NotBlank(message = "REQUIRED_FIELD")
     String cityProvince;
-
-    @NotBlank(message = "REQUIRED_FIELD")
     String district;
-
-    @NotBlank(message = "REQUIRED_FIELD")
     String ward;
-
-    @NotBlank(message = "REQUIRED_FIELD")
     String houseNumberStreet;
 
     @ValidDocument(message = "INVALID_IMAGE_FILE")

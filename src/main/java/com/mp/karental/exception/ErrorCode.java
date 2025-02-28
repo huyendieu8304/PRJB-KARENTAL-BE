@@ -49,6 +49,10 @@ public enum ErrorCode {
     INVALID_CAR_IMAGE_FILE(2017,"Invalid file type. Accepted formats are .jpg, .jpeg, .png, .gif", HttpStatus.BAD_REQUEST),
     INVALID_VALUE_MIN(2018,"This attribute must be >=0", HttpStatus.BAD_REQUEST),
     INVALID_ADDRESS(2019,"The address is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_DATE_OF_BIRTH(2020, "Date of birth must be in the past.", HttpStatus.BAD_REQUEST),
+    INVALID_IMAGE_FILE(2021, "Invalid image file type. Accepted formats are .jpg, .jpeg, .png", HttpStatus.BAD_REQUEST),
+    INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
+
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),
@@ -66,6 +70,7 @@ public enum ErrorCode {
 
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(4009, "Invalid refresh token. Please try again", HttpStatus.UNAUTHORIZED),
+
 
     ;
 
