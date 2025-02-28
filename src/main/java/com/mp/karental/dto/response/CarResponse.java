@@ -1,10 +1,19 @@
 package com.mp.karental.dto.response;
 
-import jakarta.persistence.Column;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+/**
+ * Represents the response payload for a car.
+ * <p>
+ * This class encapsulates car information that is returned to the client,
+ * including car details.
+ * </p>
+ * @author QuangPM20
+ *
+ * @version 1.0
+ */
 
 @Data
 @NoArgsConstructor

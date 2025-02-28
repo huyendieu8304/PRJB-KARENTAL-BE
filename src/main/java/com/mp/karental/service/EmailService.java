@@ -3,24 +3,30 @@ package com.mp.karental.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
 
+/**
+ * Service class for handling send email.
+ *
+ * @author QuangPM20
+ * @version 1.0
+ */
 @Service
 public class EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
 
+    /**
+     * Sends a registration confirmation email.
+     * @param to Recipient's email address.
+     * @param confirmUrl URL for email verification.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
     public void sendRegisterEmail(String to, String confirmUrl) throws MessagingException {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
@@ -39,6 +45,12 @@ public class EmailService {
         mailSender.send(mimeMessage);
     }
 
+    /**
+     * Sends a password reset email.
+     * @param to Recipient's email address.
+     * @param forgotPasswordUrl URL for password reset.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
     public void sendForgotPasswordEmail(String to, String forgotPasswordUrl) throws MessagingException {
         // Create a MimeMessage
         MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -60,6 +72,14 @@ public class EmailService {
         mailSender.send(mimeMessage);
     }
 
+    /**
+     * Sends an email confirmation for a successful car booking.
+     * @param to Recipient's email address.
+     * @param carName Name of the booked car.
+     * @param walletUrl URL to check the wallet deposit.
+     * @param carDetailsUrl URL to view car details.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
     public void sendRentCarEmail(String to, String carName, String walletUrl, String carDetailsUrl) throws MessagingException{
         // Get current date and time
         LocalDateTime bookingDateTime = LocalDateTime.now();
@@ -89,6 +109,12 @@ public class EmailService {
         mailSender.send(mimeMessage);
     }
 
+    /**
+     * Sends an email notification when a car booking is canceled.
+     * @param to Recipient's email address.
+     * @param carName Name of the canceled car booking.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
     public void sendCancelBookingEmail(String to, String carName) throws MessagingException {
         // Get the current date and time
         LocalDateTime cancellationDateTime = LocalDateTime.now();
@@ -116,6 +142,14 @@ public class EmailService {
         mailSender.send(mimeMessage);
     }
 
+    /**
+     * Sends an email notification when a rented car is returned.
+     * @param to Recipient's email address.
+     * @param carName Name of the returned car.
+     * @param walletUrl URL to check the remaining payment.
+     * @param carDetailsUrl URL to confirm payment details.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
     public void sendCarReturnedEmail(String to, String carName, String walletUrl, String carDetailsUrl)
             throws MessagingException {
         // Get current date and time
@@ -145,7 +179,12 @@ public class EmailService {
         // Send the email
         mailSender.send(mimeMessage);
     }
-
+    /**
+     * Sends an email notification when the wallet balance is updated.
+     * @param to Recipient's email address.
+     * @param walletUrl URL to view the wallet balance and transactions.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
     public void sendWalletUpdateEmail(String to, String walletUrl) throws MessagingException {
         // Get current date and time
         LocalDateTime updateDateTime = LocalDateTime.now();
