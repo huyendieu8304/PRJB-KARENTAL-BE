@@ -41,4 +41,8 @@ public class EditProfileRequest {
     @NotNull(message = "REQUIRED_FIELD")
     MultipartFile drivingLicense;
 
+    @RequiredField(fieldName = "Email")
+    @Email(message = "INVALID_EMAIL")
+    String email;
+
 }

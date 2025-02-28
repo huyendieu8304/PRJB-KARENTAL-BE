@@ -21,4 +21,5 @@ public class EditProfileResponse {
     String district;
     String ward;
     String houseNumberStreet;
+    String email;
 }

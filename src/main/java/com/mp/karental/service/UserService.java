@@ -2,6 +2,7 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.AccountRegisterRequest;
+import com.mp.karental.dto.request.EditPasswordRequest;
 import com.mp.karental.dto.request.EditProfileRequest;
 import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.dto.response.UserResponse;
@@ -100,25 +101,39 @@ public class UserService {
         log.info("Editing profile for user with phone number: {}", request.getPhoneNumber());
 
         String accountID = SecurityUtil.getCurrentAccountId();
+        String email = SecurityUtil.getCurrentEmail();
 
         UserProfile userProfile = userProfileRepository.findById(accountID)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
+        Account account = userProfile.getAccount();
+        if (account == null) {
+            throw new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB);
+        }
+
         userMapper.updateUserProfileFromRequest(request, userProfile);
 
-        //upload file
-        String drivingLicenseUri = "user/" + accountID + "/driving-license";
-        fileService.uploadFile(request.getDrivingLicense(), drivingLicenseUri);
-        userProfile.setDrivingLicenseUri(drivingLicenseUri);
+        // Upload file
+        if (request.getDrivingLicense() != null) {
+            String drivingLicenseUri = "user/" + accountID + "/driving-license";
+            fileService.uploadFile(request.getDrivingLicense(), drivingLicenseUri);
+            userProfile.setDrivingLicenseUri(drivingLicenseUri);
+        }
 
         userProfileRepository.save(userProfile);
+        accountRepository.save(account);
 
-        //get image_url
         EditProfileResponse editProfileResponse = userMapper.toEditProfileResponse(userProfile);
-        editProfileResponse.setDrivingLicenseUrl(fileService.getFileUrl(drivingLicenseUri));
+        editProfileResponse.setEmail(email);
+
+        if (userProfile.getDrivingLicenseUri() != null) {
+            editProfileResponse.setDrivingLicenseUrl(fileService.getFileUrl(userProfile.getDrivingLicenseUri()));
+        }
 
         return editProfileResponse;
     }
+
+
 
     /**
      * Retrieves the profile of the current user.
@@ -128,11 +143,19 @@ public class UserService {
      */
     public EditProfileResponse getUserProfile() {
         String userId = SecurityUtil.getCurrentAccountId();
+        String email = SecurityUtil.getCurrentEmail();
 
         UserProfile userProfile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
-        return userMapper.toEditProfileResponse(userProfile);
+        EditProfileResponse response = userMapper.toEditProfileResponse(userProfile);
+        response.setEmail(email);
+
+        if (userProfile.getDrivingLicenseUri() != null) {
+            response.setDrivingLicenseUrl(fileService.getFileUrl(userProfile.getDrivingLicenseUri()));
+        }
+
+        return response;
     }
 
 }

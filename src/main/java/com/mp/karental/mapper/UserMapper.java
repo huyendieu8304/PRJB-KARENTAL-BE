@@ -34,13 +34,23 @@ public interface UserMapper {
 
     // Mapping for feature edit-profile
     @Mapping(target = "drivingLicenseUrl", ignore = true)
+    @Mapping(target = "email", source = "account.email")
     EditProfileResponse toEditProfileResponse(UserProfile userProfile);
 
     // Update UserProfile from EditProfileRequest
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
-    @Mapping(target = "drivingLicenseUri", ignore = true) // Set in service
+    @Mapping(target = "drivingLicenseUri", ignore = true)
+    @Mapping(target = "fullName", source = "fullName")
+    @Mapping(target = "dob", source = "dob")
+    @Mapping(target = "phoneNumber", source = "phoneNumber")
+    @Mapping(target = "nationalId", source = "nationalId")
+    @Mapping(target = "cityProvince", source = "cityProvince")
+    @Mapping(target = "district", source = "district")
+    @Mapping(target = "ward", source = "ward")
+    @Mapping(target = "houseNumberStreet", source = "houseNumberStreet")
     void updateUserProfileFromRequest(EditProfileRequest request, @MappingTarget UserProfile userProfile);
+
 
     // Set value for drivingLicenseUrl
     @AfterMapping
