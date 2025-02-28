@@ -1,6 +1,5 @@
 package com.mp.karental.validation.validator;
 
-import com.mp.karental.constant.ECarImage;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +35,7 @@ class FileCarImageValidatorTest {
 
     @Test
     void testInvalidFileExtensions() {
-        MultipartFile pdfFile = new MockMultipartFile("file", "car.pdf", "application/pdf", new byte[10]);
+        MultipartFile pdfFile = new MockMultipartFile("file", "car.pdf", "test.properties/pdf", new byte[10]);
         MultipartFile txtFile = new MockMultipartFile("file", "car.txt", "text/plain", new byte[10]);
 
         assertFalse(validator.isValid(pdfFile, context));

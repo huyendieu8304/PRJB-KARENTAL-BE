@@ -1,13 +1,11 @@
 package com.mp.karental.service;
 
-import ch.qos.logback.classic.spi.IThrowableProxy;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Car;
-import com.mp.karental.entity.UserProfile;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
@@ -52,6 +50,11 @@ public class CarService {
         Car car = carMapper.toCar(request);
         car.setAccount(account);
         car.setStatus(ECarStatus.AVAILABLE.name());
+        String[] address = request.getAddress().split(",");
+        car.setCityProvince(address[0].trim());
+        car.setDistrict(address[1].trim());
+        car.setWard(address[2].trim());
+        car.setHouseNumberStreet(address[3].trim() + ", " + address[4].trim());
 
         //save car to db
         //this need to be done before upload file to s3, because the id of the car is generate in db
@@ -102,8 +105,8 @@ public class CarService {
         car.setGasoline(request.isGasoline());
 
         car = carRepository.save(car);
-
-        return carMapper.toCarResponse(car);
+        CarResponse carResponse = carMapper.toCarResponse(car);
+        return carResponse;
     }
 
     public Page<CarThumbnailResponse> getCarsByUserId(int page, int size, String sort) {

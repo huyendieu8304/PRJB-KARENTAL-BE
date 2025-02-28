@@ -60,7 +60,7 @@ public class Car {
     int deposit;
 
     //address
-    @Column(nullable = false)
+    @Column(name = "city_province",nullable = false)
     String cityProvince;
 
     @Column(nullable = false)
@@ -69,7 +69,7 @@ public class Car {
     @Column(nullable = false)
     String ward;
 
-    @Column(nullable = false)
+    @Column(name = "house_number_street",nullable = false)
     String houseNumberStreet;
 
     @Column(columnDefinition = "TEXT")

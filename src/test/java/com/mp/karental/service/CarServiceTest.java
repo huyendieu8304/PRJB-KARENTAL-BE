@@ -76,7 +76,10 @@ class CarServiceTest {
                 .fuelConsumption(6.5f)
                 .basePrice(500000)
                 .deposit(100000)
-                .address("Hanoi, Vietnam")
+                .cityProvince("Hanoi")
+                .district("Hola")
+                .ward("ThachThat")
+                .houseNumberStreet("211, tran duy hung")
                 .carImageFront("front.jpg")
                 .carImageBack("back.jpg")
                 .carImageLeft("left.jpg")
@@ -146,6 +149,7 @@ class CarServiceTest {
         addCarRequest.setLicensePlate("49F-123.45");
         addCarRequest.setAutomatic(true);
         addCarRequest.setGasoline(true);
+        addCarRequest.setAddress("Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211, Trần Duy Hưng");
 
         // Mock carMapper
         Car mockCar = new Car();

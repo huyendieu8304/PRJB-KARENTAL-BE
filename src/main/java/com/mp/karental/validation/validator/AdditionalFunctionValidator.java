@@ -19,19 +19,25 @@ public class AdditionalFunctionValidator implements ConstraintValidator<ValidAdd
             .map(EAdditionalFunctions::getName)
             .collect(Collectors.toSet());
 
+    private static final Set<String> NORMALIZED_FUNCTIONS = ALLOWED_FUNCTIONS.stream()
+            .map(name -> name.replaceAll("\\s+", "").toLowerCase()) // Bỏ khoảng trắng và chuyển về chữ thường
+            .collect(Collectors.toSet());
+
+    private boolean isAllowedFunction(String input) {
+        String normalizedInput = input.replaceAll("\\s+", "").toLowerCase();
+        return NORMALIZED_FUNCTIONS.contains(normalizedInput);
+    }
+
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        // If the value is null, it's considered valid
         if (value == null) {
             return true;
         }
 
-        // Split the comma-separated string into a list of functions
-        List<String> functions = Arrays.asList(value.split(", "));
+        List<String> functions = Arrays.asList(value.split(","));
 
-        // Validate that each function is in the allowed functions set
         return functions.stream()
-                .map(String::trim)  // Trim spaces around the functions
-                .allMatch(ALLOWED_FUNCTIONS::contains);
+                .map(String::trim)
+                .allMatch(this::isAllowedFunction);
     }
 }
