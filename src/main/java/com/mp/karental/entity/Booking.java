@@ -15,6 +15,16 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * Represents a booking in the database
+ * <p>
+ * This entity maps to a database table for storing booking information
+ * </p>
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Entity
 @Data
 @NoArgsConstructor

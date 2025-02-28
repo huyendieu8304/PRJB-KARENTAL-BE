@@ -30,6 +30,11 @@ import java.util.Objects;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    private final String[] VALIDATORS_ATTRIBUTES = {
+            "fieldName"
+    };
+
     /**
      * Handle RuntimeException
      * @param e - the exception
@@ -118,9 +123,20 @@ public class GlobalExceptionHandler {
                 .status(errorCode.getHttpStatusCode())
                 .body(apiResponse);
     }
-    private String mapAttributeMessage(String message, Map<String, Object> attributes) {
-
-        //Because now there isn't any attribute need to customize
+    private String mapAttributeMessage(String message, Map<String, Object> validationAttributes) {
+        //there are attributes in the validator annotation
+        if (validationAttributes != null) {
+            for (String attribute : VALIDATORS_ATTRIBUTES) {
+                log.info("attribute: " + attribute);
+                //the attributes exist in the validation attribute
+                if (validationAttributes.containsKey(attribute)) {
+                    log.info("exist attributes in the validation attributes: " + validationAttributes.get(attribute));
+                    String value = validationAttributes.get(attribute).toString();
+                    //replace the value of the attribute to the error message
+                    message = message.replace("{" + attribute + "}", value);
+                }
+            }
+        }
         return message;
     }
 

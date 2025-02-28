@@ -1,5 +1,6 @@
 package com.mp.karental.dto.request;
 
+import com.mp.karental.validation.RequiredField;
 import com.mp.karental.validation.UniqueEmail;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -24,12 +25,12 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class LoginRequest {
-    @NotBlank(message = "REQUIRED_FIELD")
+    @RequiredField(fieldName = "Email")
     @Email(message = "INVALID_EMAIL")
     @UniqueEmail(message = "NOT_UNIQUE_EMAIL")
     String email;
 
-    @NotBlank(message = "REQUIRED_FIELD")
+    @RequiredField(fieldName = "Password")
     //The password must have at least 1 character, 1 digit and 7 characters
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).{9,}$", message = "INVALID_PASSWORD")
     String password;

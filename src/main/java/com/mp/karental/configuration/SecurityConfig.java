@@ -52,7 +52,7 @@ public class SecurityConfig{
             "/auth/login",
             "/auth/logout",
             "/auth/refresh-token",
-    //        "/car/addCar"  unit test
+    //        "/car/addCar"  //unit test
 
     };
     /**
@@ -98,15 +98,16 @@ public class SecurityConfig{
                         return config;
                     }
                 }))
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint)) //unauthorized request
-                .exceptionHandling(e -> e.accessDeniedHandler(new CustomAccessDeniedHandler()))//unauthorized access
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint) //unauthenticated request
+                        .accessDeniedHandler(new CustomAccessDeniedHandler()) //unauthorized access
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //make each request independently
                 .authorizeHttpRequests( //authorization in http url
                         request -> request
                                 //open public endpoints
                                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                 //endpoints for user has role CAR_OWNER
-                                .requestMatchers("/car-owner/**").hasRole("CAR_OWNER")
+                                .requestMatchers("/car/car-owner/**").hasRole("CAR_OWNER")
                                 .requestMatchers("/customer/**").hasRole("CUSTOMER")
                                 .anyRequest().authenticated()
                 );
