@@ -51,12 +51,4 @@ public interface UserMapper {
     @Mapping(target = "houseNumberStreet", source = "houseNumberStreet")
     void updateUserProfileFromRequest(EditProfileRequest request, @MappingTarget UserProfile userProfile);
 
-
-    // Set value for drivingLicenseUrl
-    @AfterMapping
-    default void setDrivingLicenseUrl(@MappingTarget EditProfileResponse response, UserProfile userProfile, @Context FileService fileService) {
-        if (userProfile.getDrivingLicenseUri() != null) {
-            response.setDrivingLicenseUrl(fileService.getFileUrl(userProfile.getDrivingLicenseUri()));
-        }
-    }
 }

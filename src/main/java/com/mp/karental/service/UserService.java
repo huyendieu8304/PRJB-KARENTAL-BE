@@ -134,7 +134,6 @@ public class UserService {
     }
 
 
-
     /**
      * Retrieves the profile of the current user.
      *
@@ -157,5 +156,34 @@ public class UserService {
 
         return response;
     }
+
+    /**
+     * Updates the password for the currently authenticated user.
+     *
+     * @param request the request containing the current password, new password, and confirmation password
+     * @throws AppException if the account is not found, the current password is incorrect, or the new password is invalid
+     */
+    public void editPassword(EditPasswordRequest request) {
+        // Get information of current password
+        String accountID = SecurityUtil.getCurrentAccountId();
+        Account account = accountRepository.findById(accountID)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        // Confirm current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {
+            throw new AppException(ErrorCode.INCORRECT_PASSWORD);
+        }
+
+        // Check new password not null
+        if (request.getNewPassword() == null || request.getNewPassword().isBlank()) {
+            throw new AppException(ErrorCode.INVALID_PASSWORD);
+        }
+
+        // Encode and update new password
+        account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        accountRepository.save(account);
+    }
+
+
 
 }

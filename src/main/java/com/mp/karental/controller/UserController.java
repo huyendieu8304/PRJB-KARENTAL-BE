@@ -1,9 +1,6 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.AccountRegisterRequest;
-import com.mp.karental.dto.request.AddCarRequest;
-import com.mp.karental.dto.request.CheckUniqueEmailRequest;
-import com.mp.karental.dto.request.EditProfileRequest;
+import com.mp.karental.dto.request.*;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.EditProfileResponse;
@@ -118,5 +115,21 @@ public class UserController {
         );
     }
 
+
+    /**
+     * Changes the password of the current user.
+     *
+     * @param request the request containing current, new, and confirm passwords
+     * @return a response indicating success or failure
+     */
+    @PutMapping("/edit-password")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'CAR_OWNER')")
+    public ApiResponse<String> editPassword(@RequestBody @Valid EditPasswordRequest request) {
+        log.info("Changing password for user");
+        userService.editPassword(request);
+        return ApiResponse.<String>builder()
+                .message("Password updated successfully")
+                .build();
+    }
 
 }
