@@ -2,6 +2,8 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.AccountRegisterRequest;
+import com.mp.karental.dto.request.EditPasswordRequest;
+import com.mp.karental.dto.request.EditProfileRequest;
 import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
@@ -13,13 +15,14 @@ import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.RoleRepository;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.repository.WalletRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.mp.karental.security.SecurityUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -131,4 +134,72 @@ class UserServiceTest {
         verify(userMapper).toAccount(request);
         verify(roleRepository).findByName(ERole.CUSTOMER);
     }
+
+    @Test
+    void editPassword_IncorrectCurrentPassword() {
+        EditPasswordRequest request = new EditPasswordRequest();
+        request.setCurrentPassword("wrongPassword");
+        request.setNewPassword("newSecurePassword");
+
+        String accountId = "12345";
+        Account account = new Account();
+        account.setId(accountId);
+        account.setPassword("encodedOldPassword");
+
+        // Mock static method của SecurityUtil
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+            when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+            when(passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())).thenReturn(false);
+
+            // Act & Assert
+            AppException exception = assertThrows(AppException.class, () -> userService.editPassword(request));
+            assertEquals(ErrorCode.INCORRECT_PASSWORD, exception.getErrorCode());
+        }
+    }
+
+    @Test
+    void editProfile_UserNotFound() {
+        String accountId = "12345";
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+            when(userProfileRepository.findById(accountId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            AppException exception = assertThrows(AppException.class, () -> userService.editProfile(new EditProfileRequest()));
+            assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
+        }
+    }
+
+    @Test
+    void editPassword_Success() {
+        EditPasswordRequest request = new EditPasswordRequest();
+        request.setCurrentPassword("oldPassword");
+        request.setNewPassword("newSecurePassword");
+
+        String accountId = "12345";
+        Account account = new Account();
+        account.setId(accountId);
+        account.setPassword("encodedOldPassword");
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+            when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+            when(passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())).thenReturn(true);
+            when(passwordEncoder.encode(request.getNewPassword())).thenReturn("encodedNewPassword");
+
+            // Act
+            userService.editPassword(request);
+
+            // Assert
+            assertEquals("encodedNewPassword", account.getPassword());
+            verify(accountRepository).save(account);
+        }
+    }
+
+
 }
