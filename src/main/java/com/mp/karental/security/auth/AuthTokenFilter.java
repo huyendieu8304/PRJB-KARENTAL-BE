@@ -28,6 +28,12 @@ import org.springframework.web.util.WebUtils;
 
 import java.io.IOException;
 
+/**
+ * Authentication filter
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)

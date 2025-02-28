@@ -1,7 +1,12 @@
 package com.mp.karental.constant;
 
 import lombok.Getter;
-
+/**
+ * Represents the additional function of the car
+ * @author QuangPM20
+ *
+ * @version 1.0
+ */
 @Getter
 public enum EAdditionalFunctions {
     BLUETOOTH("Bluetooth"),
