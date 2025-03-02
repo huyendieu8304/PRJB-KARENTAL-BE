@@ -138,11 +138,36 @@ public class CarService {
     }
 
     public CarResponse getCarDetail(String carId) {
+        String accountId = SecurityUtil.getCurrentAccountId();
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND));
 
         boolean isBooked = "BOOKED".equalsIgnoreCase(car.getStatus());
-        return carMapper.toCarDetailResponse(car, isBooked);
+
+        CarResponse response = carMapper.toCarDetailResponse(car, isBooked);
+
+        // 📝 Kiểm tra nếu khách hàng đã đặt xe
+        if (isBooked) {
+            response.setRegistrationPaperUriIsVerified(true);
+            response.setCertificateOfInspectionUriIsVerified(true);
+            response.setInsuranceUriIsVerified(true);
+
+            // Hiển thị địa chỉ đầy đủ
+            response.setAddress(car.getHouseNumberStreet() + ", "
+                    + car.getWard() + ", "
+                    + car.getDistrict() + ", "
+                    + car.getCityProvince());
+        } else {
+            response.setRegistrationPaperUriIsVerified(false);
+            response.setCertificateOfInspectionUriIsVerified(false);
+            response.setInsuranceUriIsVerified(false);
+
+            // Chỉ hiển thị một phần địa chỉ + thông báo
+            response.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
+        }
+
+        return response;
     }
+
 
 }
