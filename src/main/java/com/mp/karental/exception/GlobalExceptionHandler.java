@@ -45,14 +45,16 @@ public class GlobalExceptionHandler {
      *
      * TEMPORARY disable for development
      */
-//    @ExceptionHandler(Exception.class)
-//    ResponseEntity<ApiResponse> runtimeExceptionHandler(RuntimeException e) {
-//        ApiResponse apiResponse = new ApiResponse();
-//
-//        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
-//        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
-//        return ResponseEntity.badRequest().body(apiResponse);
-//    }
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<ApiResponse> exceptionHandler(Exception e) {
+        log.error(e.getMessage(), e);
+        log.error(e.getStackTrace().toString());
+        ApiResponse apiResponse = new ApiResponse();
+
+        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
+        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
 
 
     /**
@@ -66,6 +68,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AppException.class)
     ResponseEntity<ApiResponse> appExceptionHandler(AppException e) {
+        log.info("Exception is catch by appExceptionHandler, exception: {}", e.getMessage());
         ErrorCode errorCode = e.getErrorCode();
         ApiResponse apiResponse = new ApiResponse();
 

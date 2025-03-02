@@ -7,6 +7,7 @@ import com.mp.karental.exception.ErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -22,6 +23,7 @@ import java.io.IOException;
  * @version 1.0
  */
 @Component
+@Slf4j
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 
     @Override
@@ -29,7 +31,7 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
                          HttpServletResponse response,
                          AuthenticationException authException)
             throws IOException, ServletException {
-        //TODO: test lai mã lỗi http của cái này
+        log.info("go to AuthEntryPointJwt commence");
 
         ErrorCode errorCode = ErrorCode.UNAUTHENTICATED; //by default, it would be ErrorCode.UNAUTHENTICATED
 
