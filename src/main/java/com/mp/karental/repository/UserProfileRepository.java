@@ -23,5 +23,7 @@ import java.util.Optional;
 public interface UserProfileRepository extends JpaRepository<UserProfile, String> {
     Optional<UserProfile> findByPhoneNumber(String phoneNumber);
 
-    Optional<Object> findUserProfileByAccount(Account account);
+    boolean existsByPhoneNumber(String phoneNumber);
+    boolean existsByNationalId(String nationalId);
+
 }
