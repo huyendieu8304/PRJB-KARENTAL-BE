@@ -38,7 +38,6 @@ public class EditProfileRequest {
     String houseNumberStreet;
 
     @ValidDocument(message = "INVALID_IMAGE_FILE")
-    @NotNull(message = "REQUIRED_FIELD")
     MultipartFile drivingLicense;
 
     @RequiredField(fieldName = "Email")

@@ -52,6 +52,7 @@ public enum ErrorCode {
     INVALID_DATE_OF_BIRTH(2020, "Date of birth must be in the past.", HttpStatus.BAD_REQUEST),
     INVALID_IMAGE_FILE(2021, "Invalid image file type. Accepted formats are .jpg, .jpeg, .png", HttpStatus.BAD_REQUEST),
     INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
+    NOT_UNIQUE_NATIONAL_ID(2023, "The national id already existed. Please try another national id", HttpStatus.BAD_REQUEST),
 
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),

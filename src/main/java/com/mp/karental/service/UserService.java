@@ -111,14 +111,43 @@ public class UserService {
             throw new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB);
         }
 
+        // Check phoneNumber: If diff old value then check duplicate. Else update
+        if (!request.getPhoneNumber().equals(userProfile.getPhoneNumber())) {
+            if (userProfileRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+                throw new AppException(ErrorCode.NOT_UNIQUE_PHONE_NUMBER);
+            }
+            userProfile.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        // Check nationalId: If diff old value then check duplicate. Else update
+        if (!request.getNationalId().equals(userProfile.getNationalId())) {
+            if (userProfileRepository.existsByNationalId(request.getNationalId())) {
+                throw new AppException(ErrorCode.NOT_UNIQUE_NATIONAL_ID);
+            }
+            userProfile.setNationalId(request.getNationalId());
+        }
+
+        // Check and upload file when have new file. Else not update (not change uri)
+        if (request.getDrivingLicense() != null) {
+            String newUri = "user/" + accountID + "/driving-license";
+
+            if (userProfile.getDrivingLicenseUri() == null ||
+                    !userProfile.getDrivingLicenseUri().equals(newUri)) {
+
+                fileService.uploadFile(request.getDrivingLicense(), newUri);
+                userProfile.setDrivingLicenseUri(newUri);
+            }
+        }
+
+
         userMapper.updateUserProfileFromRequest(request, userProfile);
 
-        // Upload file
-        if (request.getDrivingLicense() != null) {
-            String drivingLicenseUri = "user/" + accountID + "/driving-license";
-            fileService.uploadFile(request.getDrivingLicense(), drivingLicenseUri);
-            userProfile.setDrivingLicenseUri(drivingLicenseUri);
-        }
+//        // Upload file
+//        if (request.getDrivingLicense() != null) {
+//            String drivingLicenseUri = "user/" + accountID + "/driving-license";
+//            fileService.uploadFile(request.getDrivingLicense(), drivingLicenseUri);
+//            userProfile.setDrivingLicenseUri(drivingLicenseUri);
+//        }
 
         userProfileRepository.save(userProfile);
         accountRepository.save(account);
