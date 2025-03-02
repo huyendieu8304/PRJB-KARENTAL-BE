@@ -8,6 +8,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * test addtional function validator
+ *
+ * QuangPM20
+ * version 1.0
+ */
+
 class AdditionalFunctionValidatorTest {
     private AdditionalFunctionValidator validator;
     private ConstraintValidatorContext context;
@@ -49,6 +56,10 @@ class AdditionalFunctionValidatorTest {
     @Test
     void whenNullValue_thenShouldReturnTrue() {
         assertTrue(validator.isValid(null, context));
+    }
+    @Test
+    void whenEmptyValue_thenShouldReturnTrue() {
+        assertTrue(validator.isValid("", context));
     }
 
 }

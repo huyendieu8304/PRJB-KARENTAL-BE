@@ -18,6 +18,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * test brand-model validator
+ *
+ * QuangPM20
+ * version 1.0
+ */
 class BrandAndModelValidatorTest {
 
     @Mock

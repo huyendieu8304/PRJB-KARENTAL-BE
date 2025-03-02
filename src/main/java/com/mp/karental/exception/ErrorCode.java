@@ -49,6 +49,7 @@ public enum ErrorCode {
     INVALID_CAR_IMAGE_FILE(2017,"Invalid file type. Accepted formats are .jpg, .jpeg, .png, .gif", HttpStatus.BAD_REQUEST),
     INVALID_VALUE_MIN(2018,"This attribute must be >=0", HttpStatus.BAD_REQUEST),
     INVALID_ADDRESS(2019,"The address is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_STATUS_EDIT(2020,"Status can edit only available/stopped", HttpStatus.BAD_REQUEST),
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),

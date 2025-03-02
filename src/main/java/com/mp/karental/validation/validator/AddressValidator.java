@@ -7,12 +7,14 @@ import jakarta.validation.ConstraintValidatorContext;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Validator class for validating address format and ensuring the address components
  * (city, district, ward) exist in the predefined dataset from ExcelService.
  *
+ * QuangPM20
  * @version 1.0
  */
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class AddressValidator implements ConstraintValidator<ValidAddress, Strin
     private final ExcelService excelService;
 
     // Define the regex pattern for the address format
-    private static final String ADDRESS_REGEX = "^\\s*([\\p{L}\\s]+),\\s*([\\p{L}\\s]+),\\s*([\\p{L}\\s]+),\\s*(\\d+),\\s*([\\p{L}\\s]+)\\s*$";
+    private static final String ADDRESS_REGEX = "^\\s*([\\p{L}\\s]+),\\s*([\\p{L}\\s]+),\\s*([\\p{L}\\s]+),\\s*(.+)\\s*$";
 
     /**
      * Validates the given address string.
@@ -38,26 +40,28 @@ public class AddressValidator implements ConstraintValidator<ValidAddress, Strin
         }
 
         // Validate the address format using regex
-        if (!Pattern.matches(ADDRESS_REGEX, value)) {
+        Matcher matcher = Pattern.compile(ADDRESS_REGEX).matcher(value);
+        if (!matcher.matches()) {
             return false;  // If format doesn't match, return false
         }
 
         // Extract the components of the address
-        String[] addressParts = value.split(",");
-        if (addressParts.length != 5) {
-            return false;  // If the address doesn't have exactly 5 parts, it's invalid
+        String[] addressParts = value.split(",", 4);  // Limit split to 4 parts
+        if (addressParts.length < 3) {
+            return false;  // Must have at least city, district, and ward
         }
 
-        // Extract city, district, and ward from the address parts
+        // Extract city, district, and ward
         String city = addressParts[0].trim();
         String district = addressParts[1].trim();
         String ward = addressParts[2].trim();
 
-        // Validate the city, district, and ward using data from ExcelService
+        // Validate city, district, and ward using ExcelService
         return isValidCity(city) && isValidDistrict(district) && isValidWard(ward)
                 && isValidDistrictForCity(district, city)
                 && isValidWardForDistrict(ward, district);
     }
+
 
     /**
      * Checks if the given city is valid based on data from ExcelService.

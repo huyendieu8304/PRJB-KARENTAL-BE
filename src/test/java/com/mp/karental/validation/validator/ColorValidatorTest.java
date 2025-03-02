@@ -9,7 +9,12 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-
+/**
+ * test color validator
+ *
+ * QuangPM20
+ * version 1.0
+ */
 class ColorValidatorTest {
 
     private ColorValidator validator;

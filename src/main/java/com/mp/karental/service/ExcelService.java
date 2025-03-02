@@ -54,7 +54,7 @@ public class ExcelService {
      * @param filePath Path to the Excel file.
      * @throws IOException If there is an issue reading the file.
      */
-    private void loadExcelDataCar(String filePath) throws IOException {
+    public void loadExcelDataCar(String filePath) throws IOException {
         File file = new ClassPathResource(filePath).getFile();
 
         try (FileInputStream fis = new FileInputStream(file);
@@ -79,7 +79,7 @@ public class ExcelService {
      * @param filePath Path to the Excel file.
      * @throws IOException If there is an issue reading the file.
      */
-    private void loadExcelDataAddress(String filePath) throws IOException {
+    public void loadExcelDataAddress(String filePath) throws IOException {
         File file = new ClassPathResource(filePath).getFile();
 
         try (FileInputStream fis = new FileInputStream(file)) {
@@ -100,9 +100,9 @@ public class ExcelService {
                 String district = getCellValue(row.getCell(3)).trim();
                 String cityProvince = getCellValue(row.getCell(5)).trim();
 
-                if (!ward.isEmpty()) wards.add(ward);
-                if (!district.isEmpty()) districts.add(district);
-                if (!cityProvince.isEmpty()) cities.add(cityProvince);
+                wards.add(ward);
+                districts.add(district);
+                cities.add(cityProvince);
 
 
                 if (!district.isEmpty() && !cityProvince.isEmpty()) {
@@ -212,7 +212,7 @@ public class ExcelService {
      * @param cell The Excel cell.
      * @return The cell value as a string, handling different cell types.
      */
-    private String getCellValue(Cell cell) {
+    public String getCellValue(Cell cell) {
         if (cell == null) return "";
         return switch (cell.getCellType()) {
             case STRING -> cell.getStringCellValue().trim();
@@ -222,4 +222,8 @@ public class ExcelService {
             default -> "";
         };
     }
+
+
+
+
 }

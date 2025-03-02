@@ -46,7 +46,7 @@ public class EditCarRequest {
 
     String termOfUse;
 
-    @RequiredField(fieldName = "Status")
+    @ValidStatusEdit(message = "INVALID_STATUS_EDIT")
     String status;
 
     //  MultipartFile**

@@ -21,6 +21,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class CarResponse {
+    String id;
     String licensePlate;
     String brand;
     String model;

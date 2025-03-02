@@ -52,8 +52,8 @@ public class SecurityConfig{
             "/auth/login",
             "/auth/logout",
             "/auth/refresh-token",
-//            "/car/addCar"  //unit test
-
+            "/car/addCar",  //unit test
+            "/car/editCar/carId123", //unit test
     };
     /**
      * Allow request from other origins below

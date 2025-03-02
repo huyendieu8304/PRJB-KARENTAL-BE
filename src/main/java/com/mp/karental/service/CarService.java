@@ -72,6 +72,7 @@ public class CarService {
         car = carRepository.save(car);
         CarResponse carResponse = carMapper.toCarResponse(car);
         carResponse.setAddress(request.getAddress());
+        carResponse.setId(car.getId());
         // Return the response after saving
         return carResponse;
     }
@@ -93,9 +94,15 @@ public class CarService {
         Car car = carRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
 
         carMapper.editCar(car, request);
-        if (request.getStatus().equalsIgnoreCase(ECarStatus.AVAILABLE.name()) || request.getStatus().equalsIgnoreCase(ECarStatus.STOPPED.name())) {
-            car.setStatus(request.getStatus().toUpperCase());
+
+        String status = request.getStatus();
+        if (status == null) {
+            status = ECarStatus.AVAILABLE.name();  // Default to AVAILABLE if status is null
+        } else {
+            status = status.toUpperCase();
         }
+        car.setStatus(status.toUpperCase());
+
         car.setAccount(account);
 
         setCarAddress(request, car);
@@ -106,6 +113,7 @@ public class CarService {
 
         CarResponse carResponse = carMapper.toCarResponse(car);
         carResponse.setAddress(request.getAddress());
+        carResponse.setId(car.getId());
 
         return carResponse;
     }
@@ -129,12 +137,12 @@ public class CarService {
         }
 
         if (address != null && !address.isEmpty()) {
-            String[] addressParts = address.split(",");
+            String[] addressParts = address.split(",",4);
 
             car.setCityProvince(addressParts[0].trim());
             car.setDistrict(addressParts[1].trim());
             car.setWard(addressParts[2].trim());
-            car.setHouseNumberStreet(addressParts[3].trim() + ", " + addressParts[4].trim());
+            car.setHouseNumberStreet(addressParts[3].trim());
 
         }
     }
