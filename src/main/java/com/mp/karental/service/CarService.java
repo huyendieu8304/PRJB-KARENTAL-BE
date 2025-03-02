@@ -146,13 +146,13 @@ public class CarService {
 
         CarResponse response = carMapper.toCarDetailResponse(car, isBooked);
 
-        // 📝 Kiểm tra nếu khách hàng đã đặt xe
+        // Check if customer booked
         if (isBooked) {
             response.setRegistrationPaperUriIsVerified(true);
             response.setCertificateOfInspectionUriIsVerified(true);
             response.setInsuranceUriIsVerified(true);
 
-            // Hiển thị địa chỉ đầy đủ
+            // Show full of address
             response.setAddress(car.getHouseNumberStreet() + ", "
                     + car.getWard() + ", "
                     + car.getDistrict() + ", "
@@ -162,7 +162,7 @@ public class CarService {
             response.setCertificateOfInspectionUriIsVerified(false);
             response.setInsuranceUriIsVerified(false);
 
-            // Chỉ hiển thị một phần địa chỉ + thông báo
+            // Show only one address + part message
             response.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
         }
 
