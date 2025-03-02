@@ -12,10 +12,7 @@ import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.JwtUtils;
-import com.mp.karental.security.entity.InvalidateRefreshToken;
 import com.mp.karental.security.entity.UserDetailsImpl;
-import com.mp.karental.security.repository.InvalidateAccessTokenRepo;
-import com.mp.karental.security.repository.InvalidateRefreshTokenRepo;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +30,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,7 +43,7 @@ import static org.mockito.Mockito.*;
  *
  * @author DieuTTH4
  *
- * @version 1.0
+ * @version 1.1
  */
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
@@ -58,10 +55,7 @@ class AuthenticationServiceTest {
     private JwtUtils jwtUtils;
 
     @Mock
-    private InvalidateAccessTokenRepo invalidateAccessTokenRepo;
-
-    @Mock
-    private InvalidateRefreshTokenRepo invalidateRefreshTokenRepo;
+    private TokenService tokenService;
 
     @Mock
     private AccountRepository accountRepository;
@@ -181,11 +175,14 @@ class AuthenticationServiceTest {
         mockAccount.setEmail(userEmail);
         mockAccount.setActive(true);
 
+        Instant mockInstant = mock(Instant.class);
+
         when(request.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
-        when(invalidateRefreshTokenRepo.findByToken(refreshToken)).thenReturn(Optional.empty());
+        when(tokenService.isRefreshTokenInvalidated(refreshToken)).thenReturn(false);
+        when(jwtUtils.getExpirationAtFromRefreshToken(refreshToken)).thenReturn(mockInstant);
 
         when(jwtUtils.getUserAccountIdFromRefreshToken(refreshToken)).thenReturn(accountId);
         when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
@@ -201,7 +198,7 @@ class AuthenticationServiceTest {
         assertEquals("Successfully refresh token", response.getBody().getData());
 
         // old refresh token should  be saved to db
-        verify(invalidateRefreshTokenRepo, times(1)).save(any(InvalidateRefreshToken.class));
+        verify(tokenService, times(1)).invalidateRefreshToken(eq(refreshToken), any(Instant.class));
     }
 
     @Test
@@ -242,7 +239,7 @@ class AuthenticationServiceTest {
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
-        when(invalidateRefreshTokenRepo.findByToken(refreshToken)).thenReturn(Optional.of(new InvalidateRefreshToken()));
+        when(tokenService.isRefreshTokenInvalidated(refreshToken)).thenReturn(true);
 
         // Assert
         AppException exception = assertThrows(AppException.class, () -> {
@@ -250,6 +247,7 @@ class AuthenticationServiceTest {
         });
 
         assertEquals(ErrorCode.INVALID_REFRESH_TOKEN, exception.getErrorCode());
+        verify(tokenService, times(0)).invalidateRefreshToken(anyString(), any(Instant.class));
     }
 
     @Test
@@ -261,7 +259,8 @@ class AuthenticationServiceTest {
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
-        when(invalidateRefreshTokenRepo.findByToken(refreshToken)).thenReturn(Optional.empty());
+        when(tokenService.isRefreshTokenInvalidated(refreshToken)).thenReturn(false);
+
         when(jwtUtils.getUserAccountIdFromRefreshToken(refreshToken)).thenReturn(accountId);
         when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
 
@@ -271,6 +270,7 @@ class AuthenticationServiceTest {
         });
 
         assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
+        verify(tokenService, times(0)).invalidateRefreshToken(anyString(), any(Instant.class));
     }
 
     @Test
@@ -285,7 +285,8 @@ class AuthenticationServiceTest {
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
-        when(invalidateRefreshTokenRepo.findByToken(refreshToken)).thenReturn(Optional.empty());
+        when(tokenService.isRefreshTokenInvalidated(refreshToken)).thenReturn(false);
+
         when(jwtUtils.getUserAccountIdFromRefreshToken(refreshToken)).thenReturn(accountId);
         when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
 
@@ -295,6 +296,7 @@ class AuthenticationServiceTest {
         });
 
         assertEquals(ErrorCode.ACCOUNT_IS_INACTIVE, exception.getErrorCode());
+        verify(tokenService, times(0)).invalidateRefreshToken(anyString(), any(Instant.class));
     }
 
     @Test
@@ -305,32 +307,23 @@ class AuthenticationServiceTest {
 
         Cookie cookieAccess = new Cookie("accessToken", accessToken);
         Cookie cookieRefresh = new Cookie("refreshToken", refreshToken);
+
+        Instant mockInstant = mock(Instant.class);
         when(request.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });
 
         // mock valid not throw exception
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
-        Date refreshExpiration = new Date(System.currentTimeMillis() + 3600 * 1000);
-        when(jwtUtils.getExpirationDateFromRefreshToken(refreshToken)).thenReturn(refreshExpiration);
+        when(jwtUtils.getExpirationAtFromRefreshToken(refreshToken)).thenReturn(mockInstant);
 
         when(jwtUtils.validateJwtAccessToken(accessToken)).thenReturn(true);
-        Date accessExpiration = new Date(System.currentTimeMillis() + 1800 * 1000);
-        when(jwtUtils.getExpirationDateFromAccessToken(accessToken)).thenReturn(accessExpiration);
+        when(jwtUtils.getExpirationAtFromAccessToken(accessToken)).thenReturn(mockInstant);
 
         // logout
         ResponseEntity<ApiResponse<?>> response = authenticationService.logout(request);
 
-        // verify invalidateRefreshTokenRepo.save called
-        verify(invalidateRefreshTokenRepo, times(1))
-                .save(argThat(token ->
-                        refreshToken.equals(token.getToken()) &&
-                                refreshExpiration.equals(token.getExpiresAt())
-                ));
-
-        verify(invalidateAccessTokenRepo, times(1))
-                .save(argThat(token ->
-                        accessToken.equals(token.getToken()) &&
-                                accessExpiration.equals(token.getExpiresAt())
-                ));
+        // verify tokenService is called
+        verify(tokenService, times(1)).invalidateAccessToken(eq(accessToken), any(Instant.class));
+        verify(tokenService, times(1)).invalidateRefreshToken(eq(refreshToken), any(Instant.class));
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCodeValue());
@@ -351,17 +344,15 @@ class AuthenticationServiceTest {
 
         // Mock valid access token
         when(jwtUtils.validateJwtAccessToken(accessToken)).thenReturn(true);
-        Date accessExpiration = new Date(System.currentTimeMillis() + 1800 * 1000);
-        when(jwtUtils.getExpirationDateFromAccessToken(accessToken)).thenReturn(accessExpiration);
 
         // Gọi logout
         ResponseEntity<ApiResponse<?>> response = authenticationService.logout(request);
 
-        // verify not saving invalidate cho refresh token
-        verify(invalidateRefreshTokenRepo, never()).save(any());
+        // verify not saving invalidate for refresh token
+        verify(tokenService, times(0)).invalidateRefreshToken(anyString(), any(Instant.class));
 
         // saving access token to invalidated Access token
-        verify(invalidateAccessTokenRepo, times(1)).save(any());
+        verify(tokenService, times(0)).invalidateAccessToken(anyString(), any(Instant.class));
 
         // Assert
         assertNotNull(response);
@@ -377,12 +368,14 @@ class AuthenticationServiceTest {
 
         Cookie cookieAccess = new Cookie("accessToken", accessToken);
         Cookie cookieRefresh = new Cookie("refreshToken", refreshToken);
+
+        Instant mockInstant = mock(Instant.class);
+
         when(request.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });
 
         // Mock valid refresh token
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
-        Date refreshExpiration = new Date(System.currentTimeMillis() + 3600 * 1000);
-        when(jwtUtils.getExpirationDateFromRefreshToken(refreshToken)).thenReturn(refreshExpiration);
+        when(jwtUtils.getExpirationAtFromRefreshToken(refreshToken)).thenReturn(mockInstant);
 
         // Mock INvalid access token
         when(jwtUtils.validateJwtAccessToken(accessToken)).thenThrow(new AppException(ErrorCode.UNAUTHENTICATED));
@@ -391,11 +384,10 @@ class AuthenticationServiceTest {
         ResponseEntity<ApiResponse<?>> response = authenticationService.logout(request);
 
         // saving access token to invalidated Access token
-        verify(invalidateRefreshTokenRepo, times(1)).save(any());
+        verify(tokenService, times(1)).invalidateRefreshToken(eq(refreshToken), any(Instant.class));
 
         // verify not saving invalidate cho refresh token
-        verify(invalidateAccessTokenRepo, never()).save(any());
-
+        verify(tokenService, times(0)).invalidateAccessToken(eq(accessToken), any(Instant.class));
 
         // Assert
         assertNotNull(response);
@@ -410,8 +402,8 @@ class AuthenticationServiceTest {
         ResponseEntity<ApiResponse<?>> response = authenticationService.logout(request);
 
         // no saving
-        verify(invalidateRefreshTokenRepo, never()).save(any());
-        verify(invalidateAccessTokenRepo, never()).save(any());
+        verify(tokenService, never()).invalidateAccessToken(any(String.class), any(Instant.class));
+        verify(tokenService, never()).invalidateRefreshToken(any(String.class), any(Instant.class));
 
         // assert response
         assertNotNull(response);

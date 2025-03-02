@@ -5,13 +5,9 @@ import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.LoginResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.repository.UserProfileRepository;
-import com.mp.karental.security.entity.InvalidateAccessToken;
-import com.mp.karental.security.entity.InvalidateRefreshToken;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.repository.AccountRepository;
-import com.mp.karental.security.repository.InvalidateAccessTokenRepo;
-import com.mp.karental.security.repository.InvalidateRefreshTokenRepo;
 import com.mp.karental.security.JwtUtils;
 import com.mp.karental.security.entity.UserDetailsImpl;
 import jakarta.servlet.http.Cookie;
@@ -79,8 +75,9 @@ public class AuthenticationService {
 
     AuthenticationManager authenticationManager;
     JwtUtils jwtUtils;
-    InvalidateAccessTokenRepo invalidateAccessTokenRepo;
-    InvalidateRefreshTokenRepo invalidateRefreshTokenRepo;
+
+    TokenService tokenService;
+
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
 
@@ -139,15 +136,12 @@ public class AuthenticationService {
 
         //validate jwt refresh token
         if(jwtUtils.validateJwtRefreshToken(refreshToken)){
-            //the refresh token still not expire but found in invalidated table
-            if (invalidateRefreshTokenRepo.findByToken(refreshToken).isPresent()) {
+            //the refresh token still not expire but found invalidated
+            if (tokenService.isRefreshTokenInvalidated(refreshToken)) {
                 throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
             }
             //save old refresh token to invalidate table
-            invalidateRefreshTokenRepo.save(InvalidateRefreshToken.builder()
-                    .token(refreshToken)
-                    .expiresAt(jwtUtils.getExpirationDateFromRefreshToken(refreshToken))
-                    .build());
+            tokenService.invalidateRefreshToken(refreshToken, jwtUtils.getExpirationAtFromRefreshToken(refreshToken));
         }
 
         //get user account's id from refresh token to generate new access token
@@ -181,12 +175,8 @@ public class AuthenticationService {
         if (refreshToken != null && !refreshToken.isEmpty()) {
             try {
                 jwtUtils.validateJwtRefreshToken(refreshToken);
-                //the refresh token still not expire
-
-                invalidateRefreshTokenRepo.save(InvalidateRefreshToken.builder()
-                        .token(refreshToken)
-                        .expiresAt(jwtUtils.getExpirationDateFromRefreshToken(refreshToken))
-                        .build());
+                //the refresh token still not expire, invalidate it by saving to redis
+                tokenService.invalidateRefreshToken(refreshToken, jwtUtils.getExpirationAtFromRefreshToken(refreshToken));
             } catch (Exception e) {
                 log.info("Invalid refresh token, user can not refresh access token with this refresh token -> successfully logout ");
             }
@@ -197,10 +187,8 @@ public class AuthenticationService {
             try {
                 jwtUtils.validateJwtAccessToken(accessToken);
                 //the access token still not expire
-                invalidateAccessTokenRepo.save(InvalidateAccessToken.builder()
-                        .token(accessToken)
-                        .expiresAt(jwtUtils.getExpirationDateFromAccessToken(accessToken))
-                        .build());
+                tokenService.invalidateAccessToken(accessToken, jwtUtils.getExpirationAtFromAccessToken(accessToken));
+
             } catch (Exception e) {
                 log.info("Invalid access token, user can not be authenticated with this access token -> successfully logout ");
             }

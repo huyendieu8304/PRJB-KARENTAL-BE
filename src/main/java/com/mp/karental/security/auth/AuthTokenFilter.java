@@ -4,9 +4,8 @@ import com.mp.karental.configuration.SecurityConfig;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.security.JwtUtils;
-import com.mp.karental.security.entity.InvalidateAccessToken;
-import com.mp.karental.security.repository.InvalidateAccessTokenRepo;
 import com.mp.karental.security.service.UserDetailsServiceImpl;
+import com.mp.karental.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,7 +45,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     JwtUtils jwtUtils;
     UserDetailsServiceImpl userDetailsService;
-    InvalidateAccessTokenRepo invalidateAccessTokenRepo;
+    TokenService tokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -77,8 +76,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         //validate jwt
         jwtUtils.validateJwtAccessToken(jwt);
 
-        //token still valid -> check whether it invalidated (by logout or something else)
-        if(invalidateAccessTokenRepo.findByToken(jwt).isPresent()){
+        //token still valid -> check whether it invalidated (by logout)
+        if(tokenService.isAccessTokenInvalidated(jwt)){
             //access token is invalidated
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }

@@ -7,10 +7,9 @@ import com.mp.karental.entity.Role;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.security.JwtUtils;
-import com.mp.karental.security.entity.InvalidateAccessToken;
 import com.mp.karental.security.entity.UserDetailsImpl;
-import com.mp.karental.security.repository.InvalidateAccessTokenRepo;
 import com.mp.karental.security.service.UserDetailsServiceImpl;
+import com.mp.karental.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -33,6 +32,13 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for AuthTokenFilter
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.1
+ */
 @ExtendWith(MockitoExtension.class)
 class AuthTokenFilterTest {
     @InjectMocks
@@ -42,7 +48,7 @@ class AuthTokenFilterTest {
     private JwtUtils jwtUtils;
 
     @Mock
-    private InvalidateAccessTokenRepo invalidateAccessTokenRepo;
+    private TokenService tokenService;
 
     @Mock
     private UserDetailsServiceImpl userDetailsService;
@@ -114,8 +120,8 @@ class AuthTokenFilterTest {
 
         // Simulate successful JWT validation
         when(jwtUtils.validateJwtAccessToken("validJwtToken")).thenReturn(true);
-        // Simulate that the token is found in the invalidated tokens repository
-        when(invalidateAccessTokenRepo.findByToken("validJwtToken")).thenReturn(Optional.of(new InvalidateAccessToken()));
+        // Simulate that the token is found in the invalidated tokens
+        when(tokenService.isAccessTokenInvalidated("validJwtToken")).thenReturn(true);
 
         // When & Then: The filter should throw an AppException indicating unauthenticated access
         AppException exception = assertThrows(AppException.class, () ->
@@ -139,7 +145,7 @@ class AuthTokenFilterTest {
 
         // Simulate successful JWT validation and that the token is not invalidated
         when(jwtUtils.validateJwtAccessToken("validJwtToken")).thenReturn(true);
-        when(invalidateAccessTokenRepo.findByToken("validJwtToken")).thenReturn(Optional.empty());
+        when(tokenService.isAccessTokenInvalidated("validJwtToken")).thenReturn(false);
 
         // Simulate extracting the user's email from the token
         when(jwtUtils.getUserEmailFromAccessToken("validJwtToken")).thenReturn("user@example.com");
@@ -179,8 +185,8 @@ class AuthTokenFilterTest {
         });
 
 
-        //invalidateAccessToken repo is not called
-        verify(invalidateAccessTokenRepo, times(0)).findByToken("invalidJwtToken");
+        //invalidateAccessToken  is not called
+        verify(tokenService, times(0)).isAccessTokenInvalidated("invalidJwtToken");
         // And: The filter chain should have not continued
         verify(filterChain, times(0)).doFilter(request, response);
     }
