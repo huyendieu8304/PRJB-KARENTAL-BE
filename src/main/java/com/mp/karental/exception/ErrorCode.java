@@ -61,6 +61,7 @@ public enum ErrorCode {
     MAXIMUM_FILE_UPLOAD_EXCEED(3004, "Maximum file upload exceeded. Each file should not exceed 5Mb", HttpStatus.BAD_REQUEST),
     PASSWORDS_DO_NOT_MATCH(3005, "New password and Confirm password don’t match.", HttpStatus.BAD_REQUEST),
     INCORRECT_PASSWORD(3006, "Current password is incorrect.", HttpStatus.BAD_REQUEST),
+    CAR_NOT_FOUND(3007, "The requested car was not found.", HttpStatus.NOT_FOUND),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),

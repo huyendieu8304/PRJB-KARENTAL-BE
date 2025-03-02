@@ -125,10 +125,24 @@ public class CarService {
         Page<CarThumbnailResponse> responses = cars.map(car -> {
             CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
             response.setAddress(car.getWard() + ", " + car.getCityProvince());
+
+            response.setCarImageFrontUrl(fileService.getFileUrl(car.getCarImageFront()));
+            response.setCarImageBackUrl(fileService.getFileUrl(car.getCarImageBack()));
+            response.setCarImageLeftUrl(fileService.getFileUrl(car.getCarImageLeft()));
+            response.setCarImageRightUrl(fileService.getFileUrl(car.getCarImageRight()));
+
             return response;
         });
 
         return responses;
+    }
+
+    public CarResponse getCarDetail(String carId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND));
+
+        boolean isBooked = "BOOKED".equalsIgnoreCase(car.getStatus());
+        return carMapper.toCarDetailResponse(car, isBooked);
     }
 
 }

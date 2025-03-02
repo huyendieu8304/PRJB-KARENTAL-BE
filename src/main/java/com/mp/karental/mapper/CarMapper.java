@@ -29,4 +29,12 @@ public interface CarMapper {
 
     @Mapping(target = "address", ignore = true)
     CarThumbnailResponse toCarThumbnailResponse(Car car);
+
+    @Mapping(target = "address", expression = "java(isBooked ? (car.getHouseNumberStreet() + \", \" + car.getWard() + \", \" + car.getDistrict() + \", \" + car.getCityProvince()) : null)")
+    @Mapping(target = "registrationPaperUri", expression = "java(isBooked ? car.getRegistrationPaperUri() : \"Verified\")")
+    @Mapping(target = "certificateOfInspectionUri", expression = "java(isBooked ? car.getCertificateOfInspectionUri() : \"Verified\")")
+    @Mapping(target = "insuranceUri", expression = "java(isBooked ? car.getInsuranceUri() : \"Verified\")")
+    CarResponse toCarDetailResponse(Car car, boolean isBooked);
+
+
 }

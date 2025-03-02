@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -67,6 +68,14 @@ public class CarController {
     @GetMapping("/brands/{model}")
     public ResponseEntity<List<String>> getBrandsByModel(@PathVariable String model) {
         return ResponseEntity.ok(excelService.getBrandsByModel(model));
+    }
+
+    @GetMapping("/customer/view-detail")
+    public ApiResponse<CarResponse> getCarDetail(@RequestParam String carId) {
+        log.info("Fetching car details for ID: {}", carId);
+        return ApiResponse.<CarResponse>builder()
+                .data(carService.getCarDetail(carId))
+                .build();
     }
 
 }
