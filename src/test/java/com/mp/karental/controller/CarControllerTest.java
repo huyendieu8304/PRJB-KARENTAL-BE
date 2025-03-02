@@ -224,9 +224,6 @@ public class CarControllerTest {
         Mockito.when(carService.editCar(ArgumentMatchers.any(), ArgumentMatchers.anyString())).thenReturn(carResponse);
 
         // Mock the files for the multipart request (empty files just to satisfy the request)
-        MockMultipartFile registrationPaper = new MockMultipartFile("registrationPaper", "", "application/octet-stream", new byte[0]);
-        MockMultipartFile certificateOfInspection = new MockMultipartFile("certificateOfInspection", "", "application/octet-stream", new byte[0]);
-        MockMultipartFile insurance = new MockMultipartFile("insurance", "", "application/octet-stream", new byte[0]);
         MockMultipartFile carImageFront = new MockMultipartFile("carImageFront", "", "image/jpeg", new byte[0]);
         MockMultipartFile carImageBack = new MockMultipartFile("carImageBack", "", "image/jpeg", new byte[0]);
         MockMultipartFile carImageLeft = new MockMultipartFile("carImageLeft", "", "image/jpeg", new byte[0]);
@@ -235,9 +232,6 @@ public class CarControllerTest {
         // Convert the EditCarRequest to JSON
         // Perform the test: Edit an existing car with the JWT token for authorization
         mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/car/editCar/{id}", "carId123")  // Use multipart to simulate file uploads
-                        .file(registrationPaper)
-                        .file(certificateOfInspection)
-                        .file(insurance)
                         .file(carImageFront)
                         .file(carImageBack)
                         .file(carImageLeft)
@@ -298,9 +292,6 @@ public class CarControllerTest {
                 .build();
 
         // Mock the files for the multipart request (missing carImageFront to simulate failure)
-        MockMultipartFile registrationPaper = new MockMultipartFile("registrationPaper", "", "application/octet-stream", new byte[0]);
-        MockMultipartFile certificateOfInspection = new MockMultipartFile("certificateOfInspection", "", "application/octet-stream", new byte[0]);
-        MockMultipartFile insurance = new MockMultipartFile("insurance", "", "application/octet-stream", new byte[0]);
         // Missing carImageFront file
         MockMultipartFile carImageBack = new MockMultipartFile("carImageBack", "", "image/jpeg", new byte[0]);
         MockMultipartFile carImageLeft = new MockMultipartFile("carImageLeft", "", "image/jpeg", new byte[0]);
@@ -308,9 +299,6 @@ public class CarControllerTest {
 
         // Perform the test: Edit an existing car with the JWT token for authorization
         mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT, "/car/editCar/{id}", "carId123")  // Explicitly use PUT method
-                        .file(registrationPaper)
-                        .file(certificateOfInspection)
-                        .file(insurance)
                         .file(carImageBack)
                         .file(carImageLeft)
                         .file(carImageRight)

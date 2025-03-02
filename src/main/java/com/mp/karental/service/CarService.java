@@ -162,13 +162,13 @@ public class CarService {
         String baseImagesUri = String.format("car/%s/%s/images/", accountId, car.getId());
 
         // Upload documents
-        String s3KeyRegistration = baseDocumentsUri + "registration-paper";
-        String s3KeyCerticipate = baseDocumentsUri + "certicipate-of-inspection";
-        String s3KeyInsurance = baseDocumentsUri + "insurance";
-        String s3KeyImageFront = baseImagesUri + "front";
-        String s3KeyImageBack = baseImagesUri + "back";
-        String s3KeyImageLeft = baseImagesUri + "left";
-        String s3KeyImageRight = baseImagesUri + "right";
+        String s3KeyRegistration = "";
+        String s3KeyCerticipate = "";
+        String s3KeyInsurance = "";
+        String s3KeyImageFront = "";
+        String s3KeyImageBack = "";
+        String s3KeyImageLeft = "";
+        String s3KeyImageRight = "";
 
         MultipartFile registrationPaper = null;
         MultipartFile certificateOfInspection = null;
@@ -185,19 +185,26 @@ public class CarService {
             imageBack = ((AddCarRequest) request).getCarImageBack();
             imageLeft = ((AddCarRequest) request).getCarImageLeft();
             imageRight = ((AddCarRequest) request).getCarImageRight();
+
+            s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(registrationPaper);
+            s3KeyCerticipate = baseDocumentsUri + "certicipate-of-inspection" + fileService.getFileExtension(certificateOfInspection);
+            s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(insurance);
+
+            fileService.uploadFile(registrationPaper, s3KeyRegistration);
+            fileService.uploadFile(certificateOfInspection, s3KeyCerticipate);
+            fileService.uploadFile(insurance, s3KeyInsurance);
         }
         if(request instanceof EditCarRequest) {
-            registrationPaper = ((EditCarRequest) request).getRegistrationPaper();
-            certificateOfInspection = ((EditCarRequest) request).getCertificateOfInspection();
-            insurance = ((EditCarRequest) request).getInsurance();
             imageFront = ((EditCarRequest) request).getCarImageFront();
             imageBack = ((EditCarRequest) request).getCarImageBack();
             imageLeft = ((EditCarRequest) request).getCarImageLeft();
             imageRight = ((EditCarRequest) request).getCarImageRight();
         }
-        fileService.uploadFile(registrationPaper, s3KeyRegistration);
-        fileService.uploadFile(certificateOfInspection, s3KeyCerticipate);
-        fileService.uploadFile(insurance, s3KeyInsurance);
+
+        s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(imageFront);
+        s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(imageBack);
+        s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(imageLeft);
+        s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(imageRight);
 
         fileService.uploadFile(imageFront, s3KeyImageFront);
         fileService.uploadFile(imageBack, s3KeyImageBack);
