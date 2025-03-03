@@ -25,9 +25,27 @@ services:
     networks:
       - internal
 
+  redis:
+    image: redis:7.4.2
+    container_name: redis
+    restart: unless-stoppedd
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf  # Mount file config
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]  # Run redis with custom config
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
 
 volumes:
   mysql_data:
+  redis_data:
 
 networks:
   internal:

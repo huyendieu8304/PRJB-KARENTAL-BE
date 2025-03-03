@@ -58,6 +58,12 @@ Use the built-in continuous integration in GitLab.
 ## run necessary Docker containers
   `docker compose up -d`
 
+After run docker compose, you should run the following command to check whether the config of redis RDB and AOF is right
+```
+docker exec -it redis redis-cli
+INFO Persistence
+```
+If you see `aof_enabled:1` and `rdb_changes_since_last_save` then every thing is alright!
 
 ## Start application
 `mvn spring-boot:run`

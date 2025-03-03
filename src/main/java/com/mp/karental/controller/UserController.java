@@ -63,8 +63,8 @@ public class UserController {
      * @return ApiResponse Object
      */
     @PostMapping("/check-unique-email")
-    ApiResponse<UserResponse> registerAccount(@RequestBody @Valid CheckUniqueEmailRequest request){
-        return ApiResponse.<UserResponse>builder()
+    ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueEmailRequest request){
+        return ApiResponse.<String>builder()
                 .build();
     }
 
