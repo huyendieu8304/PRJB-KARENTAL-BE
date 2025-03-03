@@ -32,9 +32,9 @@ public interface CarMapper {
     CarThumbnailResponse toCarThumbnailResponse(Car car);
 
     @Mapping(target = "address", expression = "java(isBooked ? (car.getHouseNumberStreet() + \", \" + car.getWard() + \", \" + car.getDistrict() + \", \" + car.getCityProvince()) : null)")
-    @Mapping(target = "registrationPaperUri", expression = "java(isBooked ? car.getRegistrationPaperUri() : \"Verified\")")
-    @Mapping(target = "certificateOfInspectionUri", expression = "java(isBooked ? car.getCertificateOfInspectionUri() : \"Verified\")")
-    @Mapping(target = "insuranceUri", expression = "java(isBooked ? car.getInsuranceUri() : \"Verified\")")
+    @Mapping(target = "registrationPaperUrl", expression = "java(isBooked ? car.getRegistrationPaperUri() : \"Verified\")")
+    @Mapping(target = "certificateOfInspectionUrl", expression = "java(isBooked ? car.getCertificateOfInspectionUri() : \"Verified\")")
+    @Mapping(target = "insuranceUrl", expression = "java(isBooked ? car.getInsuranceUri() : \"Verified\")")
     CarDetailResponse toCarDetailResponse(Car car, boolean isBooked);
 
 

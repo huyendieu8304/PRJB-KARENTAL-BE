@@ -1,7 +1,4 @@
 package com.mp.karental.dto.response;
-import jakarta.persistence.Column;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -30,12 +27,12 @@ public class CarDetailResponse {
     boolean isGasoline;
 
     //documents
-    String registrationPaperUri;
-    boolean registrationPaperUriIsVerified;
-    String certificateOfInspectionUri;
-    boolean certificateOfInspectionUriIsVerified;
-    String insuranceUri;
-    boolean insuranceUriIsVerified;
+    String registrationPaperUrl;
+    boolean registrationPaperIsVerified;
+    String certificateOfInspectionUrl;
+    boolean certificateOfInspectionIsVerified;
+    String insuranceUrl;
+    boolean insuranceIsVerified;
 
     //car image
     String carImageFront;

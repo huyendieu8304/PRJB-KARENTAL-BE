@@ -150,24 +150,27 @@ public class CarService {
         CarDetailResponse response = carMapper.toCarDetailResponse(car, isBooked);
 
         if (isBooked) {
-            response.setRegistrationPaperUriIsVerified(true);
-            response.setCertificateOfInspectionUriIsVerified(true);
-            response.setInsuranceUriIsVerified(true);
+            response.setRegistrationPaperIsVerified(true);
+            response.setCertificateOfInspectionIsVerified(true);
+            response.setInsuranceIsVerified(true);
 
             response.setAddress(car.getHouseNumberStreet() + ", "
                     + car.getWard() + ", "
                     + car.getDistrict() + ", "
                     + car.getCityProvince());
         } else {
-            response.setRegistrationPaperUriIsVerified(false);
-            response.setCertificateOfInspectionUriIsVerified(false);
-            response.setInsuranceUriIsVerified(false);
+            response.setRegistrationPaperIsVerified(false);
+            response.setCertificateOfInspectionIsVerified(false);
+            response.setInsuranceIsVerified(false);
 
             response.setAddress(car.getDistrict() + ", " + car.getCityProvince()
                      + " (Full address will be available after you've paid the deposit to rent).");
         }
 
         // Cập nhật đường dẫn tệp có phần mở rộng
+        response.setCertificateOfInspectionUrl(fileService.getFileUrl(car.getCertificateOfInspectionUri()));
+        response.setInsuranceUrl(fileService.getFileUrl(car.getInsuranceUri()));
+        response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
         response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
         response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
         response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
