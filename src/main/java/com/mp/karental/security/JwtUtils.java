@@ -12,6 +12,13 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+/**
+ * Utils class, perform operation relate to JWT
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Component
 public class JwtUtils {
 

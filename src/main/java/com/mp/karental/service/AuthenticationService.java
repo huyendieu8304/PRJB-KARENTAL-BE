@@ -34,7 +34,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.WebUtils;
 
-
+/**
+ * Service class for handling authentication operations.
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Service
 @Transactional
 @RequiredArgsConstructor

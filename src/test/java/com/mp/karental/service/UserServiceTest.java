@@ -8,6 +8,7 @@ import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
 import com.mp.karental.entity.UserProfile;
+import com.mp.karental.entity.Wallet;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.UserMapper;
@@ -16,6 +17,8 @@ import com.mp.karental.repository.RoleRepository;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.repository.WalletRepository;
 import com.mp.karental.security.SecurityUtil;
+import com.mp.karental.repository.WalletRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 /**
@@ -103,6 +107,7 @@ class UserServiceTest {
         verify(userMapper).toUserProfile(request);
         verify(userProfileRepository).save(userProfile);
         verify(userMapper).toUserResponse(account, userProfile);
+        verify(walletRepository).save(any(Wallet.class));
 
         assertTrue(account.isActive(), "Account must be active");
         assertEquals("encodedPassword", account.getPassword(), "Password must be encoded");
