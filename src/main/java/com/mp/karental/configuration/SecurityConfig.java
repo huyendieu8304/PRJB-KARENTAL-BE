@@ -52,7 +52,9 @@ public class SecurityConfig{
             "/auth/login",
             "/auth/logout",
             "/auth/refresh-token",
-    //        "/car/addCar"  //unit test
+            "/car/addCar", //unit test
+            "/car/car-owner/my-cars",//unit test
+            "/car/customer/view-detail"//unit test
 
     };
     /**

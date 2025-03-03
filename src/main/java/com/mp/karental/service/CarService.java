@@ -163,7 +163,8 @@ public class CarService {
             response.setCertificateOfInspectionUriIsVerified(false);
             response.setInsuranceUriIsVerified(false);
 
-            response.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
+            response.setAddress(car.getDistrict() + ", " + car.getCityProvince()
+                     + " (Full address will be available after you've paid the deposit to rent).");
         }
 
         // Cập nhật đường dẫn tệp có phần mở rộng
@@ -176,6 +177,7 @@ public class CarService {
         response.setNoOfRides(noOfRides);
         return response;
     }
+
 
 
 

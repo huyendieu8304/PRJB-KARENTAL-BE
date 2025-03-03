@@ -10,6 +10,7 @@ import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.AccountRepository;
+import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
 import com.mp.karental.security.SecurityUtil;
 import org.junit.jupiter.api.*;
@@ -38,6 +39,9 @@ class CarServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private BookingRepository bookingRepository;
 
     @Mock
     private CarMapper carMapper;
@@ -212,6 +216,7 @@ class CarServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         CarDetailResponse mockResponse = new CarDetailResponse();
         mockResponse.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
+        mockResponse.setNoOfRides(8);
         when(carMapper.toCarDetailResponse(any(Car.class), eq(false))).thenReturn(mockResponse);
 
         CarDetailResponse response = carService.getCarDetail(carId);
@@ -234,6 +239,7 @@ class CarServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         CarDetailResponse mockResponse = new CarDetailResponse();
         mockResponse.setAddress("123 Main St, Ward 1, District A, City X");
+        mockResponse.setNoOfRides(8);
         when(carMapper.toCarDetailResponse(any(Car.class), eq(true))).thenReturn(mockResponse);
 
         CarDetailResponse response = carService.getCarDetail(carId);
