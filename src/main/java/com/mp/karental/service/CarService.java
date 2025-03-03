@@ -162,9 +162,6 @@ public class CarService {
         String baseImagesUri = String.format("car/%s/%s/images/", accountId, car.getId());
 
         // Upload documents
-        String s3KeyRegistration = "";
-        String s3KeyCerticipate = "";
-        String s3KeyInsurance = "";
         String s3KeyImageFront = "";
         String s3KeyImageBack = "";
         String s3KeyImageLeft = "";
@@ -186,13 +183,17 @@ public class CarService {
             imageLeft = ((AddCarRequest) request).getCarImageLeft();
             imageRight = ((AddCarRequest) request).getCarImageRight();
 
-            s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(registrationPaper);
-            s3KeyCerticipate = baseDocumentsUri + "certicipate-of-inspection" + fileService.getFileExtension(certificateOfInspection);
-            s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(insurance);
+            String s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(registrationPaper);
+            String s3KeyCerticipate = baseDocumentsUri + "certicipate-of-inspection" + fileService.getFileExtension(certificateOfInspection);
+            String s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(insurance);
 
             fileService.uploadFile(registrationPaper, s3KeyRegistration);
             fileService.uploadFile(certificateOfInspection, s3KeyCerticipate);
             fileService.uploadFile(insurance, s3KeyInsurance);
+
+            car.setRegistrationPaperUri(s3KeyRegistration);
+            car.setCertificateOfInspectionUri(s3KeyCerticipate);
+            car.setInsuranceUri(s3KeyInsurance);
         }
         if(request instanceof EditCarRequest) {
             imageFront = ((EditCarRequest) request).getCarImageFront();
@@ -212,9 +213,6 @@ public class CarService {
         fileService.uploadFile(imageRight, s3KeyImageRight);
 
         // Set file URIs in car object
-        car.setRegistrationPaperUri(s3KeyRegistration);
-        car.setCertificateOfInspectionUri(s3KeyCerticipate);
-        car.setInsuranceUri(s3KeyInsurance);
         car.setCarImageFront(s3KeyImageFront);
         car.setCarImageBack(s3KeyImageBack);
         car.setCarImageLeft(s3KeyImageLeft);

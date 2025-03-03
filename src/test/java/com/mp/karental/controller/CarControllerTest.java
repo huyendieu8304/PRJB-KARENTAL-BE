@@ -5,14 +5,17 @@ import com.mp.karental.KarentalApplication;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.CarResponse;
+import com.mp.karental.entity.Account;
+import com.mp.karental.repository.AccountRepository;
+import com.mp.karental.security.JwtUtils;
+import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.service.CarService;
 import com.mp.karental.service.FileService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,8 +28,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+
 
 /**
  * Test for car controller
@@ -42,12 +50,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @AutoConfigureMockMvc
 public class CarControllerTest {
     @Autowired
+    private WebApplicationContext webApplicationContext;
+    private MockedStatic<SecurityUtil> mockedSecurityUtil;
+    @MockitoBean
+    private JwtUtils jwtUtils;
+    @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private CarService carService;
     @MockitoBean
     private FileService fileService;
+    @MockitoBean
+    private AccountRepository accountRepository;
 
     private AddCarRequest addCarRequest;
     private EditCarRequest editCarRequest;
@@ -55,6 +70,10 @@ public class CarControllerTest {
     // Initialize the data before each test
     @BeforeEach
     void setUp() {
+        // Disable security filter in test
+        mockMvc = MockMvcBuilders
+                .webAppContextSetup(webApplicationContext)
+                .build();
         // Given: Set up a mock AddCarRequest
         addCarRequest = new AddCarRequest();
         addCarRequest.setLicensePlate("49F-123.45");
@@ -88,7 +107,6 @@ public class CarControllerTest {
                 .build();
     }
 
-
     @Test
     void addNewCar_Success() throws Exception {
         // Prepare expected response
@@ -110,13 +128,11 @@ public class CarControllerTest {
         carResponse.setAutomatic(true);
         carResponse.setGasoline(true);
 
-        // Mock the car service behavior
         Mockito.when(carService.addNewCar(ArgumentMatchers.any())).thenReturn(carResponse);
-        // Mock the files for the multipart request
+
         MockMultipartFile emptyFile = new MockMultipartFile("file", "", "test.properties/octet-stream", new byte[0]);
 
-        // Perform the test: Add a new car with the JWT token for authorization
-        mockMvc.perform(multipart("/car/addCar")
+        mockMvc.perform(multipart("/car/car-owner/addCar")
                         .file("registrationPaper", emptyFile.getBytes())
                         .file("certificateOfInspection", emptyFile.getBytes())
                         .file("insurance", emptyFile.getBytes())
@@ -146,6 +162,8 @@ public class CarControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("data.licensePlate").value("49F-123.45"));
     }
 
+
+
     @Test
     void addNewCar_Failed_BadRequest() throws Exception {
         CarResponse carResponse = new CarResponse();
@@ -166,11 +184,11 @@ public class CarControllerTest {
         carResponse.setAutomatic(true);
         carResponse.setGasoline(true);
 
-        Mockito.when(carService.addNewCar(ArgumentMatchers.any())).thenReturn(carResponse);
+        when(carService.addNewCar(ArgumentMatchers.any())).thenReturn(carResponse);
 
         MockMultipartFile emptyFile = new MockMultipartFile("file", "", "test.properties/octet-stream", new byte[0]);
 
-        mockMvc.perform(multipart("/car/addCar")
+        mockMvc.perform(multipart("/car/car-owner/addCar")
                         .file("registrationPaper", emptyFile.getBytes())
                         .file("certificateOfInspection", emptyFile.getBytes())
                         .file("insurance", emptyFile.getBytes())
@@ -221,7 +239,7 @@ public class CarControllerTest {
         carResponse.setGasoline(true);
 
         // Mock the car service behavior
-        Mockito.when(carService.editCar(ArgumentMatchers.any(), ArgumentMatchers.anyString())).thenReturn(carResponse);
+        when(carService.editCar(ArgumentMatchers.any(), anyString())).thenReturn(carResponse);
 
         // Mock the files for the multipart request (empty files just to satisfy the request)
         MockMultipartFile carImageFront = new MockMultipartFile("carImageFront", "", "image/jpeg", new byte[0]);
@@ -231,7 +249,7 @@ public class CarControllerTest {
 
         // Convert the EditCarRequest to JSON
         // Perform the test: Edit an existing car with the JWT token for authorization
-        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/car/editCar/{id}", "carId123")  // Use multipart to simulate file uploads
+        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/car/car-owner/editCar/{id}", "carId123")  // Use multipart to simulate file uploads
                         .file(carImageFront)
                         .file(carImageBack)
                         .file(carImageLeft)
@@ -275,7 +293,7 @@ public class CarControllerTest {
         carResponse.setGasoline(true);
 
         // Mock the car service behavior to simulate failure
-        Mockito.when(carService.editCar(ArgumentMatchers.any(), ArgumentMatchers.anyString()))
+        when(carService.editCar(ArgumentMatchers.any(), anyString()))
                 .thenThrow(new IllegalArgumentException("Car's front side image is required."));
 
         // Prepare EditCarRequest object (example)
@@ -298,7 +316,7 @@ public class CarControllerTest {
         MockMultipartFile carImageRight = new MockMultipartFile("carImageRight", "", "image/jpeg", new byte[0]);
 
         // Perform the test: Edit an existing car with the JWT token for authorization
-        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT, "/car/editCar/{id}", "carId123")  // Explicitly use PUT method
+        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT, "/car/car-owner/editCar/{id}", "carId123")  // Explicitly use PUT method
                         .file(carImageBack)
                         .file(carImageLeft)
                         .file(carImageRight)
