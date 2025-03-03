@@ -6,6 +6,7 @@ import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Car;
 import com.mp.karental.exception.AppException;
+import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.CarRepository;
@@ -88,11 +89,17 @@ class CarServiceTest {
 
         Page<Car> carPage = new PageImpl<>(List.of(car1));
 
+        // Mock repository
         when(carRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(carPage);
+
+        // Mock fileService
         when(fileService.getFileUrl(anyString())).thenReturn("https://example.com/image.jpg");
 
-        Page<CarThumbnailResponse> response = carService.getCarsByUserId(0, 10, "mileage,asc");
+        // Mock carMapper để tránh null
+        CarThumbnailResponse carThumbnailResponse = new CarThumbnailResponse();
+        when(carMapper.toCarThumbnailResponse(any(Car.class))).thenReturn(carThumbnailResponse);
 
+        Page<CarThumbnailResponse> response = carService.getCarsByUserId(0, 10, "mileage,asc");
         assertNotNull(response);
         assertEquals(1, response.getTotalElements());
         assertEquals("https://example.com/image.jpg", response.getContent().get(0).getCarImageFrontUrl());
@@ -190,6 +197,60 @@ class CarServiceTest {
     }
 
 
+    @Test
+    void testGetCarDetail_WhenCarExistsAndNotBooked_ShouldReturnCarResponseWithHiddenAddress() {
+        String carId = "car-123";
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus("AVAILABLE");
+        car.setHouseNumberStreet("123 Main St");
+        car.setWard("Ward 1");
+        car.setDistrict("District A");
+        car.setCityProvince("City X");
 
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        CarResponse mockResponse = new CarResponse();
+        mockResponse.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
+        when(carMapper.toCarDetailResponse(any(Car.class), eq(false))).thenReturn(mockResponse);
 
+        CarResponse response = carService.getCarDetail(carId);
+
+        assertNotNull(response);
+        assertEquals("Note: Full address will be available after you've paid the deposit to rent.", response.getAddress());
+    }
+
+    @Test
+    void testGetCarDetail_WhenCarExistsAndBooked_ShouldReturnCarResponseWithFullAddress() {
+        String carId = "car-456";
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus("BOOKED");
+        car.setHouseNumberStreet("123 Main St");
+        car.setWard("Ward 1");
+        car.setDistrict("District A");
+        car.setCityProvince("City X");
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        CarResponse mockResponse = new CarResponse();
+        mockResponse.setAddress("123 Main St, Ward 1, District A, City X");
+        when(carMapper.toCarDetailResponse(any(Car.class), eq(true))).thenReturn(mockResponse);
+
+        CarResponse response = carService.getCarDetail(carId);
+
+        assertNotNull(response);
+        assertEquals("123 Main St, Ward 1, District A, City X", response.getAddress());
+    }
+
+    @Test
+    void testGetCarDetail_WhenCarDoesNotExist_ShouldThrowException() {
+        String carId = "car-999";
+        when(carRepository.findById(carId)).thenReturn(Optional.empty());
+
+        AppException exception = assertThrows(AppException.class, () -> carService.getCarDetail(carId));
+
+        assertEquals(ErrorCode.CAR_NOT_FOUND, exception.getErrorCode());
+    }
 }
+
+
+
