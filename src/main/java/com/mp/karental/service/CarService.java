@@ -2,6 +2,7 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
@@ -10,6 +11,7 @@ import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.AccountRepository;
+import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
@@ -40,6 +42,7 @@ public class CarService {
     CarMapper carMapper;
     FileService fileService;
     UserProfileRepository userProfileRepository;
+    BookingRepository bookingRepository;
     private final AccountRepository accountRepository;
 
     public CarResponse addNewCar(AddCarRequest request) throws AppException {
@@ -126,10 +129,10 @@ public class CarService {
             CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
             response.setAddress(car.getWard() + ", " + car.getCityProvince());
 
-            response.setCarImageFrontUrl(fileService.getFileUrl(car.getCarImageFront()));
-            response.setCarImageBackUrl(fileService.getFileUrl(car.getCarImageBack()));
-            response.setCarImageLeftUrl(fileService.getFileUrl(car.getCarImageLeft()));
-            response.setCarImageRightUrl(fileService.getFileUrl(car.getCarImageRight()));
+            response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
+            response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
+            response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
+            response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
             return response;
         });
@@ -137,22 +140,20 @@ public class CarService {
         return responses;
     }
 
-    public CarResponse getCarDetail(String carId) {
+    public CarDetailResponse getCarDetail(String carId) {
         String accountId = SecurityUtil.getCurrentAccountId();
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND));
 
         boolean isBooked = "BOOKED".equalsIgnoreCase(car.getStatus());
 
-        CarResponse response = carMapper.toCarDetailResponse(car, isBooked);
+        CarDetailResponse response = carMapper.toCarDetailResponse(car, isBooked);
 
-        // Check if customer booked
         if (isBooked) {
             response.setRegistrationPaperUriIsVerified(true);
             response.setCertificateOfInspectionUriIsVerified(true);
             response.setInsuranceUriIsVerified(true);
 
-            // Show full of address
             response.setAddress(car.getHouseNumberStreet() + ", "
                     + car.getWard() + ", "
                     + car.getDistrict() + ", "
@@ -162,12 +163,20 @@ public class CarService {
             response.setCertificateOfInspectionUriIsVerified(false);
             response.setInsuranceUriIsVerified(false);
 
-            // Show only one address + part message
             response.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
         }
 
+        // Cập nhật đường dẫn tệp có phần mở rộng
+        response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
+        response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
+        response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
+        response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
+
+        long noOfRides = bookingRepository.countCompletedBookingsByCar(carId);
+        response.setNoOfRides(noOfRides);
         return response;
     }
+
 
 
 }

@@ -1,6 +1,7 @@
 package com.mp.karental.mapper;
 
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Car;
@@ -34,7 +35,7 @@ public interface CarMapper {
     @Mapping(target = "registrationPaperUri", expression = "java(isBooked ? car.getRegistrationPaperUri() : \"Verified\")")
     @Mapping(target = "certificateOfInspectionUri", expression = "java(isBooked ? car.getCertificateOfInspectionUri() : \"Verified\")")
     @Mapping(target = "insuranceUri", expression = "java(isBooked ? car.getInsuranceUri() : \"Verified\")")
-    CarResponse toCarDetailResponse(Car car, boolean isBooked);
+    CarDetailResponse toCarDetailResponse(Car car, boolean isBooked);
 
 
 }

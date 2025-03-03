@@ -2,6 +2,7 @@ package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.ApiResponse;
+import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.service.CarService;
@@ -71,9 +72,9 @@ public class CarController {
     }
 
     @GetMapping("/customer/view-detail")
-    public ApiResponse<CarResponse> getCarDetail(@RequestParam String carId) {
+    public ApiResponse<CarDetailResponse> getCarDetail(@RequestParam String carId) {
         log.info("Fetching car details for ID: {}", carId);
-        return ApiResponse.<CarResponse>builder()
+        return ApiResponse.<CarDetailResponse>builder()
                 .data(carService.getCarDetail(carId))
                 .build();
     }

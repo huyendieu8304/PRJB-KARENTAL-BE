@@ -1,6 +1,7 @@
 package com.mp.karental.service;
 
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
@@ -102,7 +103,7 @@ class CarServiceTest {
         Page<CarThumbnailResponse> response = carService.getCarsByUserId(0, 10, "mileage,asc");
         assertNotNull(response);
         assertEquals(1, response.getTotalElements());
-        assertEquals("https://example.com/image.jpg", response.getContent().get(0).getCarImageFrontUrl());
+        assertEquals("https://example.com/image.jpg", response.getContent().get(0).getCarImageFront());
 
         verify(carRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
         verify(fileService, times(4)).getFileUrl(anyString());
@@ -209,11 +210,11 @@ class CarServiceTest {
         car.setCityProvince("City X");
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
-        CarResponse mockResponse = new CarResponse();
+        CarDetailResponse mockResponse = new CarDetailResponse();
         mockResponse.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
         when(carMapper.toCarDetailResponse(any(Car.class), eq(false))).thenReturn(mockResponse);
 
-        CarResponse response = carService.getCarDetail(carId);
+        CarDetailResponse response = carService.getCarDetail(carId);
 
         assertNotNull(response);
         assertEquals("Note: Full address will be available after you've paid the deposit to rent.", response.getAddress());
@@ -231,11 +232,11 @@ class CarServiceTest {
         car.setCityProvince("City X");
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
-        CarResponse mockResponse = new CarResponse();
+        CarDetailResponse mockResponse = new CarDetailResponse();
         mockResponse.setAddress("123 Main St, Ward 1, District A, City X");
         when(carMapper.toCarDetailResponse(any(Car.class), eq(true))).thenReturn(mockResponse);
 
-        CarResponse response = carService.getCarDetail(carId);
+        CarDetailResponse response = carService.getCarDetail(carId);
 
         assertNotNull(response);
         assertEquals("123 Main St, Ward 1, District A, City X", response.getAddress());
