@@ -3,6 +3,10 @@ package com.mp.karental.dto.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * DTO (Data Transfer Object) representing a summary of a car.
+ * Used to display a list of cars in the car rental system.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

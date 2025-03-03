@@ -246,7 +246,9 @@ class CarServiceTest {
 
     @Test
     void testGetCarDetail_WhenCarExistsAndBooked_ShouldReturnCarResponseWithFullAddress() {
+        // Given
         String carId = "car-456";
+        String accountId = "user-123"; // Giả lập tài khoản hiện tại
         Car car = new Car();
         car.setId(carId);
         car.setStatus("BOOKED");
@@ -254,18 +256,37 @@ class CarServiceTest {
         car.setWard("Ward 1");
         car.setDistrict("District A");
         car.setCityProvince("City X");
+        car.setRegistrationPaperUri("s3://documents/registration.pdf");
+        car.setCertificateOfInspectionUri("s3://documents/inspection.pdf");
+        car.setInsuranceUri("s3://documents/insurance.pdf");
 
+        // Mock repository và service
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
-        CarDetailResponse mockResponse = new CarDetailResponse();
-        mockResponse.setAddress("123 Main St, Ward 1, District A, City X");
-        mockResponse.setNoOfRides(8);
-        when(carMapper.toCarDetailResponse(any(Car.class), eq(true))).thenReturn(mockResponse);
+        when(bookingRepository.isCarBookedByAccount(carId, accountId)).thenReturn(true);
+        when(bookingRepository.countCompletedBookingsByCar(carId)).thenReturn(8L);
 
+        when(fileService.getFileUrl("s3://documents/registration.pdf")).thenReturn("https://cdn.example.com/registration.pdf");
+        when(fileService.getFileUrl("s3://documents/inspection.pdf")).thenReturn("https://cdn.example.com/inspection.pdf");
+        when(fileService.getFileUrl("s3://documents/insurance.pdf")).thenReturn("https://cdn.example.com/insurance.pdf");
+
+        when(carMapper.toCarDetailResponse(car, true)).thenReturn(new CarDetailResponse());
+
+        // When
         CarDetailResponse response = carService.getCarDetail(carId);
 
+        // Then
         assertNotNull(response);
         assertEquals("123 Main St, Ward 1, District A, City X", response.getAddress());
+        assertEquals("https://cdn.example.com/registration.pdf", response.getRegistrationPaperUrl());
+        assertEquals("https://cdn.example.com/inspection.pdf", response.getCertificateOfInspectionUrl());
+        assertEquals("https://cdn.example.com/insurance.pdf", response.getInsuranceUrl());
+        assertEquals(8, response.getNoOfRides());
+        assertTrue(response.isRegistrationPaperIsVerified());
+        assertTrue(response.isCertificateOfInspectionIsVerified());
+        assertTrue(response.isInsuranceIsVerified());
     }
+
 
     @Test
     void testGetCarDetail_WhenCarDoesNotExist_ShouldThrowException() {

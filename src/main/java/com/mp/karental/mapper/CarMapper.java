@@ -31,10 +31,10 @@ public interface CarMapper {
     @Mapping(target = "address", ignore = true)
     CarThumbnailResponse toCarThumbnailResponse(Car car);
 
-    @Mapping(target = "address", expression = "java(isBooked ? (car.getHouseNumberStreet() + \", \" + car.getWard() + \", \" + car.getDistrict() + \", \" + car.getCityProvince()) : null)")
-    @Mapping(target = "registrationPaperUrl", expression = "java(isBooked ? car.getRegistrationPaperUri() : \"Verified\")")
-    @Mapping(target = "certificateOfInspectionUrl", expression = "java(isBooked ? car.getCertificateOfInspectionUri() : \"Verified\")")
-    @Mapping(target = "insuranceUrl", expression = "java(isBooked ? car.getInsuranceUri() : \"Verified\")")
+    @Mapping(target = "address", ignore = true)
+    @Mapping(target = "registrationPaperUrl", ignore = true)
+    @Mapping(target = "certificateOfInspectionUrl", ignore = true)
+    @Mapping(target = "insuranceUrl", ignore = true)
     CarDetailResponse toCarDetailResponse(Car car, boolean isBooked);
 
 

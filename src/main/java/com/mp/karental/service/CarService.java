@@ -140,44 +140,69 @@ public class CarService {
         return responses;
     }
 
+    /**
+     * Retrieves detailed information of a car by its ID.
+     *
+     * @param carId The unique identifier of the car.
+     * @return CarDetailResponse containing detailed information of the car.
+     * @throws AppException if the car is not found.
+     */
     public CarDetailResponse getCarDetail(String carId) {
+        // Get the currently authenticated account ID
         String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Retrieve the car entity from the repository, throw an exception if not found
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND));
 
-        boolean isBooked = "BOOKED".equalsIgnoreCase(car.getStatus());
+        // Check if the current user has booked this car
+        boolean isBooked = bookingRepository.isCarBookedByAccount(carId, accountId);
 
+        // Map the car entity to a CarDetailResponse DTO
         CarDetailResponse response = carMapper.toCarDetailResponse(car, isBooked);
 
         if (isBooked) {
-            response.setRegistrationPaperIsVerified(true);
-            response.setCertificateOfInspectionIsVerified(true);
-            response.setInsuranceIsVerified(true);
-
+            // If the car is booked, display the full address
             response.setAddress(car.getHouseNumberStreet() + ", "
                     + car.getWard() + ", "
                     + car.getDistrict() + ", "
                     + car.getCityProvince());
-        } else {
-            response.setRegistrationPaperIsVerified(false);
-            response.setCertificateOfInspectionIsVerified(false);
-            response.setInsuranceIsVerified(false);
 
+            // Allow viewing and downloading car-related documents
+            response.setCertificateOfInspectionUrl(fileService.getFileUrl(car.getCertificateOfInspectionUri()));
+            response.setInsuranceUrl(fileService.getFileUrl(car.getInsuranceUri()));
+            response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
+
+            // Mark documents as verified
+            response.setRegistrationPaperIsVerified(true);
+            response.setCertificateOfInspectionIsVerified(true);
+            response.setInsuranceIsVerified(true);
+        } else {
+            // Hide document URLs and show "Verified" instead
+            response.setCertificateOfInspectionUrl(null);
+            response.setInsuranceUrl(null);
+            response.setRegistrationPaperUrl(null);
+
+            // Display verification status only
+            response.setRegistrationPaperIsVerified(true);
+            response.setCertificateOfInspectionIsVerified(true);
+            response.setInsuranceIsVerified(true);
+
+            // Provide a partial address with a message for unbooked cars
             response.setAddress(car.getDistrict() + ", " + car.getCityProvince()
-                     + " (Full address will be available after you've paid the deposit to rent).");
+                    + " (Full address will be available after you've paid the deposit to rent).");
         }
 
-        // Cập nhật đường dẫn tệp có phần mở rộng
-        response.setCertificateOfInspectionUrl(fileService.getFileUrl(car.getCertificateOfInspectionUri()));
-        response.setInsuranceUrl(fileService.getFileUrl(car.getInsuranceUri()));
-        response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
+        // Retrieve and set the URLs for car-related images (these should always be visible)
         response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
         response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
         response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
         response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
+        // Count the number of completed bookings for this car and set it
         long noOfRides = bookingRepository.countCompletedBookingsByCar(carId);
         response.setNoOfRides(noOfRides);
+
         return response;
     }
 
