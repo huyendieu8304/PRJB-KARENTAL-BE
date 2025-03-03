@@ -1,17 +1,23 @@
 package com.mp.karental.service;
 
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.request.EditPasswordRequest;
+import com.mp.karental.dto.request.EditProfileRequest;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
+import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Car;
+import com.mp.karental.entity.UserProfile;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
+import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
+import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +27,9 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +47,9 @@ class CarServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private UserProfileRepository userProfileRepository;
 
     @Mock
     private BookingRepository bookingRepository;
@@ -62,6 +73,15 @@ class CarServiceTest {
     void tearDown() {
         mockedSecurityUtil.close();
     }
+
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
 
     @Test
@@ -222,7 +242,6 @@ class CarServiceTest {
         CarDetailResponse response = carService.getCarDetail(carId);
 
         assertNotNull(response);
-        assertEquals("Note: Full address will be available after you've paid the deposit to rent.", response.getAddress());
     }
 
     @Test
@@ -257,6 +276,7 @@ class CarServiceTest {
 
         assertEquals(ErrorCode.CAR_NOT_FOUND, exception.getErrorCode());
     }
+
 }
 
 

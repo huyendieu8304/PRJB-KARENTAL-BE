@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -135,5 +136,38 @@ class UserControllerTest {
         assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
         verify(userService, times(1)).editPassword(request);
     }
+
+    @Test
+    void getUserProfile_Success() {
+        // Given
+        EditProfileResponse expectedResponse = new EditProfileResponse();
+        expectedResponse.setFullName("Nguyễn Văn C");
+
+        when(userService.getUserProfile()).thenReturn(expectedResponse);
+
+        // When
+        ResponseEntity<ApiResponse<EditProfileResponse>> response = userController.getUserProfile();
+
+        // Then
+        assertNotNull(response);
+        assertNotNull(response.getBody());
+        assertEquals(expectedResponse, response.getBody().getData());
+        verify(userService, times(1)).getUserProfile();
+    }
+
+    @Test
+    void getUserProfile_Fail_UserNotFound() {
+        // Given
+        when(userService.getUserProfile()).thenThrow(new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        // When
+        AppException exception = assertThrows(AppException.class, () -> userController.getUserProfile());
+
+        // Then
+        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
+        verify(userService, times(1)).getUserProfile();
+    }
+
+
 
 }
