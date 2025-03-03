@@ -1,6 +1,5 @@
 package com.mp.karental.security.auth;
 
-import com.mp.karental.configuration.SecurityConfig;
 import com.mp.karental.constant.ERole;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
@@ -9,7 +8,7 @@ import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.security.JwtUtils;
 import com.mp.karental.security.entity.UserDetailsImpl;
 import com.mp.karental.security.service.UserDetailsServiceImpl;
-import com.mp.karental.service.TokenService;
+import com.mp.karental.security.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -26,8 +25,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

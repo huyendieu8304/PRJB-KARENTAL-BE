@@ -9,16 +9,17 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 /**
  * Implementation of UserDetailsService class
  *
  * @author DieuTTH4
- *
  * @version 1.0
  */
 @Service
@@ -31,15 +32,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        //TODO: check whether this exception is catched
-        Account account = accountRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_LOGIN_INFORMATION));
+        Account account = null;
+        //get the account from the repository
+        account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB.getMessage()));
 
-        if (!account.isActive()){
-            //the account of user has banned
-            throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
+        if (!account.isActive()) {
+            //the account of user has been banned
+            throw new InternalAuthenticationServiceException(ErrorCode.ACCOUNT_IS_INACTIVE.getMessage());
         }
-
         //build UserDetails object
         return UserDetailsImpl.build(account);
     }

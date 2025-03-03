@@ -1,4 +1,4 @@
-package com.mp.karental.service;
+package com.mp.karental.security.service;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

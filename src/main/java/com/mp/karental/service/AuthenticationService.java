@@ -10,6 +10,7 @@ import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.security.JwtUtils;
 import com.mp.karental.security.entity.UserDetailsImpl;
+import com.mp.karental.security.service.TokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
@@ -23,9 +24,11 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.WebUtils;
@@ -90,7 +93,11 @@ public class AuthenticationService {
                     .authenticate(
                             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
                     );
-        } catch (BadCredentialsException e){
+        } catch (InternalAuthenticationServiceException e) {
+            throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
+//        } catch (UsernameNotFoundException e) {
+//            throw new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB);
+        } catch (BadCredentialsException e) {
             throw new AppException(ErrorCode.INVALID_LOGIN_INFORMATION);
         }
 

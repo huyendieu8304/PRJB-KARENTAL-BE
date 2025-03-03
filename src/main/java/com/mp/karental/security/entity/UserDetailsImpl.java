@@ -35,7 +35,7 @@ public class UserDetailsImpl implements UserDetails {
     private Collection<? extends GrantedAuthority> authorities;
 
     public static UserDetailsImpl build(Account account) {
-        //create Authority for User
+        //create custom Authority for User
         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + account.getRole().getName()));
 
         return new UserDetailsImpl(
