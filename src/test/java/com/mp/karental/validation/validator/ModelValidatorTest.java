@@ -38,12 +38,10 @@ class ModelValidatorTest {
 
     @Test
     void testValidModel() {
-        // Mock dữ liệu từ ExcelService
         List<String> validModels = Arrays.asList("Camry", "Civic", "Mustang");
 
         when(excelService.getAllModels()).thenReturn(validModels);
 
-        // Kiểm tra model hợp lệ
         assertTrue(validator.isValid("Camry", context));
         assertTrue(validator.isValid("Civic", context));
         assertTrue(validator.isValid("Mustang", context));
@@ -51,12 +49,10 @@ class ModelValidatorTest {
 
     @Test
     void testInvalidModel() {
-        // Mock dữ liệu từ ExcelService
         List<String> validModels = Arrays.asList("Camry", "Civic", "Mustang");
 
         when(excelService.getAllModels()).thenReturn(validModels);
 
-        // Kiểm tra model không hợp lệ
         assertFalse(validator.isValid("Accord", context));
         assertFalse(validator.isValid("Model S", context));
         assertFalse(validator.isValid("Corolla", context));
@@ -64,23 +60,19 @@ class ModelValidatorTest {
 
     @Test
     void testNullModel() {
-        // Mock dữ liệu từ ExcelService
         List<String> validModels = Arrays.asList("Camry", "Civic", "Mustang");
 
         when(excelService.getAllModels()).thenReturn(validModels);
 
-        // Kiểm tra khi giá trị là null
         assertFalse(validator.isValid(null, context));
     }
 
     @Test
     void testEmptyModel() {
-        // Mock dữ liệu từ ExcelService
         List<String> validModels = Arrays.asList("Camry", "Civic", "Mustang");
 
         when(excelService.getAllModels()).thenReturn(validModels);
 
-        // Kiểm tra khi giá trị là chuỗi rỗng
         assertFalse(validator.isValid("", context));
     }
 }

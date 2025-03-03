@@ -42,7 +42,6 @@ class BrandAndModelValidatorTest {
 
     @Test
     void testValidBrandAndModel() {
-        // Mock dữ liệu từ ExcelService
         Map<String, Set<String>> brandModelMap = new HashMap<>();
         Set<String> toyotaModels = new HashSet<>();
         toyotaModels.add("Camry");
@@ -50,7 +49,6 @@ class BrandAndModelValidatorTest {
 
         when(excelService.getBrandModelMap()).thenReturn(brandModelMap);
 
-        // Tạo request hợp lệ
         AddCarRequest request = new AddCarRequest();
         request.setBrand("Toyota");
         request.setModel("Camry");
@@ -60,7 +58,6 @@ class BrandAndModelValidatorTest {
 
     @Test
     void testInvalidBrandAndModel() {
-        // Mock dữ liệu từ ExcelService
         Map<String, Set<String>> brandModelMap = new HashMap<>();
         Set<String> toyotaModels = new HashSet<>();
         toyotaModels.add("Camry");
@@ -68,10 +65,9 @@ class BrandAndModelValidatorTest {
 
         when(excelService.getBrandModelMap()).thenReturn(brandModelMap);
 
-        // Tạo request không hợp lệ
         AddCarRequest request = new AddCarRequest();
         request.setBrand("Toyota");
-        request.setModel("Civic"); // Civic không phải là model hợp lệ của Toyota
+        request.setModel("Civic");
 
         assertFalse(validator.isValid(request, context));
     }

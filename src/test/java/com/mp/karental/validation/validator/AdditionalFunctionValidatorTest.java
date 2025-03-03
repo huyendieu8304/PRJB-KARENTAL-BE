@@ -27,28 +27,24 @@ class AdditionalFunctionValidatorTest {
 
     @Test
     void whenValidFunction_thenShouldReturnTrue() {
-        // Lấy một giá trị hợp lệ từ enum
         String validFunction = EAdditionalFunctions.BLUETOOTH.getName();
         assertTrue(validator.isValid(validFunction, context));
     }
 
     @Test
     void whenMultipleValidFunctions_thenShouldReturnTrue() {
-        // Lấy hai giá trị hợp lệ từ enum
         String validFunctions = EAdditionalFunctions.BLUETOOTH.getName() + ", " + EAdditionalFunctions.GPS.getName();
         assertTrue(validator.isValid(validFunctions, context));
     }
 
     @Test
     void whenInvalidFunction_thenShouldReturnFalse() {
-        // Giá trị không hợp lệ
         String invalidFunction = "INVALID_FUNCTION";
         assertFalse(validator.isValid(invalidFunction, context));
     }
 
     @Test
     void whenValidAndInvalidFunction_thenShouldReturnFalse() {
-        // Một giá trị hợp lệ và một giá trị không hợp lệ
         String mixedFunctions = EAdditionalFunctions.BLUETOOTH.getName() + ", INVALID_FUNCTION";
         assertFalse(validator.isValid(mixedFunctions, context));
     }

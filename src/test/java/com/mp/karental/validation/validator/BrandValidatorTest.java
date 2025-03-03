@@ -38,12 +38,10 @@ class BrandValidatorTest {
 
     @Test
     void testValidBrand() {
-        // Mock dữ liệu từ ExcelService
         List<String> validBrands = Arrays.asList("Toyota", "Honda", "Ford");
 
         when(excelService.getAllBrands()).thenReturn(validBrands);
 
-        // Kiểm tra thương hiệu hợp lệ
         assertTrue(validator.isValid("Toyota", context));
         assertTrue(validator.isValid("Honda", context));
         assertTrue(validator.isValid("Ford", context));
@@ -51,12 +49,10 @@ class BrandValidatorTest {
 
     @Test
     void testInvalidBrand() {
-        // Mock dữ liệu từ ExcelService
         List<String> validBrands = Arrays.asList("Toyota", "Honda", "Ford");
 
         when(excelService.getAllBrands()).thenReturn(validBrands);
 
-        // Kiểm tra thương hiệu không hợp lệ
         assertFalse(validator.isValid("BMW", context));
         assertFalse(validator.isValid("Mercedes", context));
         assertFalse(validator.isValid("Tesla", context));
@@ -64,23 +60,19 @@ class BrandValidatorTest {
 
     @Test
     void testNullBrand() {
-        // Mock dữ liệu từ ExcelService
         List<String> validBrands = Arrays.asList("Toyota", "Honda", "Ford");
 
         when(excelService.getAllBrands()).thenReturn(validBrands);
 
-        // Kiểm tra khi giá trị là null
         assertFalse(validator.isValid(null, context));
     }
 
     @Test
     void testEmptyBrand() {
-        // Mock dữ liệu từ ExcelService
         List<String> validBrands = Arrays.asList("Toyota", "Honda", "Ford");
 
         when(excelService.getAllBrands()).thenReturn(validBrands);
 
-        // Kiểm tra khi giá trị là chuỗi rỗng
         assertFalse(validator.isValid("", context));
     }
 }

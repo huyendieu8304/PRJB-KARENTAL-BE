@@ -52,30 +52,49 @@ public class CarService {
     public CarResponse addNewCar(AddCarRequest request) throws AppException {
         // Get the current user account Id
         String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Retrieve the account from the database, throw an exception if not found
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
-        // Map request to car entity
+        // Map the request data to a Car entity
         Car car = carMapper.toCar(request);
+
+        // Associate the car with the current account
         car.setAccount(account);
+
+        // Set default status for the new car
         car.setStatus(ECarStatus.AVAILABLE.name());
+
+        // Set transmission and fuel type based on request
         car.setAutomatic(request.isAutomatic());
         car.setGasoline(request.isGasoline());
-        // Set car address components
+
+        // Set car address components from request
         setCarAddress(request, car);
+
+        // Save the initial car entity in the database
         car = carRepository.save(car);
 
-        // Process car and upload files using the common method
+        // Process and upload car-related files
         car = processUploadFiles(request, accountId, car);
 
-        // Save the new car entity in the database
+        // Save the updated car entity after processing files
         car = carRepository.save(car);
+
+        // Map the saved car entity to a response object
         CarResponse carResponse = carMapper.toCarResponse(car);
+
+        // Set address information in the response
         carResponse.setAddress(request.getAddress());
+
+        // Set car ID in the response
         carResponse.setId(car.getId());
-        // Set URLs
+
+        // Generate and set file URLs for the response
         setCarResponseUrls(carResponse, car);
-        // Return the response after saving
+
+        // Return the response with the saved car details
         return carResponse;
     }
 
@@ -88,40 +107,56 @@ public class CarService {
      * @throws AppException If the account or car is not found in the database.
      */
     public CarResponse editCar(EditCarRequest request, String id) throws AppException {
-        // Get the current user account Id
-        String accountId = SecurityUtil.getCurrentAccountId(); // Ensure user is logged in
+        // Retrieve the current user account ID to ensure the user is logged in
+        String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Fetch the account details from the database, or throw an error if the account is not found
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
-        Car car = carRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+        // Retrieve the car entity from the database using the provided car ID
+        // If the car does not exist, throw an exception
+        Car car = carRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
 
+        // Ensure that the currently logged-in user is the owner of the car
+        // Prevents unauthorized users from modifying someone else's car
+        if (!car.getAccount().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        // Update the car details using the request data
         carMapper.editCar(car, request);
 
+        // Update the car's status
         String status = request.getStatus();
         if (status == null) {
-            status = ECarStatus.AVAILABLE.name();  // Default to AVAILABLE if status is null
-        } else {
-            status = status.toUpperCase();
+            status = car.getStatus(); // Keep the existing status if none is provided
         }
-        car.setStatus(status.toUpperCase());
+        car.setStatus(status.toUpperCase()); // Convert status to uppercase for consistency
 
-        car.setAccount(account);
-
+        // Update the car's address details
         setCarAddress(request, car);
 
+        // Process and upload any new files associated with the car
         car = processUploadFiles(request, accountId, car);
 
+        // Save the updated car details in the database
         car = carRepository.save(car);
 
+        // Convert the updated car entity into a response object
         CarResponse carResponse = carMapper.toCarResponse(car);
-        carResponse.setAddress(request.getAddress());
-        carResponse.setId(car.getId());
 
-        // Set URLs
+        // Set the address in the response object
+        carResponse.setAddress(request.getAddress());
+
+        // Generate and attach file URLs to the response
         setCarResponseUrls(carResponse, car);
 
+        // Return the updated car response
         return carResponse;
     }
+
 
     /**
      * Set URLs for car response to avoid duplication.
@@ -143,25 +178,28 @@ public class CarService {
      * @param car The car entity to which the address will be assigned.
      * @throws AppException If the address format is incorrect.
      */
-    public void setCarAddress(Object request, Car car) throws AppException {
+    private void setCarAddress(Object request, Car car) throws AppException {
         String address = null;
-        // Check if the request is an instance of AddCarRequest
+
+        // Check if the request is an instance of AddCarRequest and retrieve the address
         if (request instanceof AddCarRequest) {
             address = ((AddCarRequest) request).getAddress();
         }
-        // Check if the request is an instance of EditCarRequest
+        // Check if the request is an instance of EditCarRequest and retrieve the address
         else if (request instanceof EditCarRequest) {
             address = ((EditCarRequest) request).getAddress();
         }
 
+        // If an address is provided and is not empty, split it into components
         if (address != null && !address.isEmpty()) {
-            String[] addressParts = address.split(",",4);
+            // Split the address into 4 parts: City/Province, District, Ward, House Number & Street
+            String[] addressParts = address.split(",", 4);
 
-            car.setCityProvince(addressParts[0].trim());
-            car.setDistrict(addressParts[1].trim());
-            car.setWard(addressParts[2].trim());
-            car.setHouseNumberStreet(addressParts[3].trim());
-
+            // Assign each part to the corresponding car attributes, ensuring to trim whitespace
+            car.setCityProvince(addressParts[0].trim());   // First part: City/Province
+            car.setDistrict(addressParts[1].trim());       // Second part: District
+            car.setWard(addressParts[2].trim());           // Third part: Ward
+            car.setHouseNumberStreet(addressParts[3].trim()); // Fourth part: House Number & Street
         }
     }
     /**
@@ -173,18 +211,19 @@ public class CarService {
      * @return The updated car entity with assigned file URIs.
      * @throws AppException If file upload fails.
      */
-    public Car processUploadFiles(Object request, String accountId, Car car) throws AppException {
+    private Car processUploadFiles(Object request, String accountId, Car car) throws AppException {
 
-        // Generate base URIs for document and images
+        // Generate base URIs for storing documents and images in S3
         String baseDocumentsUri = String.format("car/%s/%s/documents/", accountId, car.getId());
         String baseImagesUri = String.format("car/%s/%s/images/", accountId, car.getId());
 
-        // Upload documents
+        // Initialize file storage keys for car images
         String s3KeyImageFront = "";
         String s3KeyImageBack = "";
         String s3KeyImageLeft = "";
         String s3KeyImageRight = "";
 
+        // Initialize document and image file variables
         MultipartFile registrationPaper = null;
         MultipartFile certificateOfInspection = null;
         MultipartFile insurance = null;
@@ -192,7 +231,9 @@ public class CarService {
         MultipartFile imageBack = null;
         MultipartFile imageLeft = null;
         MultipartFile imageRight = null;
-        if(request instanceof AddCarRequest) {
+
+        // If the request is an AddCarRequest, handle document and image uploads
+        if (request instanceof AddCarRequest) {
             registrationPaper = ((AddCarRequest) request).getRegistrationPaper();
             certificateOfInspection = ((AddCarRequest) request).getCertificateOfInspection();
             insurance = ((AddCarRequest) request).getInsurance();
@@ -201,42 +242,49 @@ public class CarService {
             imageLeft = ((AddCarRequest) request).getCarImageLeft();
             imageRight = ((AddCarRequest) request).getCarImageRight();
 
+            // Construct S3 keys for document files
             String s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(registrationPaper);
-            String s3KeyCerticipate = baseDocumentsUri + "certicipate-of-inspection" + fileService.getFileExtension(certificateOfInspection);
+            String s3KeyCertificate = baseDocumentsUri + "certificate-of-inspection" + fileService.getFileExtension(certificateOfInspection);
             String s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(insurance);
 
+            // Upload document files to S3
             fileService.uploadFile(registrationPaper, s3KeyRegistration);
-            fileService.uploadFile(certificateOfInspection, s3KeyCerticipate);
+            fileService.uploadFile(certificateOfInspection, s3KeyCertificate);
             fileService.uploadFile(insurance, s3KeyInsurance);
 
+            // Set document URIs in the car object
             car.setRegistrationPaperUri(s3KeyRegistration);
-            car.setCertificateOfInspectionUri(s3KeyCerticipate);
+            car.setCertificateOfInspectionUri(s3KeyCertificate);
             car.setInsuranceUri(s3KeyInsurance);
         }
-        if(request instanceof EditCarRequest) {
+
+        // If the request is an EditCarRequest, only update image files
+        if (request instanceof EditCarRequest) {
             imageFront = ((EditCarRequest) request).getCarImageFront();
             imageBack = ((EditCarRequest) request).getCarImageBack();
             imageLeft = ((EditCarRequest) request).getCarImageLeft();
             imageRight = ((EditCarRequest) request).getCarImageRight();
         }
 
+        // Construct S3 keys for car images
         s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(imageFront);
         s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(imageBack);
         s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(imageLeft);
         s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(imageRight);
 
+        // Upload car images to S3
         fileService.uploadFile(imageFront, s3KeyImageFront);
         fileService.uploadFile(imageBack, s3KeyImageBack);
         fileService.uploadFile(imageLeft, s3KeyImageLeft);
         fileService.uploadFile(imageRight, s3KeyImageRight);
 
-        // Set file URIs in car object
+        // Set image URIs in the car object
         car.setCarImageFront(s3KeyImageFront);
         car.setCarImageBack(s3KeyImageBack);
         car.setCarImageLeft(s3KeyImageLeft);
         car.setCarImageRight(s3KeyImageRight);
 
-        return car;
+        return car; // Return the updated car entity with assigned file URIs
     }
 
     /**
@@ -264,28 +312,43 @@ public class CarService {
         return cars.map(car -> CarThumbnailResponse.fromCar(car, fileService));
     }
 
+
     /**
-     * get car detail by car id
-     * @param id: id of a car
-     * @return response with all information of car
+     * Retrieves a car by its ID and ensures that the current logged-in user owns the car.
+     *
+     * @param id The ID of the car to retrieve.
+     * @return A CarResponse object containing the car details.
+     * @throws AppException If the account is not found, the car is not found, or the user is unauthorized.
      */
     public CarResponse getCarById(String id) {
-        // Get the current user account Id
-        String accountId = SecurityUtil.getCurrentAccountId(); // Ensure user is logged in
+        // Retrieve the current user account ID to ensure the user is logged in
+        String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Fetch the account details from the database, or throw an error if the account is not found
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
+        // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
 
+        // Check if the car belongs to the current logged-in user
+        if (!car.getAccount().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS); // Custom error for unauthorized access
+        }
+
+        // Convert Car entity to CarResponse DTO
         CarResponse carResponse = carMapper.toCarResponse(car);
+
+        // Concatenate address fields into a single string and set it in CarResponse
         carResponse.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", "
                 + car.getWard() + ", " + car.getHouseNumberStreet());
 
-        // Set URLs
+        // Set file URLs for car images and documents
         setCarResponseUrls(carResponse, car);
 
         return carResponse;
     }
+
 
 }

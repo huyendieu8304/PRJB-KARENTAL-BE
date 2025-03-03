@@ -68,7 +68,7 @@ public enum ErrorCode {
 
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(4009, "Invalid refresh token. Please try again", HttpStatus.UNAUTHORIZED),
-
+    UNAUTHORIZED_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.UNAUTHORIZED),
     ;
 
     /**

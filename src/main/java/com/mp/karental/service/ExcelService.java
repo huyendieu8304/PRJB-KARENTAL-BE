@@ -55,65 +55,104 @@ public class ExcelService {
      * @throws IOException If there is an issue reading the file.
      */
     public void loadExcelDataCar(String filePath) throws IOException {
+        // Retrieve the file from the classpath (resource folder in the application)
         File file = new ClassPathResource(filePath).getFile();
 
+        // Read the Excel file using FileInputStream and XSSFWorkbook for .xlsx format
         try (FileInputStream fis = new FileInputStream(file);
              Workbook workbook = new XSSFWorkbook(fis)) {
 
-            Sheet sheet = workbook.getSheetAt(0);
+            Sheet sheet = workbook.getSheetAt(0); // Get the first sheet in the Excel file
+
+            // Iterate through each row in the sheet
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Skip header row
+                if (row.getRowNum() == 0) continue; // Skip the header row
 
-                String brand = getCellValue(row.getCell(1)).trim(); // Column Brand
-                String model = getCellValue(row.getCell(2)).trim(); // Column Model
+                // Retrieve values from the "Brand" (column 1) and "Model" (column 2)
+                String brand = getCellValue(row.getCell(1)).trim();
+                String model = getCellValue(row.getCell(2)).trim();
 
+                // Only add to the map if both brand and model are not empty
                 if (!brand.isEmpty() && !model.isEmpty()) {
-                    brandModelMap.computeIfAbsent(brand, k -> new HashSet<>()).add(model); // Brand → Models (Unique)
+                    // If the brand is not in the map, add it with a HashSet to store unique models
+                    brandModelMap.computeIfAbsent(brand, k -> new HashSet<>()).add(model);
                 }
             }
         }
-
     }
+
     /**
      * Loads address data (wards, districts, cities) from an Excel file and populates related collections.
      * @param filePath Path to the Excel file.
      * @throws IOException If there is an issue reading the file.
      */
     public void loadExcelDataAddress(String filePath) throws IOException {
+        // Retrieve the file from the classpath
         File file = new ClassPathResource(filePath).getFile();
 
+        // Read the Excel file using FileInputStream
         try (FileInputStream fis = new FileInputStream(file)) {
             Workbook workbook;
+
+            // Check the Excel file format (.xls or .xlsx) and create the appropriate Workbook
             if (file.getName().endsWith(".xls")) {
-                workbook = new HSSFWorkbook(fis); // For .xls files
+                workbook = new HSSFWorkbook(fis); // Read old Excel format (.xls)
             } else {
-                workbook = new XSSFWorkbook(fis); // For .xlsx files
+                workbook = new XSSFWorkbook(fis); // Read new Excel format (.xlsx)
             }
 
-            Sheet sheet = workbook.getSheetAt(0); // Get first sheet
+            Sheet sheet = workbook.getSheetAt(0); // Get the first sheet in the Excel file
 
+            // Iterate through each row in the sheet
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Skip header row
+                if (row.getRowNum() == 0) continue; // Skip the header row
 
-                // Extract data from Excel
-                String ward = getCellValue(row.getCell(1)).trim();
-                String district = getCellValue(row.getCell(3)).trim();
-                String cityProvince = getCellValue(row.getCell(5)).trim();
+                // Extract data from the corresponding columns
+                String ward = getCellValue(row.getCell(1)).trim(); // Ward column
+                String district = getCellValue(row.getCell(3)).trim(); // District column
+                String cityProvince = getCellValue(row.getCell(5)).trim(); // City/Province column
 
+                // Add extracted values to the respective sets
                 wards.add(ward);
                 districts.add(district);
                 cities.add(cityProvince);
 
-
+                // Build a map grouping districts by city/province
                 if (!district.isEmpty() && !cityProvince.isEmpty()) {
                     districtsByCity.computeIfAbsent(cityProvince, k -> new HashSet<>()).add(district);
                 }
+
+                // Build a map grouping wards by district
                 if (!ward.isEmpty() && !district.isEmpty()) {
                     wardsByDistrict.computeIfAbsent(district, k -> new HashSet<>()).add(ward);
                 }
             }
         }
     }
+
+    /**
+     * Retrieves the value of a given Excel cell as a String.
+     * This method handles different cell types and converts them into a String format.
+     *
+     * @param cell The Excel cell to extract the value from.
+     * @return A String representation of the cell's value. Returns an empty string if the cell is null or its type is unsupported.
+     */
+    public String getCellValue(Cell cell) {
+        // Return an empty string if the cell is null (to avoid NullPointerException)
+        if (cell == null) return "";
+
+        // Use a switch statement to determine the cell type and extract the appropriate value
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue().trim(); // Return string value, removing leading/trailing spaces
+            case NUMERIC -> String.valueOf((int) cell.getNumericCellValue()); // Convert numeric value to integer and then to String
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue()); // Convert boolean value to String ("true" or "false")
+            case FORMULA -> cell.getCellFormula(); // Return the formula itself as a String
+            default -> ""; // Return an empty string for unsupported or blank cell types
+        };
+    }
+
+
+
 
     /**
      * Retrieves a list of all wards.
@@ -206,24 +245,5 @@ public class ExcelService {
 
         return brands; // Return all brands that contain this model
     }
-
-    /**
-     * Retrieves the value of an Excel cell as a string.
-     * @param cell The Excel cell.
-     * @return The cell value as a string, handling different cell types.
-     */
-    public String getCellValue(Cell cell) {
-        if (cell == null) return "";
-        return switch (cell.getCellType()) {
-            case STRING -> cell.getStringCellValue().trim();
-            case NUMERIC -> String.valueOf((int) cell.getNumericCellValue());
-            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
-            case FORMULA -> cell.getCellFormula();
-            default -> "";
-        };
-    }
-
-
-
 
 }

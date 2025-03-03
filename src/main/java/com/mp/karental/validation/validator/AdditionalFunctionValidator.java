@@ -44,7 +44,7 @@ public class AdditionalFunctionValidator implements ConstraintValidator<ValidAdd
      * @return true if the function is allowed, false otherwise.
      */
     private boolean isAllowedFunction(String input) {
-        String normalizedInput = input.replaceAll("\\s+", "").toLowerCase();
+        String normalizedInput = input.replaceAll("\\s+", "").toLowerCase(); // remove space to get in front end
         return NORMALIZED_FUNCTIONS.contains(normalizedInput);
     }
 

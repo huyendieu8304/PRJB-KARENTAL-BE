@@ -6,11 +6,7 @@ import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
-import com.mp.karental.repository.AccountRepository;
-import com.mp.karental.security.JwtUtils;
-import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.service.CarService;
-import com.mp.karental.service.FileService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,18 +49,11 @@ import org.springframework.web.context.WebApplicationContext;
 public class CarControllerTest {
     @Autowired
     private WebApplicationContext webApplicationContext;
-    private MockedStatic<SecurityUtil> mockedSecurityUtil;
-    @MockitoBean
-    private JwtUtils jwtUtils;
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private CarService carService;
-    @MockitoBean
-    private FileService fileService;
-    @MockitoBean
-    private AccountRepository accountRepository;
 
     private AddCarRequest addCarRequest;
     private EditCarRequest editCarRequest;
@@ -348,7 +337,7 @@ public class CarControllerTest {
         mockMvc.perform(get("/car/car-owner/123")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("data.id").value("123"))  // Đúng cú pháp
+                .andExpect(MockMvcResultMatchers.jsonPath("data.id").value("123"))
                 .andExpect(MockMvcResultMatchers.jsonPath("data.address").value("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien"));
     }
     @Test
