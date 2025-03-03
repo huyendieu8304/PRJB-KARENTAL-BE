@@ -5,6 +5,10 @@ import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
 
+/**
+ * DTO representing the response for editing a user profile.
+ * Contains user profile details that can be updated.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
