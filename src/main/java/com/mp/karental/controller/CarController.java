@@ -84,4 +84,17 @@ public class CarController {
                 .data(cars)
                 .build();
     }
+
+    /**
+     * Handles get an existing car by id.
+     *
+     * @param carId The unique identifier of the car to be updated.
+     * @return ApiResponse containing the get car details.
+     */
+    @GetMapping("/car-owner/{carId}")
+    public ApiResponse<CarResponse> getCarById(@PathVariable String carId) {
+        return ApiResponse.<CarResponse>builder()
+                .data(carService.getCarById(carId))
+                .build();
+    }
 }

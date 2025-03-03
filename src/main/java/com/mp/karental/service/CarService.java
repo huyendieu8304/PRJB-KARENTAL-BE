@@ -73,6 +73,8 @@ public class CarService {
         CarResponse carResponse = carMapper.toCarResponse(car);
         carResponse.setAddress(request.getAddress());
         carResponse.setId(car.getId());
+        // Set URLs
+        setCarResponseUrls(carResponse, car);
         // Return the response after saving
         return carResponse;
     }
@@ -115,7 +117,23 @@ public class CarService {
         carResponse.setAddress(request.getAddress());
         carResponse.setId(car.getId());
 
+        // Set URLs
+        setCarResponseUrls(carResponse, car);
+
         return carResponse;
+    }
+
+    /**
+     * Set URLs for car response to avoid duplication.
+     */
+    private void setCarResponseUrls(CarResponse response, Car car) {
+        response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
+        response.setCertificateOfInspectionUrl(fileService.getFileUrl(car.getCertificateOfInspectionUri()));
+        response.setInsuranceUrl(fileService.getFileUrl(car.getInsuranceUri()));
+        response.setCarImageFrontUrl(fileService.getFileUrl(car.getCarImageFront()));
+        response.setCarImageBackUrl(fileService.getFileUrl(car.getCarImageBack()));
+        response.setCarImageLeftUrl(fileService.getFileUrl(car.getCarImageLeft()));
+        response.setCarImageRightUrl(fileService.getFileUrl(car.getCarImageRight()));
     }
 
     /**
@@ -244,6 +262,30 @@ public class CarService {
 
         // Map cars to CarThumbnailResponse using fromCar method
         return cars.map(car -> CarThumbnailResponse.fromCar(car, fileService));
+    }
+
+    /**
+     * get car detail by car id
+     * @param id: id of a car
+     * @return response with all information of car
+     */
+    public CarResponse getCarById(String id) {
+        // Get the current user account Id
+        String accountId = SecurityUtil.getCurrentAccountId(); // Ensure user is logged in
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        Car car = carRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        CarResponse carResponse = carMapper.toCarResponse(car);
+        carResponse.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", "
+                + car.getWard() + ", " + car.getHouseNumberStreet());
+
+        // Set URLs
+        setCarResponseUrls(carResponse, car);
+
+        return carResponse;
     }
 
 }

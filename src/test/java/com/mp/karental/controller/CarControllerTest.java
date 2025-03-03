@@ -1,11 +1,11 @@
 package com.mp.karental.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mp.karental.KarentalApplication;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.CarResponse;
-import com.mp.karental.entity.Account;
+import com.mp.karental.exception.AppException;
+import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.security.JwtUtils;
 import com.mp.karental.security.SecurityUtil;
@@ -30,7 +30,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -157,7 +159,7 @@ public class CarControllerTest {
                         .param("automatic", String.valueOf(addCarRequest.isAutomatic()))
                         .param("gasoline", String.valueOf(addCarRequest.isGasoline()))
                         .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(1000))
                 .andExpect(MockMvcResultMatchers.jsonPath("data.licensePlate").value("49F-123.45"));
     }
@@ -213,7 +215,7 @@ public class CarControllerTest {
                         .param("automatic", String.valueOf(addCarRequest.isAutomatic()))
                         .param("gasoline", String.valueOf(addCarRequest.isGasoline()))
                         .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(status().isBadRequest())
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(2000));
     }
 
@@ -264,7 +266,7 @@ public class CarControllerTest {
                         .param("termOfUse", editCarRequest.getTermOfUse())
                         .param("status", editCarRequest.getStatus())
                         .contentType(MediaType.MULTIPART_FORM_DATA))  // Set content type to multipart/form-data
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(1000))
                 .andExpect(MockMvcResultMatchers.jsonPath("data.licensePlate").value("49F-123.45"))
                 .andExpect(MockMvcResultMatchers.jsonPath("data.description").value("This is a test after edit"))
@@ -330,8 +332,32 @@ public class CarControllerTest {
                         .param("termOfUse", editCarRequest.getTermOfUse())
                         .param("status", editCarRequest.getStatus())
                         .contentType(MediaType.MULTIPART_FORM_DATA))  // This sets the content type to multipart/form-data
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())  // Expect 400 Bad Request due to missing file
+                .andExpect(status().isBadRequest())  // Expect 400 Bad Request due to missing file
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(2000))  // Assuming the failure code
                 .andExpect(MockMvcResultMatchers.jsonPath("message").value("Car's front side image is required."));
     }
+
+    @Test
+    void getCarById_ShouldReturnCarResponse_WhenCarExists() throws Exception {
+        CarResponse carResponse = new CarResponse();
+        carResponse.setId("123");
+        carResponse.setAddress("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien");
+
+        when(carService.getCarById("123")).thenReturn(carResponse);
+
+        mockMvc.perform(get("/car/car-owner/123")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("data.id").value("123"))  // Đúng cú pháp
+                .andExpect(MockMvcResultMatchers.jsonPath("data.address").value("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien"));
+    }
+    @Test
+    void getCarById_ShouldReturn404_WhenCarNotFound() throws Exception {
+        when(carService.getCarById("999")).thenThrow(new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        mockMvc.perform(get("/car/car-owner/999")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
 }

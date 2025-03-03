@@ -41,18 +41,18 @@ public class CarResponse {
     boolean isGasoline;
 
     //documents
-    String registrationPaperUri;
+    String registrationPaperUrl;
     boolean registrationPaperUriIsVerified;
-    String certificateOfInspectionUri;
+    String certificateOfInspectionUrl;
     boolean certificateOfInspectionUriIsVerified;
-    String insuranceUri;
+    String insuranceUrl;
     boolean insuranceUriIsVerified;
 
     //car image
-    String carImageFront;
-    String carImageBack;
-    String carImageLeft;
-    String carImageRight;
+    String carImageFrontUrl;
+    String carImageBackUrl;
+    String carImageLeftUrl;
+    String carImageRightUrl;
 
 
 }

@@ -1,7 +1,5 @@
 package com.mp.karental.service;
 
-import com.jayway.jsonpath.spi.mapper.MappingException;
-import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.CarResponse;
@@ -23,7 +21,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
-import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.List;
 import java.util.Optional;
@@ -283,7 +280,6 @@ class CarServiceTest {
 
         // Execute the service method
         CarResponse response = carService.editCar(editCarRequest, "car-123");
-        System.out.println("Car response: " + response);
         // Assertions
         assertNotNull(response, "Response should not be null");
         assertEquals("AVAILABLE", response.getStatus());
@@ -384,6 +380,62 @@ class CarServiceTest {
 
         // Kiểm tra exception
         assertThrows(AppException.class, () -> carService.editCar(editCarRequest, "car-999"));
+    }
+
+    @Test
+    void getCarById_ShouldReturnCarResponse_WhenCarExists() {
+        // Mock SecurityUtil trả về account ID hợp lệ
+        String accountId = "user-123";
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+        // Mock account tồn tại
+        Account mockAccount = new Account();
+        mockAccount.setId(accountId);
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
+
+        Car car;
+        CarResponse carResponse;
+        car = new Car();
+        car.setId("123");
+        car.setCityProvince("Hanoi");
+        car.setDistrict("Hoan Kiem");
+        car.setWard("Ly Thai To");
+        car.setHouseNumberStreet("24 Trang Tien");
+
+        carResponse = new CarResponse();
+        carResponse.setId("123");
+        carResponse.setAddress("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien");
+        when(carRepository.findById("123")).thenReturn(Optional.of(car));
+        when(carMapper.toCarResponse(car)).thenReturn(carResponse);
+
+        CarResponse result = carService.getCarById("123");
+
+        assertNotNull(result);
+        assertEquals("123", result.getId());
+        assertEquals("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien", result.getAddress());
+
+        verify(carRepository, times(1)).findById("123");
+        verify(carMapper, times(1)).toCarResponse(car);
+    }
+
+    @Test
+    void getCarById_ShouldThrowException_WhenCarNotFound() {
+        // Mock SecurityUtil trả về account ID hợp lệ
+        String accountId = "user-123";
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+        // Mock account tồn tại
+        Account mockAccount = new Account();
+        mockAccount.setId(accountId);
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
+        when(carRepository.findById("999")).thenReturn(Optional.empty());
+
+        AppException exception = assertThrows(AppException.class, () -> carService.getCarById("999"));
+
+        assertEquals(ErrorCode.CAR_NOT_FOUND_IN_DB, exception.getErrorCode());
+
+        verify(carRepository, times(1)).findById("999");
+        verify(carMapper, never()).toCarResponse(any());
     }
 
 }
