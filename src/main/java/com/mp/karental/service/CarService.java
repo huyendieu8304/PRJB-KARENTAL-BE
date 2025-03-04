@@ -14,6 +14,7 @@ import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
+import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -349,7 +350,7 @@ public class CarService {
         CarDetailResponse response = carMapper.toCarDetailResponse(car, isBooked);
 
         if (isBooked) {
-            // If the car is booked, display the full address
+            // If the booking_status is COMPLETE, display the full address
             response.setAddress(car.getHouseNumberStreet() + ", "
                     + car.getWard() + ", "
                     + car.getDistrict() + ", "
@@ -361,7 +362,7 @@ public class CarService {
             response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
 
         } else {
-            // If the car is not booked, hide document URLs and provide a partial address
+            // If the booking_status is not COMPLETE, hide document URLs and provide a partial address
             // Hide document URLs and show "Verified" instead
             response.setCertificateOfInspectionUrl(null);
             response.setInsuranceUrl(null);

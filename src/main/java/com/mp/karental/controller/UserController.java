@@ -2,6 +2,8 @@ package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.AccountRegisterRequest;
 import com.mp.karental.dto.request.CheckUniqueEmailRequest;
+import com.mp.karental.dto.request.EditPasswordRequest;
+import com.mp.karental.dto.request.EditProfileRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.EditProfileResponse;

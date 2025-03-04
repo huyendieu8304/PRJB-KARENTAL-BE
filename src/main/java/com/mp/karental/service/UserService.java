@@ -121,11 +121,11 @@ public class UserService {
             }
             userProfile.setNationalId(request.getNationalId());
         }
-
+        //user upload file
         if (request.getDrivingLicense() != null) {
-            String newUri2 = "user/" + accountID + "/driving-license";
-            fileService.uploadFile(request.getDrivingLicense(), newUri2);
-            userProfile.setDrivingLicenseUri(newUri2);
+            String newUri = "user/" + accountID + "/driving-license";
+            fileService.uploadFile(request.getDrivingLicense(), newUri);
+            userProfile.setDrivingLicenseUri(newUri);
         }
 
         // Update user profile from request

@@ -3,6 +3,7 @@ package com.mp.karental.controller;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.ApiResponse;
+import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.service.CarService;

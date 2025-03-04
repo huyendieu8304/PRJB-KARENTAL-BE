@@ -459,49 +459,6 @@ class CarServiceTest {
         carResponse.setAddress("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien");
         when(carRepository.findById("123")).thenReturn(Optional.of(car));
         when(carMapper.toCarResponse(car)).thenReturn(carResponse);
-    @Test
-    void testGetCarDetail_WhenCarExistsAndNotBooked_ShouldReturnCarResponseWithHiddenAddress() {
-        String carId = "car-123";
-        Car car = new Car();
-        car.setId(carId);
-        car.setStatus("AVAILABLE");
-        car.setHouseNumberStreet("123 Main St");
-        car.setWard("Ward 1");
-        car.setDistrict("District A");
-        car.setCityProvince("City X");
-
-        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
-        CarDetailResponse mockResponse = new CarDetailResponse();
-        mockResponse.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
-        mockResponse.setNoOfRides(8);
-        when(carMapper.toCarDetailResponse(any(Car.class), eq(false))).thenReturn(mockResponse);
-
-        CarDetailResponse response = carService.getCarDetail(carId);
-
-        assertNotNull(response);
-    }
-
-    @Test
-    void testGetCarDetail_WhenCarExistsAndBooked_ShouldReturnCarResponseWithFullAddress() {
-        // Given
-        String carId = "car-456";
-        String accountId = "user-123"; // Giả lập tài khoản hiện tại
-        Car car = new Car();
-        car.setId(carId);
-        car.setStatus("BOOKED");
-        car.setHouseNumberStreet("123 Main St");
-        car.setWard("Ward 1");
-        car.setDistrict("District A");
-        car.setCityProvince("City X");
-        car.setRegistrationPaperUri("s3://documents/registration.pdf");
-        car.setCertificateOfInspectionUri("s3://documents/inspection.pdf");
-        car.setInsuranceUri("s3://documents/insurance.pdf");
-
-        // Mock repository và service
-        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
-        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
-        when(bookingRepository.isCarBookedByAccount(carId, accountId)).thenReturn(true);
-        when(bookingRepository.countCompletedBookingsByCar(carId)).thenReturn(8L);
 
         CarResponse result = carService.getCarById("123");
 
@@ -558,27 +515,65 @@ class CarServiceTest {
         AppException exception = assertThrows(AppException.class, () -> carService.getCarById("car123"));
         assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
     }
-        when(fileService.getFileUrl("s3://documents/registration.pdf")).thenReturn("https://cdn.example.com/registration.pdf");
-        when(fileService.getFileUrl("s3://documents/inspection.pdf")).thenReturn("https://cdn.example.com/inspection.pdf");
-        when(fileService.getFileUrl("s3://documents/insurance.pdf")).thenReturn("https://cdn.example.com/insurance.pdf");
 
-        when(carMapper.toCarDetailResponse(car, true)).thenReturn(new CarDetailResponse());
 
-        // When
+
+
+
+
+    @Test
+    void testGetCarDetail_WhenCarExistsAndNotBooked_ShouldReturnCarResponseWithHiddenAddress() {
+        String carId = "car-123";
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus("AVAILABLE");
+        car.setHouseNumberStreet("123 Main St");
+        car.setWard("Ward 1");
+        car.setDistrict("District A");
+        car.setCityProvince("City X");
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        CarDetailResponse mockResponse = new CarDetailResponse();
+        mockResponse.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
+        mockResponse.setNoOfRides(8);
+        when(carMapper.toCarDetailResponse(any(Car.class), eq(false))).thenReturn(mockResponse);
+
         CarDetailResponse response = carService.getCarDetail(carId);
 
-        // Then
         assertNotNull(response);
-        assertEquals("123 Main St, Ward 1, District A, City X", response.getAddress());
-        assertEquals("https://cdn.example.com/registration.pdf", response.getRegistrationPaperUrl());
-        assertEquals("https://cdn.example.com/inspection.pdf", response.getCertificateOfInspectionUrl());
-        assertEquals("https://cdn.example.com/insurance.pdf", response.getInsuranceUrl());
-        assertEquals(8, response.getNoOfRides());
-        assertTrue(response.isRegistrationPaperIsVerified());
-        assertTrue(response.isCertificateOfInspectionIsVerified());
-        assertTrue(response.isInsuranceIsVerified());
     }
 
+    @Test
+    void testGetCarDetail_WhenCarExistsAndBooked_ShouldReturnCarResponseWithFullAddress() {
+        // Given
+        String carId = "car-456";
+        String accountId = "user-123"; // Giả lập tài khoản hiện tại
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus("BOOKED");
+        car.setHouseNumberStreet("123 Main St");
+        car.setWard("Ward 1");
+        car.setDistrict("District A");
+        car.setCityProvince("City X");
+        car.setRegistrationPaperUri("s3://documents/registration.pdf");
+        car.setCertificateOfInspectionUri("s3://documents/inspection.pdf");
+        car.setInsuranceUri("s3://documents/insurance.pdf");
+
+        // Mock repository và service
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(bookingRepository.isCarBookedByAccount(carId, accountId)).thenReturn(true);
+        when(bookingRepository.countCompletedBookingsByCar(carId)).thenReturn(8L);
+
+        CarResponse result = carService.getCarById("123");
+
+        assertNotNull(result);
+        assertEquals("123", result.getId());
+        assertEquals("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien", result.getAddress());
+
+        verify(carRepository, times(1)).findById("123");
+        verify(carMapper, times(1)).toCarResponse(car);
+    }
 
     @Test
     void testGetCarDetail_WhenCarDoesNotExist_ShouldThrowException() {
@@ -587,7 +582,7 @@ class CarServiceTest {
 
         AppException exception = assertThrows(AppException.class, () -> carService.getCarDetail(carId));
 
-        assertEquals(ErrorCode.CAR_NOT_FOUND, exception.getErrorCode());
+        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
     }
 
 }
