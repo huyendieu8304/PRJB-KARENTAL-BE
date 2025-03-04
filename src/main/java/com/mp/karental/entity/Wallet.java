@@ -15,9 +15,7 @@ import java.util.List;
 public class Wallet {
     @Id
     String id;
-
     @OneToOne
-    @JoinColumn(name = "id")
     @MapsId
     Account account;
 

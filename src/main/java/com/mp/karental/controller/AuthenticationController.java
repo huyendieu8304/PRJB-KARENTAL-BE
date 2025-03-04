@@ -42,5 +42,4 @@ public class AuthenticationController {
     public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request) {
         return authenticationService.logout(request);
     }
-
 }

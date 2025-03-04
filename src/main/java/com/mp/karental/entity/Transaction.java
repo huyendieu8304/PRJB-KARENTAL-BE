@@ -34,6 +34,7 @@ public class Transaction {
 
     @Column(nullable = false)
     long amount;
-
+    String bookingNo;
+    String carName;
     String message; //save the transaction message, could be remove
 }

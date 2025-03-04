@@ -53,7 +53,7 @@ public class SecurityConfig{
             "/auth/logout",
             "/auth/refresh-token",
     //        "/car/addCar"  unit test
-
+            "wallet/top-up"
     };
     /**
      * Allow request from other origins below
