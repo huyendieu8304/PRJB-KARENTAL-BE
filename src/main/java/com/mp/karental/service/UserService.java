@@ -108,12 +108,6 @@ public class UserService {
         UserProfile userProfile = userProfileRepository.findById(accountID)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
-        //không hiểu phần dưới đây đang làm gì?
-        Account account = userProfile.getAccount();
-        if (account == null) {
-            throw new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB);
-        }
-
         // Check phoneNumber: If diff old value then check duplicate. Else update
         if (!request.getPhoneNumber().equals(userProfile.getPhoneNumber())) {
             if (userProfileRepository.existsByPhoneNumber(request.getPhoneNumber())) {
@@ -130,37 +124,28 @@ public class UserService {
             userProfile.setNationalId(request.getNationalId());
         }
 
-        // Check and upload file when have new file. Else not update (not change uri)
         if (request.getDrivingLicense() != null) {
-            // vẫn chưa gán extension của file vào đuôi file, mà thôi t sửa lại hàm upload cho nó tự động lấy extension r
-            //m test lại xem đúng chưa thôi
-            String newUri = "user/" + accountID + "/driving-license";
-            //xem lại cái logic của chỗ này, qua nhắn rồi mà
-            if (userProfile.getDrivingLicenseUri() == null ||
-                    !userProfile.getDrivingLicenseUri().equals(newUri)) {
-                fileService.uploadFile(request.getDrivingLicense(), newUri);
-                userProfile.setDrivingLicenseUri(newUri);
-            }
+            String newUri2 = "user/" + accountID + "/driving-license";
+            fileService.uploadFile(request.getDrivingLicense(), newUri2);
+            userProfile.setDrivingLicenseUri(newUri2);
         }
 
-        //cmt thêm cái chỗ này làm gì cho tường minh
+        // Update user profile from request
+        /**
+         * Mapping fields from request to user profile:
+         * - ID and account are ignored as they should not be modified.
+         * - drivingLicenseUri is also ignored since it's handled separately.
+         * - Other fields like fullName, dob, phoneNumber, nationalId, and address details are mapped.
+         * - This ensures only relevant fields are updated in the user profile.
+         */
         userMapper.updateUserProfileFromRequest(request, userProfile);
 
-//        // Upload file
-//        if (request.getDrivingLicense() != null) {
-//            String drivingLicenseUri = "user/" + accountID + "/driving-license";
-//            fileService.uploadFile(request.getDrivingLicense(), drivingLicenseUri);
-//            userProfile.setDrivingLicenseUri(drivingLicenseUri);
-//        }
-
         userProfileRepository.save(userProfile);
-        //account có thay đổi gì à mà lưu???
-        accountRepository.save(account);
 
         EditProfileResponse editProfileResponse = userMapper.toEditProfileResponse(userProfile);
         editProfileResponse.setEmail(email);
 
-        //cái này đang làm gì??? vòng if này có tác dụng gì
+        // Account entity is saved only if modifications are applied
         if (userProfile.getDrivingLicenseUri() != null) {
             editProfileResponse.setDrivingLicenseUrl(fileService.getFileUrl(userProfile.getDrivingLicenseUri()));
         }
@@ -176,16 +161,26 @@ public class UserService {
      * @throws AppException if the user profile is not found in the database.
      */
     public EditProfileResponse getUserProfile() {
-        //sao cái hàm này không có cmt gì hết thế????
+        log.info("Fetching user profile");
+
+        // Get the current logged-in user's ID and email
         String userId = SecurityUtil.getCurrentAccountId();
         String email = SecurityUtil.getCurrentEmail();
 
+        // Retrieve the user profile from the database, throw an exception if not found
         UserProfile userProfile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
+        /**
+         * Mapping user profile entity to response DTO:
+         * - Maps all required fields from the UserProfile entity.
+         * - Ignores drivingLicenseUrl as it needs to be handled separately.
+         * - Retrieves email from the associated account and sets it in the response.
+         */
         EditProfileResponse response = userMapper.toEditProfileResponse(userProfile);
         response.setEmail(email);
 
+        // If the user has a driving license URI, generate and set the file URL
         if (userProfile.getDrivingLicenseUri() != null) {
             response.setDrivingLicenseUrl(fileService.getFileUrl(userProfile.getDrivingLicenseUri()));
         }
