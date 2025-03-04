@@ -3,175 +3,148 @@ package com.mp.karental.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
 
+/**
+ * Service class for handling email notifications related to user registration, password reset,
+ * car rental, booking cancellation, car return, and wallet updates.
+ *
+ * @author QuangPM20
+ * @version 1.0
+ *
+ */
 @Service
 public class EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
 
-    public void sendRegisterEmail(String to, String confirmUrl) throws MessagingException {
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+    private static final String FROM_EMAIL = "your_email@gmail.com"; // replace with your email
 
-        // Nội dung email có HTML
+    /**
+     * Sends a registration confirmation email.
+     * @param to Recipient's email address.
+     * @param confirmUrl URL for email verification.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
+    public void sendRegisterEmail(String to, String confirmUrl) throws MessagingException {
+        String subject = "Welcome to Karental, " + to;
         String htmlContent = "<p><strong>Thank you for registering to our system!</strong></p>"
                 + "<p>To continue using our services, please verify your email by clicking the link below:</p>"
                 + "<p><a href=\"" + confirmUrl + "\" style=\"color: blue; font-weight: bold;\">Verify Email</a></p>"
                 + "<p>If you did not sign up for this service, please ignore this email.</p>";
-
-        helper.setTo(to);
-        helper.setFrom("your_email@gmail.com"); // Đổi thành email của bạn
-        helper.setSubject("Welcome to Karental, " + to);
-        helper.setText(htmlContent, true); // 'true' để kích hoạt HTML
-
-        mailSender.send(mimeMessage);
+        sendEmail(to, subject, htmlContent);
     }
 
+    /**
+     * Sends a password reset email.
+     * @param to Recipient's email address.
+     * @param forgotPasswordUrl URL for password reset.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
     public void sendForgotPasswordEmail(String to, String forgotPasswordUrl) throws MessagingException {
-        // Create a MimeMessage
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-
-        // Use a helper to set subject, from, to, etc.
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-
-        // HTML body with an <a> tag
-        String htmlMsg = "<p>We have just received a password reset request for " + to + ".</p>"
+        String subject = "Rent-a-car Password Reset";
+        String htmlContent = "<p>We have just received a password reset request for " + to + ".</p>"
                 + "<p>Please click <a href=\"" + forgotPasswordUrl + "\">here</a> to reset your password.</p>"
                 + "<p>For your security, the link will expire in 24 hours or immediately after you reset your password.</p>";
-
-        // Set the MIME type to text/html
-        helper.setText(htmlMsg, true);
-        helper.setTo(to);
-        helper.setSubject("Rent-a-car Password Reset");
-
-        // Send the message
-        mailSender.send(mimeMessage);
+        sendEmail(to, subject, htmlContent);
     }
 
-    public void sendRentCarEmail(String to, String carName, String walletUrl, String carDetailsUrl) throws MessagingException{
-        // Get current date and time
-        LocalDateTime bookingDateTime = LocalDateTime.now();
-
-        // Format date-time (e.g., "25/10/2024 14:30")
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        String formattedDateTime = bookingDateTime.format(formatter);
-
-        // Create a MIME message
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-
-        // Build email content with clickable links
-        String htmlMsg = "<p>Congratulations! Your car <strong>" + carName + "</strong> "
-                + "has been booked at <strong>" + formattedDateTime + "</strong>.</p>"
-                + "<p>Please go to your <a href=\"" + walletUrl + "\">wallet</a> to check if the deposit has been paid "
-                + "and go to your <a href=\"" + carDetailsUrl + "\">car’s details page</a> to confirm the deposit.</p>"
-                + "<p>Thank you!</p>";
-
-        // Set email properties
-        helper.setText(htmlMsg, true);
-        helper.setSubject("Your car has been booked");
-        helper.setFrom("your_email@gmail.com"); // Đổi thành email của bạn
-        helper.setTo(to);
-
-        // Send the email
-        mailSender.send(mimeMessage);
+    /**
+     * Sends an email confirmation for a successful car booking.
+     * @param to Recipient's email address.
+     * @param carName Name of the booked car.
+     * @param walletUrl URL to check the wallet deposit.
+     * @param carDetailsUrl URL to view car details.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
+    public void sendRentCarEmail(String to, String carName, String walletUrl, String carDetailsUrl) throws MessagingException {
+        String subject = "Your car has been booked";
+        String htmlContent = String.format(
+                "<p>Congratulations! Your car <strong>%s</strong> has been booked at <strong>%s</strong>.</p>"
+                        + "<p>Please go to your <a href=\"%s\">wallet</a> to check if the deposit has been paid "
+                        + "and go to your <a href=\"%s\">car’s details page</a> to confirm the deposit.</p>"
+                        + "<p>Thank you!</p>",
+                carName, getCurrentFormattedDateTime(), walletUrl, carDetailsUrl);
+        sendEmail(to, subject, htmlContent);
     }
 
+    /**
+     * Sends an email notification when a car booking is canceled.
+     * @param to Recipient's email address.
+     * @param carName Name of the canceled car booking.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
     public void sendCancelBookingEmail(String to, String carName) throws MessagingException {
-        // Get the current date and time
-        LocalDateTime cancellationDateTime = LocalDateTime.now();
-
-        // Format date and time (e.g., "25/10/2024 14:30")
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        String formattedDateTime = cancellationDateTime.format(formatter);
-
-        // Create a MIME message (necessary for HTML content)
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-
-        // Build the email body
-        String htmlMsg = "<p>Please be informed that a booking with your car <strong>"
-                + carName + "</strong> has been cancelled at <strong>"
-                + formattedDateTime + "</strong>. The deposit will be returned to the customer’s wallet.</p>";
-
-        // Set email properties
-        helper.setText(htmlMsg, true);
-        helper.setSubject("A booking with your car has been cancelled");
-        helper.setFrom("your_email@gmail.com"); // Đổi thành email của bạn
-        helper.setTo(to);
-
-        // Send the email
-        mailSender.send(mimeMessage);
+        String subject = "A booking with your car has been cancelled";
+        String htmlContent = String.format(
+                "<p>Please be informed that a booking with your car <strong>%s</strong> has been cancelled at <strong>%s</strong>. "
+                        + "The deposit will be returned to the customer’s wallet.</p>",
+                carName, getCurrentFormattedDateTime());
+        sendEmail(to, subject, htmlContent);
     }
 
-    public void sendCarReturnedEmail(String to, String carName, String walletUrl, String carDetailsUrl)
-            throws MessagingException {
-        // Get current date and time
-        LocalDateTime returnDateTime = LocalDateTime.now();
-
-        // Format date-time (e.g., "25/10/2024 14:30")
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        String formattedDateTime = returnDateTime.format(formatter);
-
-        // Create a MIME message
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-
-        // Build email content with clickable links
-        String htmlMsg = "<p>Please be informed that your car <strong>" + carName + "</strong> "
-                + "has been returned at <strong>" + formattedDateTime + "</strong>.</p>"
-                + "<p>Please go to your <a href=\"" + walletUrl + "\">wallet</a> to check if the remaining payment has been paid "
-                + "and go to your <a href=\"" + carDetailsUrl + "\">car’s details page</a> to confirm the payment.</p>"
-                + "<p>Thank you!</p>";
-
-        // Set email properties
-        helper.setText(htmlMsg, true);
-        helper.setFrom("your_email@gmail.com"); // Đổi thành email của bạn
-        helper.setSubject("Your car has been returned");
-        helper.setTo(to);
-
-        // Send the email
-        mailSender.send(mimeMessage);
+    /**
+     * Sends an email notification when a rented car is returned.
+     * @param to Recipient's email address.
+     * @param carName Name of the returned car.
+     * @param walletUrl URL to check the remaining payment.
+     * @param carDetailsUrl URL to confirm payment details.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
+    public void sendCarReturnedEmail(String to, String carName, String walletUrl, String carDetailsUrl) throws MessagingException {
+        String subject = "Your car has been returned";
+        String htmlContent = String.format(
+                "<p>Please be informed that your car <strong>%s</strong> has been returned at <strong>%s</strong>.</p>"
+                        + "<p>Please go to your <a href=\"%s\">wallet</a> to check if the remaining payment has been paid "
+                        + "and go to your <a href=\"%s\">car’s details page</a> to confirm the payment.</p>"
+                        + "<p>Thank you!</p>",
+                carName, getCurrentFormattedDateTime(), walletUrl, carDetailsUrl);
+        sendEmail(to, subject, htmlContent);
     }
 
+    /**
+     * Sends an email notification when the wallet balance is updated.
+     * @param to Recipient's email address.
+     * @param walletUrl URL to view the wallet balance and transactions.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
     public void sendWalletUpdateEmail(String to, String walletUrl) throws MessagingException {
-        // Get current date and time
-        LocalDateTime updateDateTime = LocalDateTime.now();
+        String subject = "There’s an update to your wallet";
+        String htmlContent = String.format(
+                "<p>Please be informed that your wallet’s balance has been updated at <strong>%s</strong>.</p>"
+                        + "<p>Please go to your <a href=\"%s\">wallet</a> and view the transactions for more details.</p>"
+                        + "<p>Thank you!</p>",
+                getCurrentFormattedDateTime(), walletUrl);
+        sendEmail(to, subject, htmlContent);
+    }
 
-        // Format date-time (e.g., "25/10/2024 14:30")
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        String formattedDateTime = updateDateTime.format(formatter);
-
-        // Create a MIME message
+    /**
+     * Helper method to send an email with the given parameters.
+     * @param to Recipient's email address.
+     * @param subject Email subject.
+     * @param htmlContent HTML-formatted email content.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
+    private void sendEmail(String to, String subject, String htmlContent) throws MessagingException {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-
-        // Build email content with a clickable link
-        String htmlMsg = "<p>Please be informed that your wallet’s balance has been updated at <strong>"
-                + formattedDateTime + "</strong>.</p>"
-                + "<p>Please go to your <a href=\"" + walletUrl + "\">wallet</a> and view the transactions for more details.</p>"
-                + "<p>Thank you!</p>";
-
-        // Set email properties
-        helper.setText(htmlMsg, true);
-        helper.setSubject("There’s an update to your wallet");
-        helper.setFrom("your_email@gmail.com"); // Đổi thành email của bạn
         helper.setTo(to);
-
-        // Send the email
+        helper.setFrom(FROM_EMAIL);
+        helper.setSubject(subject);
+        helper.setText(htmlContent, true);
         mailSender.send(mimeMessage);
+    }
+
+    /**
+     * Helper method to get the current date and time in a formatted string.
+     * @return Formatted date-time string (dd/MM/yyyy HH:mm).
+     */
+    private String getCurrentFormattedDateTime() {
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
     }
 }
-

@@ -48,11 +48,14 @@ public class FileService {
      * @return true if successfully upload file
      */
     public boolean uploadFile(MultipartFile file, String key) {
+        //get file extension
         String fileName = file.getOriginalFilename();
         if (fileName != null && fileName.contains(".")) {
             fileName = fileName.substring(fileName.lastIndexOf(".")).toLowerCase();
         }
         key = key + fileName;
+        log.info("key upload to s3: " + key);
+        //upload object to s3
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -61,7 +64,6 @@ public class FileService {
             s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
             log.info("Upload file {} to S3 successful", key);
             return true;
-            //TODO: remove this line below
         } catch (IOException e) {
             throw new AppException(ErrorCode.UPLOAD_OBJECT_TO_S3_FAIL);
         }
@@ -87,5 +89,4 @@ public class FileService {
 
         return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
-
 }
