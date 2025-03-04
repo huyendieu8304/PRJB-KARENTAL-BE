@@ -11,7 +11,7 @@ import org.springframework.data.repository.query.Param;
  * such as saving, deleting, and finding entities.
  * </p>
  *
- * @author DieuTTH4
+ * @author AnhHP9
  *
  * @version 1.0
  * @see JpaRepository
