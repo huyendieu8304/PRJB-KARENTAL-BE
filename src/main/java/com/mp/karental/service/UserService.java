@@ -2,6 +2,9 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.AccountRegisterRequest;
+import com.mp.karental.dto.request.EditPasswordRequest;
+import com.mp.karental.dto.request.EditProfileRequest;
+import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
@@ -13,6 +16,7 @@ import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.RoleRepository;
 import com.mp.karental.repository.UserProfileRepository;
+import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.repository.WalletRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +49,7 @@ public class UserService {
     UserMapper userMapper;
 
     PasswordEncoder passwordEncoder;
+    private final FileService fileService;
 
     /**
      * Creates a new user account along with the associated user profile.
@@ -85,4 +90,129 @@ public class UserService {
 
         return userMapper.toUserResponse(account, userProfile);
     }
+
+    /**
+     * Edits an existing user profile.
+     *
+     * @param request the updated profile information
+     * @return the updated profile response
+     */
+    public EditProfileResponse editProfile(EditProfileRequest request) {
+        log.info("Editing profile for user with phone number: {}", request.getPhoneNumber());
+
+        String accountID = SecurityUtil.getCurrentAccountId();
+        String email = SecurityUtil.getCurrentEmail();
+
+        UserProfile userProfile = userProfileRepository.findById(accountID)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        // Check phoneNumber: If diff old value then check duplicate. Else update
+        if (!request.getPhoneNumber().equals(userProfile.getPhoneNumber())) {
+            if (userProfileRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+                throw new AppException(ErrorCode.NOT_UNIQUE_PHONE_NUMBER);
+            }
+            userProfile.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        // Check nationalId: If diff old value then check duplicate. Else update
+        if (!request.getNationalId().equals(userProfile.getNationalId())) {
+            if (userProfileRepository.existsByNationalId(request.getNationalId())) {
+                throw new AppException(ErrorCode.NOT_UNIQUE_NATIONAL_ID);
+            }
+            userProfile.setNationalId(request.getNationalId());
+        }
+        //user upload file
+        if (request.getDrivingLicense() != null) {
+            String newUri = "user/" + accountID + "/driving-license";
+            fileService.uploadFile(request.getDrivingLicense(), newUri);
+            userProfile.setDrivingLicenseUri(newUri);
+        }
+
+        // Update user profile from request
+        /**
+         * Mapping fields from request to user profile:
+         * - ID and account are ignored as they should not be modified.
+         * - drivingLicenseUri is also ignored since it's handled separately.
+         * - Other fields like fullName, dob, phoneNumber, nationalId, and address details are mapped.
+         * - This ensures only relevant fields are updated in the user profile.
+         */
+        userMapper.updateUserProfileFromRequest(request, userProfile);
+
+        userProfileRepository.save(userProfile);
+
+        EditProfileResponse editProfileResponse = userMapper.toEditProfileResponse(userProfile);
+        editProfileResponse.setEmail(email);
+
+        // Account entity is saved only if modifications are applied
+        if (userProfile.getDrivingLicenseUri() != null) {
+            editProfileResponse.setDrivingLicenseUrl(fileService.getFileUrl(userProfile.getDrivingLicenseUri()));
+        }
+
+        return editProfileResponse;
+    }
+
+
+    /**
+     * Retrieves the profile of the current user.
+     *
+     * @return {@code EditProfileResponse} containing user profile details.
+     * @throws AppException if the user profile is not found in the database.
+     */
+    public EditProfileResponse getUserProfile() {
+        log.info("Fetching user profile");
+
+        // Get the current logged-in user's ID and email
+        String userId = SecurityUtil.getCurrentAccountId();
+        String email = SecurityUtil.getCurrentEmail();
+
+        // Retrieve the user profile from the database, throw an exception if not found
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        /**
+         * Mapping user profile entity to response DTO:
+         * - Maps all required fields from the UserProfile entity.
+         * - Ignores drivingLicenseUrl as it needs to be handled separately.
+         * - Retrieves email from the associated account and sets it in the response.
+         */
+        EditProfileResponse response = userMapper.toEditProfileResponse(userProfile);
+        response.setEmail(email);
+
+        // If the user has a driving license URI, generate and set the file URL
+        if (userProfile.getDrivingLicenseUri() != null) {
+            response.setDrivingLicenseUrl(fileService.getFileUrl(userProfile.getDrivingLicenseUri()));
+        }
+
+        return response;
+    }
+
+    /**
+     * Updates the password for the currently authenticated user.
+     *
+     * @param request the request containing the current password, new password, and confirmation password
+     * @throws AppException if the account is not found, the current password is incorrect, or the new password is invalid
+     */
+    public void editPassword(EditPasswordRequest request) {
+        // Get information of current password
+        String accountID = SecurityUtil.getCurrentAccountId();
+        Account account = accountRepository.findById(accountID)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        // Confirm current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {
+            throw new AppException(ErrorCode.INCORRECT_PASSWORD);
+        }
+
+        // Check new password not null
+        if (request.getNewPassword() == null || request.getNewPassword().isBlank()) {
+            throw new AppException(ErrorCode.INVALID_PASSWORD);
+        }
+
+        // Encode and update new password
+        account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        accountRepository.save(account);
+    }
+
+
+
 }
