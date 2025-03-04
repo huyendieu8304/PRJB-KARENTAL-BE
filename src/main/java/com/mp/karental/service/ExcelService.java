@@ -59,9 +59,6 @@ public class ExcelService {
                 }
             }
         }
-
-//        System.out.println("✅ Finished loading: Total unique brands = " + brandModelMap.size());
-//        System.out.println("total mode: " + brandModelMap.values().stream().mapToInt(Set::size).sum());
     }
     private void loadExcelDataAddress(String filePath) throws IOException {
         File file = new ClassPathResource(filePath).getFile();
@@ -85,7 +82,6 @@ public class ExcelService {
                 String district = getCellValue(row.getCell(3)).trim();
                 String cityProvince = getCellValue(row.getCell(5)).trim();
 
-
                 // Combine into a full address
                 String fullAddress = String.join(",", cityProvince, district, ward);
 
@@ -94,7 +90,6 @@ public class ExcelService {
                 if (!ward.isEmpty()) wards.add(ward);
                 if (!district.isEmpty()) districts.add(district);
                 if (!cityProvince.isEmpty()) cities.add(cityProvince);
-
 
                 if (!district.isEmpty() && !cityProvince.isEmpty()) {
                     districtsByCity.computeIfAbsent(cityProvince, k -> new HashSet<>()).add(district);
@@ -105,11 +100,6 @@ public class ExcelService {
             }
         }
 
-        // Print all collected addresses
-//        System.out.println("✅ Finished loading addresses:");
-//        for (String address : addressList) {
-//            System.out.println(address);
-//        }
     }
 
     public List<String> addressList() {

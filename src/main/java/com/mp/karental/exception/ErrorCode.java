@@ -25,7 +25,7 @@ public enum ErrorCode {
     SUCCESS(1000, "Success", HttpStatus.OK),
 
     //range 2xxx
-    REQUIRED_FIELD(2000, "This field is required.", HttpStatus.BAD_REQUEST),
+    REQUIRED_FIELD(2000, "{fieldName} is required.", HttpStatus.BAD_REQUEST),
     INVALID_NAME(2001, "The full name can only contain alphabet characters.", HttpStatus.BAD_REQUEST),
 
     INVALID_EMAIL(2002, "Please enter a valid email address", HttpStatus.BAD_REQUEST),

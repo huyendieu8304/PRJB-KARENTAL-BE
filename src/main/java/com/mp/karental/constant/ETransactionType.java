@@ -4,6 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
+/**
+ * Represents the transaction type of transaction in user's wallet
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Getter
 public enum ETransactionType {
     TOP_UP, //Customer, CarOwner

@@ -9,6 +9,16 @@ import org.hibernate.annotations.Immutable;
 
 import java.time.LocalDateTime;
 
+/**
+ * Represents a transaction of user using system's wallet in the database
+ * <p>
+ * This entity maps to a database table for storing money transaction information
+ * </p>
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Entity
 @Data
 @NoArgsConstructor

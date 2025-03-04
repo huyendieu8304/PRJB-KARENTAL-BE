@@ -30,6 +30,11 @@ import java.util.Objects;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    private final String[] VALIDATORS_ATTRIBUTES = {
+            "fieldName"
+    };
+
     /**
      * Handle RuntimeException
      * @param e - the exception
@@ -41,14 +46,16 @@ public class GlobalExceptionHandler {
      *
      * TEMPORARY disable for development
      */
-//    @ExceptionHandler(Exception.class)
-//    ResponseEntity<ApiResponse> runtimeExceptionHandler(RuntimeException e) {
-//        ApiResponse apiResponse = new ApiResponse();
-//
-//        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
-//        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
-//        return ResponseEntity.badRequest().body(apiResponse);
-//    }
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<ApiResponse> exceptionHandler(Exception e) {
+        log.error(e.getMessage(), e);
+        log.error(e.getStackTrace().toString());
+        ApiResponse apiResponse = new ApiResponse();
+
+        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
+        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
 
 
     /**
@@ -62,6 +69,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AppException.class)
     ResponseEntity<ApiResponse> appExceptionHandler(AppException e) {
+        log.info("Exception is catch by appExceptionHandler, exception: {}", e.getMessage());
         ErrorCode errorCode = e.getErrorCode();
         ApiResponse apiResponse = new ApiResponse();
 
@@ -118,9 +126,20 @@ public class GlobalExceptionHandler {
                 .status(errorCode.getHttpStatusCode())
                 .body(apiResponse);
     }
-    private String mapAttributeMessage(String message, Map<String, Object> attributes) {
-
-        //Because now there isn't any attribute need to customize
+    private String mapAttributeMessage(String message, Map<String, Object> validationAttributes) {
+        //there are attributes in the validator annotation
+        if (validationAttributes != null) {
+            for (String attribute : VALIDATORS_ATTRIBUTES) {
+                log.info("attribute: " + attribute);
+                //the attributes exist in the validation attribute
+                if (validationAttributes.containsKey(attribute)) {
+                    log.info("exist attributes in the validation attributes: " + validationAttributes.get(attribute));
+                    String value = validationAttributes.get(attribute).toString();
+                    //replace the value of the attribute to the error message
+                    message = message.replace("{" + attribute + "}", value);
+                }
+            }
+        }
         return message;
     }
 

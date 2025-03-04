@@ -5,7 +5,16 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
-
+/**
+ * Represents a wallet of user in the database
+ * <p>
+ * This entity maps to a database table for storing user's wallet information
+ * </p>
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Entity
 @Data
 @NoArgsConstructor
