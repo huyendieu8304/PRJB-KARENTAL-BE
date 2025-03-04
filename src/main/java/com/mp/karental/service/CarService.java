@@ -2,6 +2,7 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
@@ -13,7 +14,6 @@ import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
-import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Service class for handling car operations.
@@ -290,6 +291,14 @@ public class CarService {
         return car; // Return the updated car entity with assigned file URIs
     }
 
+    /**
+     * Retrieves a paginated list of cars belonging to the current user.
+     *
+     * @param page The page number.
+     * @param size The number of cars per page.
+     * @param sort The sorting criteria in the format "field,direction".
+     * @return A paginated list of car thumbnails.
+     */
     public Page<CarThumbnailResponse> getCarsByUserId(int page, int size, String sort) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
@@ -379,6 +388,46 @@ public class CarService {
         response.setNoOfRides(noOfRides);
 
         return response;
+    }
+
+
+
+
+    /**
+     * Retrieves a car by its ID and ensures that the current logged-in user owns the car.
+     *
+     * @param id The ID of the car to retrieve.
+     * @return A CarResponse object containing the car details.
+     * @throws AppException If the account is not found, the car is not found, or the user is unauthorized.
+     */
+    public CarResponse getCarById(String id) {
+        // Retrieve the current user account ID to ensure the user is logged in
+        String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Fetch the account details from the database, or throw an error if the account is not found
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        // Fetch the car details from the database, or throw an error if the car is not found
+        Car car = carRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        // Check if the car belongs to the current logged-in user
+        if (!car.getAccount().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS); // Custom error for unauthorized access
+        }
+
+        // Convert Car entity to CarResponse DTO
+        CarResponse carResponse = carMapper.toCarResponse(car);
+
+        // Concatenate address fields into a single string and set it in CarResponse
+        carResponse.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", "
+                + car.getWard() + ", " + car.getHouseNumberStreet());
+
+        // Set file URLs for car images and documents
+        setCarResponseUrls(carResponse, car);
+
+        return carResponse;
     }
 
 
