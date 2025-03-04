@@ -1,5 +1,6 @@
 package com.mp.karental.security;
 
+import com.mp.karental.entity.Account;
 import com.mp.karental.security.entity.UserDetailsImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -35,5 +36,9 @@ public class SecurityUtil {
      */
     public static String getCurrentEmail(){
         return getCurrentUser().getEmail();
+    }
+
+    public static Account getCurrentAccount(){
+        return getCurrentUser().getAccount();
     }
 }

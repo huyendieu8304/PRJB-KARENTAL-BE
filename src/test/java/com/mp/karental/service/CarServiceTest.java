@@ -565,7 +565,7 @@ class CarServiceTest {
         when(bookingRepository.isCarBookedByAccount(carId, accountId)).thenReturn(true);
         when(bookingRepository.countCompletedBookingsByCar(carId)).thenReturn(8L);
 
-        CarResponse result = carService.getCarById("123");
+        CarResponse result = carService.getCarById("car-456");
 
         assertNotNull(result);
         assertEquals("123", result.getId());
@@ -582,7 +582,7 @@ class CarServiceTest {
 
         AppException exception = assertThrows(AppException.class, () -> carService.getCarDetail(carId));
 
-        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
+        assertEquals(ErrorCode.CAR_NOT_FOUND_IN_DB, exception.getErrorCode());
     }
 
 }

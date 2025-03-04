@@ -40,6 +40,10 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CarService {
+
+    private static final String carAvailableStatus = "Available";
+    private static final String carNotAvailableStatus = "Unavailable";
+
     CarRepository carRepository;
     CarMapper carMapper;
     FileService fileService;
@@ -59,8 +63,7 @@ public class CarService {
         String accountId = SecurityUtil.getCurrentAccountId();
 
         // Retrieve the account from the database, throw an exception if not found
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        Account account = SecurityUtil.getCurrentAccount();
 
         // Map the request data to a Car entity
         Car car = carMapper.toCar(request);
@@ -69,7 +72,7 @@ public class CarService {
         car.setAccount(account);
 
         // Set default status for the new car
-        car.setStatus(ECarStatus.AVAILABLE.name());
+        car.setStatus(ECarStatus.NOT_VERIFIED.name());
 
         // Set transmission and fuel type based on request
         car.setAutomatic(request.isAutomatic());
@@ -116,8 +119,7 @@ public class CarService {
         String accountId = SecurityUtil.getCurrentAccountId();
 
         // Fetch the account details from the database, or throw an error if the account is not found
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        Account account = SecurityUtil.getCurrentAccount();
 
         // Retrieve the car entity from the database using the provided car ID
         // If the car does not exist, throw an exception
@@ -406,8 +408,7 @@ public class CarService {
         String accountId = SecurityUtil.getCurrentAccountId();
 
         // Fetch the account details from the database, or throw an error if the account is not found
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        Account account = SecurityUtil.getCurrentAccount();
 
         // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)

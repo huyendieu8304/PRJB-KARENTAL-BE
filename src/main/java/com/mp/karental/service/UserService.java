@@ -195,8 +195,7 @@ public class UserService {
     public void editPassword(EditPasswordRequest request) {
         // Get information of current password
         String accountID = SecurityUtil.getCurrentAccountId();
-        Account account = accountRepository.findById(accountID)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        Account account = SecurityUtil.getCurrentAccount();
 
         // Confirm current password
         if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {
