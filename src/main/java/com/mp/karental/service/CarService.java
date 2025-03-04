@@ -29,7 +29,7 @@ import org.springframework.data.domain.Sort;
 /**
  * Service class for handling car operations.
  *
- * @author QuangPM20
+ * @author QuangPM20, AnhPH9
  * @version 1.0
  */
 @Service
@@ -174,21 +174,26 @@ public class CarService {
             response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
 
             // Mark documents as verified
+            //Phần này xem lại, tại sao lại set cho nó true, làm gì được quyền set ở đây, verified hay kooong thì phải xem trong db chuws
+            //thường thì trong db nó là true, nhưng mà cũng kodđược để true luoon ở đây, mà phải get từ db ra
             response.setRegistrationPaperIsVerified(true);
             response.setCertificateOfInspectionIsVerified(true);
             response.setInsuranceIsVerified(true);
         } else {
+            // nên bổ sung cmt cho else này, cho tường minh
             // Hide document URLs and show "Verified" instead
             response.setCertificateOfInspectionUrl(null);
             response.setInsuranceUrl(null);
             response.setRegistrationPaperUrl(null);
 
             // Display verification status only
+            //tương tuwj như trn, vì hai cái sẽ giống nhau nên t đề xuất bỏ nó ra ngoài vòng if else
             response.setRegistrationPaperIsVerified(true);
             response.setCertificateOfInspectionIsVerified(true);
             response.setInsuranceIsVerified(true);
 
             // Provide a partial address with a message for unbooked cars
+            //nếu mà viết như này thì thằng nào book rồi sẽ ko thấy address luôn à
             response.setAddress(car.getDistrict() + ", " + car.getCityProvince()
                     + " (Full address will be available after you've paid the deposit to rent).");
         }

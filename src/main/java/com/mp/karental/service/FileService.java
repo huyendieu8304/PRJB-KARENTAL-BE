@@ -48,6 +48,11 @@ public class FileService {
      * @return true if successfully upload file
      */
     public boolean uploadFile(MultipartFile file, String key) {
+        String fileName = file.getOriginalFilename();
+        if (fileName != null && fileName.contains(".")) {
+            fileName = fileName.substring(fileName.lastIndexOf(".")).toLowerCase();
+        }
+        key = key + fileName;
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -83,11 +88,4 @@ public class FileService {
         return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
-    public String getFileExtension(MultipartFile file) {
-        String fileName = file.getOriginalFilename();
-        if (fileName != null && fileName.contains(".")) {
-            return fileName.substring(fileName.lastIndexOf(".")).toLowerCase();
-        }
-        return ""; // return emty string if the file doesn't has the extension
-    }
 }

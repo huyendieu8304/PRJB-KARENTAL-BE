@@ -108,6 +108,7 @@ public class UserService {
         UserProfile userProfile = userProfileRepository.findById(accountID)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
+        //không hiểu phần dưới đây đang làm gì?
         Account account = userProfile.getAccount();
         if (account == null) {
             throw new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB);
@@ -131,8 +132,10 @@ public class UserService {
 
         // Check and upload file when have new file. Else not update (not change uri)
         if (request.getDrivingLicense() != null) {
+            // vẫn chưa gán extension của file vào đuôi file, mà thôi t sửa lại hàm upload cho nó tự động lấy extension r
+            //m test lại xem đúng chưa thôi
             String newUri = "user/" + accountID + "/driving-license";
-
+            //xem lại cái logic của chỗ này, qua nhắn rồi mà
             if (userProfile.getDrivingLicenseUri() == null ||
                     !userProfile.getDrivingLicenseUri().equals(newUri)) {
                 fileService.uploadFile(request.getDrivingLicense(), newUri);
@@ -140,7 +143,7 @@ public class UserService {
             }
         }
 
-
+        //cmt thêm cái chỗ này làm gì cho tường minh
         userMapper.updateUserProfileFromRequest(request, userProfile);
 
 //        // Upload file
@@ -151,11 +154,13 @@ public class UserService {
 //        }
 
         userProfileRepository.save(userProfile);
+        //account có thay đổi gì à mà lưu???
         accountRepository.save(account);
 
         EditProfileResponse editProfileResponse = userMapper.toEditProfileResponse(userProfile);
         editProfileResponse.setEmail(email);
 
+        //cái này đang làm gì??? vòng if này có tác dụng gì
         if (userProfile.getDrivingLicenseUri() != null) {
             editProfileResponse.setDrivingLicenseUrl(fileService.getFileUrl(userProfile.getDrivingLicenseUri()));
         }
@@ -171,6 +176,7 @@ public class UserService {
      * @throws AppException if the user profile is not found in the database.
      */
     public EditProfileResponse getUserProfile() {
+        //sao cái hàm này không có cmt gì hết thế????
         String userId = SecurityUtil.getCurrentAccountId();
         String email = SecurityUtil.getCurrentEmail();
 

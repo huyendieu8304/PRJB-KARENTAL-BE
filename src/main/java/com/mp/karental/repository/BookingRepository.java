@@ -4,7 +4,18 @@ import com.mp.karental.entity.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
+/**
+ * Repository interface for performing CRUD operations on Booking entities.
+ * <p>
+ * This interface extends {@link JpaRepository}, providing standard methods for data access,
+ * such as saving, deleting, and finding entities.
+ * </p>
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ * @see JpaRepository
+ */
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.bookingStatus = 'COMPLETED' AND b.car.id = :carId")
     long countCompletedBookingsByCar(@Param("carId") String carId);

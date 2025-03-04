@@ -7,7 +7,13 @@ import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Car;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-
+/**
+ * Mapper interface for converting between car-related DTOs and entities.
+ *
+ * @author QuangPM20, AnhPH9
+ *
+ * @version 1.0
+ */
 @Mapper(componentModel = "spring")
 public interface CarMapper {
     @Mapping(target = "id", ignore = true)

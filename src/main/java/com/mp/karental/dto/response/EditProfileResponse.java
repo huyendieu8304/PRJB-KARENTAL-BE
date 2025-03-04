@@ -8,6 +8,10 @@ import java.time.LocalDate;
 /**
  * DTO representing the response for editing a user profile.
  * Contains user profile details that can be updated.
+ *
+ * @author AnhHP9
+ *
+ * @version 1.0
  */
 @Getter
 @Setter

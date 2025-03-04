@@ -39,13 +39,6 @@ public class Booking {
     @Column(name = "booking_number", unique = true, nullable = false)
     String bookingNumber;
 
-    @PrePersist
-    public void prePersist() {
-        if(this.bookingNumber == null){
-            this.bookingNumber = generateBookingNumber();
-        }
-    }
-
     @Enumerated(EnumType.STRING)
     EBookingStatus bookingStatus = EBookingStatus.PENDING_DEPOSIT;
 
@@ -118,12 +111,5 @@ public class Booking {
 
     @Column(nullable = false)
     String driverAddress;
-
-    private String generateBookingNumber(){
-        //get current date in form yyyyMMdd
-        String date = new SimpleDateFormat("yyyyMMdd").format(new Date());
-        //TODO: hỏi laik cái chỗ sequence này
-        return date + "-" + UUID.randomUUID();
-    }
 
 }

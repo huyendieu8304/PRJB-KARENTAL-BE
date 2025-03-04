@@ -5,6 +5,13 @@ import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Represents the request to edit password
+ *
+ * @author AnhHP9
+ *
+ * @version 1.0
+ */
 @Getter
 @Setter
 @NoArgsConstructor

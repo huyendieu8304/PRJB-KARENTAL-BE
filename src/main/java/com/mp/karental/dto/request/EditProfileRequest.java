@@ -8,6 +8,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
+/**
+ * Represents the request to edit profile
+ *
+ * @author AnhHP9
+ *
+ * @version 1.0
+ */
 @Getter
 @Setter
 @NoArgsConstructor

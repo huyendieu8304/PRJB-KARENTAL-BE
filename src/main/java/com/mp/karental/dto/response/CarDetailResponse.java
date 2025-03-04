@@ -5,6 +5,10 @@ import lombok.experimental.FieldDefaults;
 /**
  * DTO representing the detailed information of a car.
  * Used to provide full car details in the car rental system.
+ *
+ * @author AnhHP9
+ *
+ * @version 1.0
  */
 @Data
 @NoArgsConstructor
