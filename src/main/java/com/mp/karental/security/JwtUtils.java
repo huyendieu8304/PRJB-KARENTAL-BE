@@ -12,6 +12,13 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+/**
+ * Utils class, perform operation relate to JWT
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Component
 public class JwtUtils {
 
@@ -22,7 +29,6 @@ public class JwtUtils {
     @Value("${application.security.jwt.access-token-secret-key}")
     @NonFinal
     private String accessTokenSecretKey;
-
 
     @Value("${application.security.jwt.refresh-token-expiration}")
     @NonFinal

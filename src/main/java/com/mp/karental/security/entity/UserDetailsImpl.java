@@ -14,7 +14,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
-
+/**
+ * Implementation of UserDetails class
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Getter
 @Setter
 @AllArgsConstructor

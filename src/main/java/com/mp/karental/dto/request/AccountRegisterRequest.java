@@ -1,10 +1,9 @@
 package com.mp.karental.dto.request;
 
+import com.mp.karental.validation.RequiredField;
 import com.mp.karental.validation.UniqueEmail;
 import com.mp.karental.validation.UniquePhoneNumber;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -27,27 +26,27 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class AccountRegisterRequest {
 
-    @NotBlank(message = "REQUIRED_FIELD")
+    @RequiredField(fieldName = "Full name")
     //The name can only contain alphabet characters (accept unicode), spaces and hyphens -
     @Pattern(regexp = "^[\\p{L}\\s-]+$", message = "INVALID_NAME")
     String fullName;
 
-    @NotBlank(message = "REQUIRED_FIELD")
+    @RequiredField(fieldName = "Email")
     @Email (message = "INVALID_EMAIL")
     @UniqueEmail(message = "NOT_UNIQUE_EMAIL")
     String email;
 
-    @NotBlank(message = "REQUIRED_FIELD")
+    @RequiredField(fieldName = "Phone number")
     //The phone number must start with 0 and having 10 digits in total
     @Pattern(regexp = "^0[\\d]{9}$", message = "INVALID_PHONE_NUMBER")
     @UniquePhoneNumber(message = "NOT_UNIQUE_PHONE_NUMBER")
     String phoneNumber;
 
-    @NotBlank(message = "REQUIRED_FIELD")
+    @RequiredField(fieldName = "Password")
     //The password must have at least 1 character, 1 digit and 7 characters
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).{9,}$", message = "INVALID_PASSWORD")
     String password;
 
-    @NotNull(message = "REQUIRED_FIELD")
+    @RequiredField(fieldName = "The role of the account")
     String isCustomer;
 }

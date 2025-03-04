@@ -1,5 +1,10 @@
 package com.mp.karental.constant;
-
+/**
+ * Represents the colors that a car could have
+ * @author QuangPM20
+ *
+ * @version 1.0
+ */
 public enum EColors {
     WHITE("White"),
     BLACK("Black"),

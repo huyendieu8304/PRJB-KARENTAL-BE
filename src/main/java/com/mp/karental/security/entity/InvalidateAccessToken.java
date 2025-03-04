@@ -6,6 +6,13 @@ import lombok.experimental.FieldDefaults;
 
 import java.util.Date;
 
+/**
+ * Represents a Invalidate Access token entity in the system.
+ *
+ * @author DieuTTH4
+ *
+ * @version 1.0
+ */
 @Entity
 @Data
 @NoArgsConstructor
