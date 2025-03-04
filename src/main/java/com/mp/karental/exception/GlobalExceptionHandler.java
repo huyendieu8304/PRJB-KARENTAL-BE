@@ -1,7 +1,6 @@
 package com.mp.karental.exception;
 
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.service.AllowedValuesService;
 import jakarta.validation.ConstraintViolation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -15,7 +15,12 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-
+/**
+ * test unique license plate validator
+ *
+ * QuangPM20
+ * version 1.0
+ */
 @ExtendWith(MockitoExtension.class)
 class UniqueLicensePlateValidatorTest {
 
