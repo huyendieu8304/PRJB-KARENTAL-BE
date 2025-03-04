@@ -102,7 +102,7 @@ public class CarControllerTest {
     void addNewCar_Success() throws Exception {
         // Prepare expected response
         CarResponse carResponse = new CarResponse();
-        carResponse.setLicensePlate("49F-123.45");
+        carResponse.setLicensePlate("11F-111.11");
         carResponse.setBrand("Toyota");
         carResponse.setModel("Camry");
         carResponse.setColor("Black");
@@ -134,7 +134,7 @@ public class CarControllerTest {
                         .param("brand", addCarRequest.getBrand())
                         .param("model", addCarRequest.getModel())
                         .param("address", addCarRequest.getAddress())
-                        .param("licensePlate", addCarRequest.getLicensePlate())
+                        .param("licensePlate", "11F-111.11")
                         .param("color", addCarRequest.getColor())
                         .param("numberOfSeats", String.valueOf(addCarRequest.getNumberOfSeats()))
                         .param("productionYear", String.valueOf(addCarRequest.getProductionYear()))
@@ -150,7 +150,7 @@ public class CarControllerTest {
                         .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
                 .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(1000))
-                .andExpect(MockMvcResultMatchers.jsonPath("data.licensePlate").value("49F-123.45"));
+                .andExpect(MockMvcResultMatchers.jsonPath("data.licensePlate").value("11F-111.11"));
     }
 
 
