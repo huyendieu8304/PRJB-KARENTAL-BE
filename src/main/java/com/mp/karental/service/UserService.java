@@ -123,7 +123,7 @@ public class UserService {
         }
         //user upload file
         if (request.getDrivingLicense() != null) {
-            String newUri = "user/" + accountID + "/driving-license";
+            String newUri = "user/" + accountID + "/driving-license" + fileService.getFileExtension(request.getDrivingLicense());
             fileService.uploadFile(request.getDrivingLicense(), newUri);
             userProfile.setDrivingLicenseUri(newUri);
         }
