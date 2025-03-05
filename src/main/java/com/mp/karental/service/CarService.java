@@ -3,6 +3,7 @@ package com.mp.karental.service;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
+import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
@@ -11,7 +12,9 @@ import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.AccountRepository;
+import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
+import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * Service class for handling car operations.
  *
- * @author QuangPM20
+ * @author QuangPM20, AnhPH9
  * @version 1.0
  */
 @Service
@@ -37,9 +40,15 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CarService {
+
+    private static final String carAvailableStatus = "Available";
+    private static final String carNotAvailableStatus = "Unavailable";
+
     CarRepository carRepository;
     CarMapper carMapper;
     FileService fileService;
+    UserProfileRepository userProfileRepository;
+    BookingRepository bookingRepository;
     private final AccountRepository accountRepository;
 
     /**
@@ -54,8 +63,7 @@ public class CarService {
         String accountId = SecurityUtil.getCurrentAccountId();
 
         // Retrieve the account from the database, throw an exception if not found
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        Account account = SecurityUtil.getCurrentAccount();
 
         // Map the request data to a Car entity
         Car car = carMapper.toCar(request);
@@ -64,7 +72,7 @@ public class CarService {
         car.setAccount(account);
 
         // Set default status for the new car
-        car.setStatus(ECarStatus.AVAILABLE.name());
+        car.setStatus(ECarStatus.NOT_VERIFIED.name());
 
         // Set transmission and fuel type based on request
         car.setAutomatic(request.isAutomatic());
@@ -111,8 +119,7 @@ public class CarService {
         String accountId = SecurityUtil.getCurrentAccountId();
 
         // Fetch the account details from the database, or throw an error if the account is not found
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        Account account = SecurityUtil.getCurrentAccount();
 
         // Retrieve the car entity from the database using the provided car ID
         // If the car does not exist, throw an exception
@@ -243,9 +250,9 @@ public class CarService {
             imageRight = ((AddCarRequest) request).getCarImageRight();
 
             // Construct S3 keys for document files
-            String s3KeyRegistration = baseDocumentsUri + "registration-paper" ;
-            String s3KeyCertificate = baseDocumentsUri + "certificate-of-inspection" ;
-            String s3KeyInsurance = baseDocumentsUri + "insurance" ;
+            String s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(registrationPaper);
+            String s3KeyCertificate = baseDocumentsUri + "certificate-of-inspection" + fileService.getFileExtension(certificateOfInspection);
+            String s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(insurance);
 
             // Upload document files to S3
             fileService.uploadFile(registrationPaper, s3KeyRegistration);
@@ -267,10 +274,10 @@ public class CarService {
         }
 
         // Construct S3 keys for car images
-        s3KeyImageFront = baseImagesUri + "front";
-        s3KeyImageBack = baseImagesUri + "back";
-        s3KeyImageLeft = baseImagesUri + "left";
-        s3KeyImageRight = baseImagesUri + "right";
+        s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(imageFront);
+        s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(imageBack);
+        s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(imageLeft);
+        s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(imageRight);
 
         // Upload car images to S3
         fileService.uploadFile(imageFront, s3KeyImageFront);
@@ -306,11 +313,87 @@ public class CarService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
 
         // Get list of cars
-        Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
-
         // Map cars to CarThumbnailResponse using fromCar method
-        return cars.map(car -> CarThumbnailResponse.fromCar(car, fileService));
+        Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
+        Page<CarThumbnailResponse> responses = cars.map(car -> {
+            CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
+            response.setAddress(car.getWard() + ", " + car.getCityProvince());
+
+            response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
+            response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
+            response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
+            response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
+
+            return response;
+        });
+
+        return responses;
     }
+
+    /**
+     * Retrieves detailed information of a car by its ID.
+     *
+     * @param carId The unique identifier of the car.
+     * @return CarDetailResponse containing detailed information of the car.
+     * @throws AppException if the car is not found.
+     */
+    public CarDetailResponse getCarDetail(String carId) {
+        // Get the currently authenticated account ID
+        String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Retrieve the car entity from the repository, throw an exception if not found
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        // Check if the current user has booked this car
+        boolean isBooked = bookingRepository.isCarBookedByAccount(carId, accountId);
+
+        // Map the car entity to a CarDetailResponse DTO
+        CarDetailResponse response = carMapper.toCarDetailResponse(car, isBooked);
+
+        if (isBooked) {
+            // If the booking_status is COMPLETE, display the full address
+            response.setAddress(car.getHouseNumberStreet() + ", "
+                    + car.getWard() + ", "
+                    + car.getDistrict() + ", "
+                    + car.getCityProvince());
+
+            // Allow viewing and downloading car-related documents
+            response.setCertificateOfInspectionUrl(fileService.getFileUrl(car.getCertificateOfInspectionUri()));
+            response.setInsuranceUrl(fileService.getFileUrl(car.getInsuranceUri()));
+            response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
+
+        } else {
+            // If the booking_status is not COMPLETE, hide document URLs and provide a partial address
+            // Hide document URLs and show "Verified" instead
+            response.setCertificateOfInspectionUrl(null);
+            response.setInsuranceUrl(null);
+            response.setRegistrationPaperUrl(null);
+
+            // Provide a partial address with a message for unbooked cars
+            response.setAddress(car.getDistrict() + ", " + car.getCityProvince()
+                    + " (Full address will be available after you've paid the deposit to rent).");
+        }
+
+        // Retrieve verification status from the database instead of setting it to true
+        response.setRegistrationPaperIsVerified(car.isRegistrationPaperUriIsVerified());
+        response.setCertificateOfInspectionIsVerified(car.isCertificateOfInspectionUriIsVerified());
+        response.setInsuranceIsVerified(car.isInsuranceUriIsVerified());
+
+        // Retrieve and set the URLs for car-related images (these should always be visible)
+        response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
+        response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
+        response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
+        response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
+
+        // Count the number of completed bookings for this car and set it
+        long noOfRides = bookingRepository.countCompletedBookingsByCar(carId);
+        response.setNoOfRides(noOfRides);
+
+        return response;
+    }
+
+
 
 
     /**
@@ -325,8 +408,7 @@ public class CarService {
         String accountId = SecurityUtil.getCurrentAccountId();
 
         // Fetch the account details from the database, or throw an error if the account is not found
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        Account account = SecurityUtil.getCurrentAccount();
 
         // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)

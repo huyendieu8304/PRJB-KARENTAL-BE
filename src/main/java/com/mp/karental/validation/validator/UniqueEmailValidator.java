@@ -5,6 +5,7 @@ import com.mp.karental.validation.UniqueEmail;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 
 /**
@@ -26,10 +27,15 @@ import lombok.RequiredArgsConstructor;
  *
  * @version 1.0
  */
+@Component
 @RequiredArgsConstructor
 public class UniqueEmailValidator implements ConstraintValidator<UniqueEmail, String> {
 
     private final AccountRepository accountRepository;
+
+    public UniqueEmailValidator() {
+        this.accountRepository = null; // Khi chạy thật, Spring sẽ inject repository
+    }
 
     /**
      * Validates that the provided email is unique.

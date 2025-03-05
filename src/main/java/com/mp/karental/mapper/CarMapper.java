@@ -2,16 +2,18 @@ package com.mp.karental.mapper;
 
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
+import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
+import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Car;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 /**
- * Mapper interface for converting between user-related DTOs and entities.
+ * Mapper interface for converting between car-related DTOs and entities.
  *
- * @author QuangPM20
+ * @author QuangPM20, AnhPH9
  *
  * @version 1.0
  */
@@ -67,4 +69,15 @@ public interface CarMapper {
     @Mapping(target = "isAutomatic", source = "automatic")
     @Mapping(target = "isGasoline", source = "gasoline")
     CarResponse toCarResponse(Car car);
+
+    @Mapping(target = "address", ignore = true)
+    CarThumbnailResponse toCarThumbnailResponse(Car car);
+
+    @Mapping(target = "address", ignore = true)
+    @Mapping(target = "registrationPaperUrl", ignore = true)
+    @Mapping(target = "certificateOfInspectionUrl", ignore = true)
+    @Mapping(target = "insuranceUrl", ignore = true)
+    CarDetailResponse toCarDetailResponse(Car car, boolean isBooked);
+
+
 }

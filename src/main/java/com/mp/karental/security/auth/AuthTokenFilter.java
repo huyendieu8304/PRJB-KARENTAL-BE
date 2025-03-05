@@ -4,9 +4,8 @@ import com.mp.karental.configuration.SecurityConfig;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.security.JwtUtils;
-import com.mp.karental.security.entity.InvalidateAccessToken;
-import com.mp.karental.security.repository.InvalidateAccessTokenRepo;
 import com.mp.karental.security.service.UserDetailsServiceImpl;
+import com.mp.karental.security.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -46,7 +44,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     JwtUtils jwtUtils;
     UserDetailsServiceImpl userDetailsService;
-    InvalidateAccessTokenRepo invalidateAccessTokenRepo;
+    TokenService tokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -77,8 +75,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         //validate jwt
         jwtUtils.validateJwtAccessToken(jwt);
 
-        //token still valid -> check whether it invalidated (by logout or something else)
-        if(invalidateAccessTokenRepo.findByToken(jwt).isPresent()){
+        //token still valid -> check whether it invalidated (by logout)
+        if(tokenService.isAccessTokenInvalidated(jwt)){
             //access token is invalidated
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
@@ -87,14 +85,15 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         //get the email of the user to
         String email = jwtUtils.getUserEmailFromAccessToken(jwt);
 
-        //Load UserDetails
+        //Load UserDetails (the information of authenticated user)
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userDetails,
-                        null,
+                        null, //authenticated request, so that doesn't need password
                         userDetails.getAuthorities());
 
+        //save the information's of request to authentication object to used later
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
         //set up UserDetails in current SecurityContext

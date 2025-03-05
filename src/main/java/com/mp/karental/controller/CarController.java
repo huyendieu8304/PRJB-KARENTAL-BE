@@ -3,6 +3,7 @@ package com.mp.karental.controller;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.ApiResponse;
+import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.service.CarService;
@@ -74,7 +75,7 @@ public class CarController {
      * @param sort The sorting criteria in the format "field,order" (default is "productionYear,DESC").
      * @return ApiResponse containing a paginated list of car thumbnails.
      */
-    @GetMapping("/my-cars")
+    @GetMapping("/car-owner/my-cars")
     public ApiResponse<Page<CarThumbnailResponse>> getCars(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -95,6 +96,14 @@ public class CarController {
     public ApiResponse<CarResponse> getCarById(@PathVariable String carId) {
         return ApiResponse.<CarResponse>builder()
                 .data(carService.getCarById(carId))
+                .build();
+    }
+
+    @GetMapping("/customer/view-detail")
+    public ApiResponse<CarDetailResponse> getCarDetail(@RequestParam String carId) {
+        log.info("Fetching car details for ID: {}", carId);
+        return ApiResponse.<CarDetailResponse>builder()
+                .data(carService.getCarDetail(carId))
                 .build();
     }
 }
