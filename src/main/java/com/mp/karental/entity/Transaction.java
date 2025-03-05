@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Immutable
+@Immutable //can not edit after create
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -46,4 +46,10 @@ public class Transaction {
     long amount;
 
     String message; //save the transaction message, could be remove
+
+    //One booking would have different transaction type
+    @ManyToOne
+    @JoinColumn(name = "booking_number")
+    Booking bookingNumber;
+
 }

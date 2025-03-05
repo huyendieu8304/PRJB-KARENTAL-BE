@@ -12,5 +12,8 @@ import lombok.Getter;
 public enum ETransactionType {
     TOP_UP,
     WITHDRAW,
-    PAYMENT //pay for booking
+    PAY_DEPOSIT,
+    REFUND_DEPOSIT,
+    OFFSET_FINAL_PAYMENT,
+    RECEIVED_PAYMENT,
 }

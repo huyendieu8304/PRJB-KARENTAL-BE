@@ -48,13 +48,6 @@ public class FileService {
      * @return true if successfully upload file
      */
     public boolean uploadFile(MultipartFile file, String key) {
-        //get file extension
-        String fileName = file.getOriginalFilename();
-        if (fileName != null && fileName.contains(".")) {
-            fileName = fileName.substring(fileName.lastIndexOf(".")).toLowerCase();
-        }
-        key = key + fileName;
-        log.info("key upload to s3: " + key);
         //upload object to s3
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
