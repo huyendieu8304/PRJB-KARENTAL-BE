@@ -32,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Service class for handling car operations.
@@ -365,23 +366,30 @@ public class CarService {
         boolean hasActiveBookings = bookingRepository.countActiveBookingsInTimeRange(
                 request.getCarId(), request.getPickUpTime(), request.getDropOffTime(), EBookingStatus.CANCELLED) > 0;
 
-        // If there are no active bookings, the car is available
-        boolean isAvailable = !hasActiveBookings;
+//        // If there are no active bookings, the car is available
+//        boolean isAvailable = !hasActiveBookings;
+//
+//        // If the car has never been booked before, it is considered available
+//        boolean hasAnyBooking = bookingRepository.existsByCarId(request.getCarId());
+//        if (!hasAnyBooking) {
+//            isAvailable = true;
+//        }
 
-        // If the car has never been booked before, it is considered available
-        boolean hasAnyBooking = bookingRepository.existsByCarId(request.getCarId());
-        if (!hasAnyBooking) {
-            isAvailable = true;
-        }
+        //Check car is available
+        boolean isAvailable = isCarAvailable(request.getCarId(), request.getPickUpTime(), request.getDropOffTime());
+
 
         // Map the car entity to a CarDetailResponse DTO
         CarDetailResponse response = carMapper.toCarDetailResponse(car, isAvailable);
 
         // Check if the current user has booked this car with specific statuses
-        boolean isBooked = bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(
-                request.getCarId(), accountId,
-                Arrays.asList(EBookingStatus.CONFIRMED, EBookingStatus.IN_PROGRESS,
-                        EBookingStatus.PENDING_PAYMENT, EBookingStatus.COMPLETED));
+//        boolean isBooked = bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(
+//                request.getCarId(), accountId,
+//                Arrays.asList(EBookingStatus.CONFIRMED, EBookingStatus.IN_PROGRESS,
+//                        EBookingStatus.PENDING_PAYMENT, EBookingStatus.COMPLETED));
+
+        boolean isBooked = isCarBooked(request.getCarId(), accountId);
+
 
         if (isBooked) {
             // If the booking status is COMPLETE, display the full address
@@ -427,8 +435,37 @@ public class CarService {
         return response;
     }
 
+    /**
+     * Checks if a car is available within the given time range.
+     *
+     * @param carId      the ID of the car
+     * @param pickUpTime the start time of the requested booking
+     * @param dropOffTime the end time of the requested booking
+     * @return true if the car is available, false otherwise
+     */
+    public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
+        long conflictingBookings = bookingRepository.countActiveBookingsInTimeRange(
+                carId, pickUpTime, dropOffTime, EBookingStatus.CANCELLED
+        );
+        return conflictingBookings == 0;
+    }
 
+    /**
+     * Checks if a car is booked by customer.
+     * @param carId the ID of the car
+     * @param accountId the ID of the customer
+     * @return true if the car is booked by account ID, false otherwise
+     */
+    public boolean isCarBooked(String carId, String accountId) {
+        List<EBookingStatus> activeStatuses = Arrays.asList(
+                EBookingStatus.CONFIRMED,
+                EBookingStatus.IN_PROGRESS,
+                EBookingStatus.PENDING_PAYMENT,
+                EBookingStatus.COMPLETED
+        );
 
+        return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);
+    }
 
     /**
      * Retrieves a car by its ID and ensures that the current logged-in user owns the car.
