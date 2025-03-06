@@ -254,9 +254,9 @@ public class CarService {
             imageRight = ((AddCarRequest) request).getCarImageRight();
 
             // Construct S3 keys for document files
-            String s3KeyRegistration = baseDocumentsUri + "registration-paper" ;
-            String s3KeyCertificate = baseDocumentsUri + "certificate-of-inspection" ;
-            String s3KeyInsurance = baseDocumentsUri + "insurance" ;
+            String s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(registrationPaper);
+            String s3KeyCertificate = baseDocumentsUri + "certificate-of-inspection" + fileService.getFileExtension(certificateOfInspection);
+            String s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(insurance);
 
             // Upload document files to S3
             fileService.uploadFile(registrationPaper, s3KeyRegistration);
@@ -278,10 +278,10 @@ public class CarService {
         }
 
         // Construct S3 keys for car images
-        s3KeyImageFront = baseImagesUri + "front";
-        s3KeyImageBack = baseImagesUri + "back";
-        s3KeyImageLeft = baseImagesUri + "left";
-        s3KeyImageRight = baseImagesUri + "right";
+        s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(imageFront);
+        s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(imageBack);
+        s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(imageLeft);
+        s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(imageRight);
 
         // Upload car images to S3
         fileService.uploadFile(imageFront, s3KeyImageFront);
