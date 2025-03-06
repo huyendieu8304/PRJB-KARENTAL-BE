@@ -1,6 +1,7 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.request.CarDetailRequest;
 import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.CarDetailResponse;
@@ -13,9 +14,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 /**
  * REST controller for handling car-related operations.
@@ -99,11 +103,25 @@ public class CarController {
                 .build();
     }
 
+    /**
+     * Retrieves car details including booking status within a specified date range.
+     *
+     * @param request CarDetailRequest object containing carId, pickUp, and dropOff time.
+     * @return ApiResponse<CarDetailResponse> containing car details and booking status.
+     */
     @GetMapping("/customer/view-detail")
-    public ApiResponse<CarDetailResponse> getCarDetail(@RequestParam String carId) {
-        log.info("Fetching car details for ID: {}", carId);
+    public ApiResponse<CarDetailResponse> getCarDetail(@Valid @RequestBody CarDetailRequest request) {
+        log.info("Fetching car details for ID: {}, pickUp: {}, dropOff: {}",
+                request.getCarId(), request.getPickUp(), request.getDropOff());
+
         return ApiResponse.<CarDetailResponse>builder()
-                .data(carService.getCarDetail(carId))
+                .data(carService.getCarDetail(request))
                 .build();
     }
+
+
+
+
+
+
 }

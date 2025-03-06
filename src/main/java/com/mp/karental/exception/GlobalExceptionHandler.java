@@ -150,7 +150,7 @@ public class GlobalExceptionHandler {
      * TEMPORARY disable for development
      */
     @ExceptionHandler(RuntimeException.class)
-    ResponseEntity<ApiResponse<String>> runtimeExceptionHandler(Exception e) {
+    ResponseEntity<ApiResponse<String>> runtimeExceptionHandler(RuntimeException e) {
         log.info("Exception is catch by runtimeExceptionHandler, exception: {}", e.getClass().getName());
         log.error(e.getMessage(), e);
         log.error(e.getStackTrace().toString());

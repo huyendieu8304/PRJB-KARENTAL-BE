@@ -54,6 +54,7 @@ public enum ErrorCode {
     INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_NATIONAL_ID(2023, "The national id already existed. Please try another national id", HttpStatus.BAD_REQUEST),
     INVALID_STATUS_EDIT(2024,"Status can edit only available/stopped", HttpStatus.BAD_REQUEST),
+    INVALID_DATE_RANGE(2025, "Invalid date range. Pick-up date must be before drop-off date.", HttpStatus.BAD_REQUEST),
 
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -63,6 +64,7 @@ public enum ErrorCode {
     PASSWORDS_DO_NOT_MATCH(3005, "New password and Confirm password don’t match.", HttpStatus.BAD_REQUEST),
     INCORRECT_PASSWORD(3006, "Current password is incorrect.", HttpStatus.BAD_REQUEST),
     CAR_NOT_FOUND_IN_DB(3007, "The car is not exist in the system", HttpStatus.NOT_FOUND),
+    CAR_NOT_VERIFIED(3008, "This car has not been verified and cannot be viewed.", HttpStatus.FORBIDDEN),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),

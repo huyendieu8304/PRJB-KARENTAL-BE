@@ -1,7 +1,9 @@
 package com.mp.karental.service;
 
+import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.request.CarDetailRequest;
 import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
@@ -27,6 +29,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
 
 /**
  * Service class for handling car operations.
@@ -331,25 +335,40 @@ public class CarService {
     }
 
     /**
-     * Retrieves detailed information of a car by its ID.
+     * Retrieves detailed information of a car by its ID and checks its booking status.
      *
-     * @param carId The unique identifier of the car.
+
      * @return CarDetailResponse containing detailed information of the car.
-     * @throws AppException if the car is not found.
      */
-    public CarDetailResponse getCarDetail(String carId) {
-        // Get the currently authenticated account ID
+    /**
+     * Retrieves detailed information of a car and checks its booking status within a given time range.
+     *
+     * @param request CarDetailRequest object with carId, pickUp, and dropOff times.
+     * @return CarDetailResponse containing car details, booking status, images, and address visibility.
+     */
+    public CarDetailResponse getCarDetail(CarDetailRequest request) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Retrieve the car entity from the repository, throw an exception if not found
-        Car car = carRepository.findById(carId)
+        Car car = carRepository.findById(request.getCarId())
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
 
-        // Check if the current user has booked this car
-        boolean isBooked = bookingRepository.isCarBookedByAccount(carId, accountId);
+
+        if (request.getPickUp().isAfter(request.getDropOff())) {
+            throw new AppException(ErrorCode.INVALID_DATE_RANGE);
+        }
+
+        // Check if car is booked in this time
+        boolean isBooked = bookingRepository.isCarBookedInTimeRange(
+                request.getCarId(), request.getPickUp(), request.getDropOff(), EBookingStatus.CANCELLED);
+
+        // If car has no booking, isBooked = true
+        boolean hasAnyBooking = bookingRepository.existsByCarId(request.getCarId());
+        if (!hasAnyBooking) {
+            isBooked = true;
+        }
 
         // Map the car entity to a CarDetailResponse DTO
-        CarDetailResponse response = carMapper.toCarDetailResponse(car, isBooked);
+        CarDetailResponse response = carMapper.toCarDetailResponse(car,isBooked);
 
         if (isBooked) {
             // If the booking_status is COMPLETE, display the full address
@@ -387,11 +406,13 @@ public class CarService {
         response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
         // Count the number of completed bookings for this car and set it
-        long noOfRides = bookingRepository.countCompletedBookingsByCar(carId);
+        long noOfRides = bookingRepository.countCompletedBookingsByCar(request.getCarId());
         response.setNoOfRides(noOfRides);
 
         return response;
     }
+
+
 
 
 

@@ -2,6 +2,8 @@ package com.mp.karental.dto.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.sql.Time;
+
 /**
  * DTO representing the detailed information of a car.
  * Used to provide full car details in the car rental system.
@@ -49,5 +51,7 @@ public class CarDetailResponse {
     String carImageRight;
 
     long noOfRides;
+    boolean isBooked;
+    String carStatus;
 
 }
