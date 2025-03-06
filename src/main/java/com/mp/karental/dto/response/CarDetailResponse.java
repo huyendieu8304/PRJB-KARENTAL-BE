@@ -52,6 +52,6 @@ public class CarDetailResponse {
 
     long noOfRides;
     boolean isBooked;
-    String carStatus;
+    boolean isAvailable;
 
 }

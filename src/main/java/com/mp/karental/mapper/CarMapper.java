@@ -77,7 +77,7 @@ public interface CarMapper {
     @Mapping(target = "registrationPaperUrl", ignore = true)
     @Mapping(target = "certificateOfInspectionUrl", ignore = true)
     @Mapping(target = "insuranceUrl", ignore = true)
-    CarDetailResponse toCarDetailResponse(Car car, boolean isBooked);
+    CarDetailResponse toCarDetailResponse(Car car, boolean isAvailable);
 
 
 }

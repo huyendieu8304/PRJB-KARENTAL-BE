@@ -5,9 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Repository interface for performing CRUD operations on Booking entities.
@@ -28,25 +27,29 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.car.id = :carId AND b.account.id = :accountId AND b.status = 'COMPLETED'")
     boolean isCarBookedByAccount(@Param("carId") String carId, @Param("accountId") String accountId);
 
+    boolean existsByCarId(String carId);
+    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.car.id = :carId AND b.account.id = :accountId AND b.status IN :statuses")
+    boolean existsByCarIdAndAccountIdAndBookingStatusIn(
+            @Param("carId") String carId,
+            @Param("accountId") String accountId,
+            @Param("statuses") List<EBookingStatus> statuses
+    );
+
     @Query("""
-    SELECT COUNT(b) > 0 
+    SELECT COUNT(b) 
     FROM Booking b 
     WHERE b.car.id = :carId 
+    AND b.status <> :cancelledStatus 
     AND (
-        b.bookingStatus = :cancelledStatus 
-        OR (
-            :startRange BETWEEN b.startDate AND b.endDate 
-            OR :endRange BETWEEN b.startDate AND b.endDate
-            OR (b.startDate <= :startRange AND b.endDate >= :endRange)
-        )
+        :startRange BETWEEN b.pickUpTime AND b.dropOffTime 
+        OR :endRange BETWEEN b.pickUpTime AND b.dropOffTime
+        OR (b.pickUpTime <= :startRange AND b.dropOffTime >= :endRange)
     )
 """)
-    boolean isCarBookedInTimeRange(@Param("carId") String carId,
-                                   @Param("startRange") LocalDateTime startRange,
-                                   @Param("endRange") LocalDateTime endRange,
-                                   @Param("cancelledStatus") EBookingStatus cancelledStatus);
-
-    boolean existsByCarId(String carId);
+    long countActiveBookingsInTimeRange(@Param("carId") String carId,
+                                        @Param("startRange") LocalDateTime startRange,
+                                        @Param("endRange") LocalDateTime endRange,
+                                        @Param("cancelledStatus") EBookingStatus cancelledStatus);
 
 
 

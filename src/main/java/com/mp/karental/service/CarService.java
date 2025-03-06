@@ -31,6 +31,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 /**
  * Service class for handling car operations.
@@ -76,7 +77,7 @@ public class CarService {
         car.setAccount(account);
 
         // Set default status for the new car
-        car.setStatus(ECarStatus.NOT_VERIFIED.name());
+        car.setStatus(ECarStatus.NOT_VERIFIED);
 
         // Set transmission and fuel type based on request
         car.setAutomatic(request.isAutomatic());
@@ -142,9 +143,9 @@ public class CarService {
         // Update the car's status
         String status = request.getStatus();
         if (status == null) {
-            status = car.getStatus(); // Keep the existing status if none is provided
+            status = car.getStatus().name(); // Keep the existing status if none is provided
         }
-        car.setStatus(status.toUpperCase()); // Convert status to uppercase for consistency
+        car.setStatus(ECarStatus.valueOf(status)); // Convert status to uppercase for consistency
 
         // Update the car's address details
         setCarAddress(request, car);
@@ -335,12 +336,6 @@ public class CarService {
     }
 
     /**
-     * Retrieves detailed information of a car by its ID and checks its booking status.
-     *
-
-     * @return CarDetailResponse containing detailed information of the car.
-     */
-    /**
      * Retrieves detailed information of a car and checks its booking status within a given time range.
      *
      * @param request CarDetailRequest object with carId, pickUp, and dropOff times.
@@ -349,29 +344,47 @@ public class CarService {
     public CarDetailResponse getCarDetail(CarDetailRequest request) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
+        // Retrieve car details from the database
         Car car = carRepository.findById(request.getCarId())
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
 
+        // Check if the car is verified and available for booking
+        if (car.getStatus() == ECarStatus.NOT_VERIFIED) {
+            throw new AppException(ErrorCode.CAR_NOT_VERIFIED);
+        }
+        if (car.getStatus() == ECarStatus.STOPPED) {
+            throw new AppException(ErrorCode.CAR_STOPPED);
+        }
 
+        // Validate that the pick-up date is before the drop-off date
         if (request.getPickUp().isAfter(request.getDropOff())) {
             throw new AppException(ErrorCode.INVALID_DATE_RANGE);
         }
 
-        // Check if car is booked in this time
-        boolean isBooked = bookingRepository.isCarBookedInTimeRange(
-                request.getCarId(), request.getPickUp(), request.getDropOff(), EBookingStatus.CANCELLED);
+        // Check if the car has active bookings within the requested time range
+        boolean hasActiveBookings = bookingRepository.countActiveBookingsInTimeRange(
+                request.getCarId(), request.getPickUp(), request.getDropOff(), EBookingStatus.CANCELLED) > 0;
 
-        // If car has no booking, isBooked = true
+        // If there are no active bookings, the car is available
+        boolean isAvailable = !hasActiveBookings;
+
+        // If the car has never been booked before, it is considered available
         boolean hasAnyBooking = bookingRepository.existsByCarId(request.getCarId());
         if (!hasAnyBooking) {
-            isBooked = true;
+            isAvailable = true;
         }
 
         // Map the car entity to a CarDetailResponse DTO
-        CarDetailResponse response = carMapper.toCarDetailResponse(car,isBooked);
+        CarDetailResponse response = carMapper.toCarDetailResponse(car, isAvailable);
+
+        // Check if the current user has booked this car with specific statuses
+        boolean isBooked = bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(
+                request.getCarId(), accountId,
+                Arrays.asList(EBookingStatus.CONFIRMED, EBookingStatus.IN_PROGRESS,
+                        EBookingStatus.PENDING_PAYMENT, EBookingStatus.COMPLETED));
 
         if (isBooked) {
-            // If the booking_status is COMPLETE, display the full address
+            // If the booking status is COMPLETE, display the full address
             response.setAddress(car.getHouseNumberStreet() + ", "
                     + car.getWard() + ", "
                     + car.getDistrict() + ", "
@@ -383,8 +396,7 @@ public class CarService {
             response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
 
         } else {
-            // If the booking_status is not COMPLETE, hide document URLs and provide a partial address
-            // Hide document URLs and show "Verified" instead
+            // If the booking status is not COMPLETE, hide document URLs and provide a partial address
             response.setCertificateOfInspectionUrl(null);
             response.setInsuranceUrl(null);
             response.setRegistrationPaperUrl(null);
@@ -405,14 +417,15 @@ public class CarService {
         response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
         response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
+        // Set booking status in the response
+        response.setBooked(isBooked);
+
         // Count the number of completed bookings for this car and set it
         long noOfRides = bookingRepository.countCompletedBookingsByCar(request.getCarId());
         response.setNoOfRides(noOfRides);
 
         return response;
     }
-
-
 
 
 
