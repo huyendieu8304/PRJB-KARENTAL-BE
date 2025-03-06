@@ -357,13 +357,13 @@ public class CarService {
         }
 
         // Validate that the pick-up date is before the drop-off date
-        if (request.getPickUp().isAfter(request.getDropOff())) {
+        if (request.getPickUpTime().isAfter(request.getDropOffTime())) {
             throw new AppException(ErrorCode.INVALID_DATE_RANGE);
         }
 
         // Check if the car has active bookings within the requested time range
         boolean hasActiveBookings = bookingRepository.countActiveBookingsInTimeRange(
-                request.getCarId(), request.getPickUp(), request.getDropOff(), EBookingStatus.CANCELLED) > 0;
+                request.getCarId(), request.getPickUpTime(), request.getDropOffTime(), EBookingStatus.CANCELLED) > 0;
 
         // If there are no active bookings, the car is available
         boolean isAvailable = !hasActiveBookings;

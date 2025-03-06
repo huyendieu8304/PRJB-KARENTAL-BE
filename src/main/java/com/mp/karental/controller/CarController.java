@@ -112,7 +112,7 @@ public class CarController {
     @GetMapping("/customer/view-detail")
     public ApiResponse<CarDetailResponse> getCarDetail(@Valid @RequestBody CarDetailRequest request) {
         log.info("Fetching car details for ID: {}, pickUp: {}, dropOff: {}",
-                request.getCarId(), request.getPickUp(), request.getDropOff());
+                request.getCarId(), request.getPickUpTime(), request.getDropOffTime());
 
         return ApiResponse.<CarDetailResponse>builder()
                 .data(carService.getCarDetail(request))
