@@ -16,8 +16,8 @@ import java.time.LocalDateTime;
 @Builder
 public class TransactionRequest {
     LocalDateTime createdAt;
-    //@ValidTransactionType(message = "INVALID_TRANSACTION_TYPE")
-    //@NotNull
+    @ValidTransactionType(message = "INVALID_TRANSACTION_TYPE")
+    @NotNull
     ETransactionType type;
     String bookingNo;
      String carName;

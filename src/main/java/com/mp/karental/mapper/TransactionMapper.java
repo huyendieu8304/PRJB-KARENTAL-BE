@@ -10,4 +10,7 @@ import org.mapstruct.Mapping;
 public interface TransactionMapper {
     Transaction toTransaction(TransactionRequest transactionRequest);
     TransactionResponse toTransactionResponse(Transaction transaction);
+
+
+
 }

@@ -39,7 +39,8 @@ public class TransactionService {
         Account account = accountRepository.findById(accountId)
                     .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
         Transaction transaction = transactionMapper.toTransaction(transactionRequest);
-         transactionRepository.save(transaction);
+        log.info("Transaction Mapped: {}", transaction);
+
          Wallet wallet = walletRepository.findByAccountId(accountId);
         if(wallet==null){
                 wallet = Wallet.builder()
@@ -47,25 +48,42 @@ public class TransactionService {
                         .account(account)
                         .balance(transaction.getAmount())
                         .build();
-
+            walletRepository.save(wallet);
             }else{
             if(transaction.getType().equals(ETransactionType.WITHDRAW) || transaction.getType().equals(ETransactionType.PAY_DEPOSIT) ) {
                 wallet.setBalance(wallet.getBalance()-transaction.getAmount());
+
             }else{
                 wallet.setBalance(wallet.getBalance()+transaction.getAmount());
             }
-
-
+            walletRepository.save(wallet);
         }
-
-         return transactionMapper.toTransactionResponse(transaction);
+        transaction.setWallet(wallet);
+        transactionRepository.save(transaction);
+        TransactionResponse transactionResponse =  transactionMapper.toTransactionResponse(transaction);
+        transactionResponse.setBalance(wallet.getBalance());
+        return transactionResponse;
     }
     public List<TransactionResponse> getAllTransactions( LocalDateTime from, LocalDateTime to) {
         String accountId = SecurityUtil.getCurrentAccountId();
         List<Transaction> transactions= transactionRepository.getTransactionsByDate(accountId, from, to);
         List<TransactionResponse> transactionResponses = new ArrayList<>();
         for(Transaction t: transactions){
-            transactionResponses.add(transactionMapper.toTransactionResponse(t));
+            TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(t);
+            transactionResponse.setBalance(t.getWallet().getBalance());
+            transactionResponses.add(transactionResponse);
+
+        }
+        return transactionResponses;
+    }
+    public List<TransactionResponse> getAllTransactionsList() {
+        String accountId = SecurityUtil.getCurrentAccountId();
+        List<Transaction> transactions= transactionRepository.getTransactionsByWalletId(accountId);
+        List<TransactionResponse> transactionResponses = new ArrayList<>();
+        for(Transaction t: transactions){
+            TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(t);
+            transactionResponse.setBalance(t.getWallet().getBalance());
+            transactionResponses.add(transactionResponse);
         }
         return transactionResponses;
     }

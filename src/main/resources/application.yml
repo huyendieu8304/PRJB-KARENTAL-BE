@@ -11,12 +11,12 @@ application:
       refresh-token-cookie-name: karental-jwt-refresh
       #TODO: cái key này phải bỏ vào biến môi trường
       refresh-token-secret-key: ${JWT_REFRESH_SECRET_KEY:4iyhevpv5jvq34g7ugtzw1dyuegkq683gctxs9xzye9ufwee6y7w6b0pwxc00na4te7s4w0e3rw1tu5756ws3pi58unz9chg4f04bh9bw9kyfftieupth6x3gy80saus}
-#      access-token-expiration: 3600000  #milisecond ~ 1 hours
-#      refresh-token-expiration: 86400000 #~1day
+      access-token-expiration: 3600000  #milisecond ~ 1 hours
+      refresh-token-expiration: 86400000 #~1day
 
 ##      FOR TEST
-      access-token-expiration: 15000 #milisecond ~ 15s
-      refresh-token-expiration: 60000 #~1 minute
+#      access-token-expiration: 15000 #milisecond ~ 15s
+#      refresh-token-expiration: 60000 #~1 minute
 
 spring:
   application:
@@ -55,3 +55,11 @@ cloud:
     s3:
       buckets:
         name: karental
+
+payment:
+  vnpay:
+    tmn-code: T3GTKJIG
+    secret-key: TP761QRSR4UT3A09XSGLQ4N8R1S6C4XU
+    init-payment-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+    return-url: https://dev.roninhub.com/order/%s/status
+    timeout: 15 # in minutes

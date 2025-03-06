@@ -17,5 +17,6 @@ public class TransactionResponse {
     String bookingNo;
     String carName;
     long amount;
+    long balance;
     String message;
 }

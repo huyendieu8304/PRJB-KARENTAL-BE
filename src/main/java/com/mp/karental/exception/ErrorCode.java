@@ -55,6 +55,8 @@ public enum ErrorCode {
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),
     ACCOUNT_NOT_FOUND_IN_DB(3003, "The account is not exist in the system", HttpStatus.NOT_FOUND),
     MAXIMUM_FILE_UPLOAD_EXCEED(3004, "Maximum file upload exceeded. Each file should not exceed 5Mb", HttpStatus.BAD_REQUEST),
+    VNPAY_SIGNING_FAILED(3005,"Your information is wrong", HttpStatus.BAD_REQUEST),
+    VNPAY_CHECKSUM_FAILED(3006,"VNPAY Checksum sequence has error ", HttpStatus.BAD_REQUEST),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.BAD_REQUEST),

@@ -12,4 +12,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
 
     @Query("Select t from Transaction t where t.createdAt between :from and :to and t.wallet.id = :accountId")
     List<Transaction> getTransactionsByDate(String accountId, LocalDateTime from, LocalDateTime to);
+
+    List<Transaction> getTransactionsByWalletId(String walletId);
 }
