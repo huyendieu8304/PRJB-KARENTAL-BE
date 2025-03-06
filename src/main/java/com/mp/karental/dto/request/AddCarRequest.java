@@ -1,23 +1,18 @@
 package com.mp.karental.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.mp.karental.entity.UserProfile;
 import com.mp.karental.validation.*;
-import jakarta.persistence.*;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 /**
  * Represents the request payload for add a new car.
- *
+ * <p>
+ * This class encapsulates the necessary data required to create a new car,
+ * including car information.
+ * </p>
  * @author QuangPM20
  *
  * @version 1.0

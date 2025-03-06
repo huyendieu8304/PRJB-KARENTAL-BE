@@ -15,7 +15,7 @@ public enum ETransactionType {
     TOP_UP, //Customer, CarOwner
     WITHDRAW, //Customer, CarOwner
     PAY_DEPOSIT, //Customer
-    RECEIVE_DEPOSIT, //for car owner
+    RECEIVE_PAYMENT, //for car owner
     REFUND_DEPOSIT, //when customer cancels a booking and the deposit is refunded to USER wallet
     OFFSET_FINAL_PAYMENT; // for customer when return car if deposit is left or exceeded
     @JsonCreator

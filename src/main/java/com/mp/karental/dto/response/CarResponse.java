@@ -1,10 +1,19 @@
 package com.mp.karental.dto.response;
 
-import jakarta.persistence.Column;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+/**
+ * Represents the response payload for a car.
+ * <p>
+ * This class encapsulates car information that is returned to the client,
+ * including car details.
+ * </p>
+ * @author QuangPM20
+ *
+ * @version 1.0
+ */
 
 @Data
 @NoArgsConstructor
@@ -12,6 +21,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class CarResponse {
+    String id;
     String licensePlate;
     String brand;
     String model;
@@ -31,18 +41,18 @@ public class CarResponse {
     boolean isGasoline;
 
     //documents
-    String registrationPaperUri;
+    String registrationPaperUrl;
     boolean registrationPaperUriIsVerified;
-    String certificateOfInspectionUri;
+    String certificateOfInspectionUrl;
     boolean certificateOfInspectionUriIsVerified;
-    String insuranceUri;
+    String insuranceUrl;
     boolean insuranceUriIsVerified;
 
     //car image
-    String carImageFront;
-    String carImageBack;
-    String carImageLeft;
-    String carImageRight;
+    String carImageFrontUrl;
+    String carImageBackUrl;
+    String carImageLeftUrl;
+    String carImageRightUrl;
 
 
 }

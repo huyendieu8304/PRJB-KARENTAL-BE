@@ -54,10 +54,10 @@ public class Car {
     float fuelConsumption;
 
     @Column(name = "base_price", nullable = false)
-    int basePrice;
+    long basePrice;
 
     @Column(nullable = false)
-    int deposit;
+    long deposit;
 
     //address
     @Column(name = "city_province",nullable = false)

@@ -13,6 +13,12 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 
 import static org.mockito.Mockito.*;
 
+/**
+ * test email service
+ *
+ * QuangPM20
+ * version 1.0
+ */
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
 

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 
 /**
@@ -156,21 +157,23 @@ public class JwtUtils {
                 .getSubject();
     }
 
-    public Date getExpirationDateFromAccessToken(String accessToken) {
+    public Instant getExpirationAtFromAccessToken(String accessToken) {
         return Jwts.parser()
                 .verifyWith(getScretKey(accessTokenSecretKey))
                 .build()
                 .parseSignedClaims(accessToken)
                 .getPayload()
-                .getExpiration();
+                .getExpiration()
+                .toInstant();
     }
 
-    public Date getExpirationDateFromRefreshToken(String refreshToken) {
+    public Instant getExpirationAtFromRefreshToken(String refreshToken) {
         return Jwts.parser()
                 .verifyWith(getScretKey(refreshTokenSecretKey))
                 .build()
                 .parseSignedClaims(refreshToken)
                 .getPayload()
-                .getExpiration();
+                .getExpiration()
+                .toInstant();
     }
 }
