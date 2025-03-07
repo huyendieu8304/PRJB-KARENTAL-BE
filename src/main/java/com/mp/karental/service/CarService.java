@@ -9,6 +9,7 @@ import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
+import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Car;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
@@ -362,10 +363,10 @@ public class CarService {
             throw new AppException(ErrorCode.INVALID_DATE_RANGE);
         }
 
-        // Check if the car has active bookings within the requested time range
-        boolean hasActiveBookings = bookingRepository.countActiveBookingsInTimeRange(
-                request.getCarId(), request.getPickUpTime(), request.getDropOffTime(), EBookingStatus.CANCELLED) > 0;
-
+//        // Check if the car has active bookings within the requested time range
+//        boolean hasActiveBookings = bookingRepository.countActiveBookingsInTimeRange(
+//                request.getCarId(), request.getPickUpTime(), request.getDropOffTime(), EBookingStatus.CANCELLED) > 0;
+//
 //        // If there are no active bookings, the car is available
 //        boolean isAvailable = !hasActiveBookings;
 //
@@ -443,12 +444,32 @@ public class CarService {
      * @param dropOffTime the end time of the requested booking
      * @return true if the car is available, false otherwise
      */
+//    public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
+//        long conflictingBookings = bookingRepository.countActiveBookingsInTimeRange(
+//                carId, pickUpTime.minusDays(1), dropOffTime.plusDays(1), EBookingStatus.CANCELLED
+//        );
+//        return conflictingBookings == 0;
+//    }
+
     public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
-        long conflictingBookings = bookingRepository.countActiveBookingsInTimeRange(
-                carId, pickUpTime, dropOffTime, EBookingStatus.CANCELLED
-        );
-        return conflictingBookings == 0;
+        // Lấy danh sách booking của xe trong khoảng từ (pickUp - 1 ngày) đến (dropOff + 1 ngày)
+        LocalDateTime searchStart = pickUpTime.minusDays(1);
+        LocalDateTime searchEnd = dropOffTime.plusDays(1);
+
+        List<Booking> bookings = bookingRepository.findBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
+
+        // Nếu không có booking nào thì xe Available
+        if (bookings.isEmpty()) {
+            return true;
+        }
+
+        // Kiểm tra xem tất cả các booking trong khoảng thời gian đó có phải đều bị hủy hay không
+        boolean allCancelled = bookings.stream()
+                .allMatch(booking -> booking.getStatus() == EBookingStatus.CANCELLED);
+
+        return allCancelled;
     }
+
 
     /**
      * Checks if a car is booked by customer.

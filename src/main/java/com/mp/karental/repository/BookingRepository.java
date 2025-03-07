@@ -15,7 +15,7 @@ import java.util.List;
  * such as saving, deleting, and finding entities.
  * </p>
  *
- * @author DieuTTH4
+ * @author ANHHP9
  *
  * @version 1.0
  * @see JpaRepository
@@ -51,6 +51,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                         @Param("endRange") LocalDateTime endRange,
                                         @Param("cancelledStatus") EBookingStatus cancelledStatus);
 
+    @Query("""
+    SELECT b 
+    FROM Booking b 
+    WHERE b.car.id = :carId 
+    AND (
+        :startRange BETWEEN b.pickUpTime AND b.dropOffTime 
+        OR :endRange BETWEEN b.pickUpTime AND b.dropOffTime
+        OR (b.pickUpTime <= :startRange AND b.dropOffTime >= :endRange)
+    )
+""")
+    List<Booking> findBookingsByCarIdAndTimeRange(@Param("carId") String carId,
+                                                  @Param("startRange") LocalDateTime startRange,
+                                                  @Param("endRange") LocalDateTime endRange);
 
 
 }
