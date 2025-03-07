@@ -57,7 +57,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         String[] publicEndpoints = SecurityConfig.PUBLIC_ENDPOINTS;
         //Skip authentication with public endpoints
         for (String publicEndpoint : publicEndpoints) {
-            if (path.equals(publicEndpoint)) {
+            if (path.startsWith(publicEndpoint)) {
                 filterChain.doFilter(request, response);
                 return;
             }

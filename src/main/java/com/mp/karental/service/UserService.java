@@ -4,6 +4,7 @@ import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.AccountRegisterRequest;
 import com.mp.karental.dto.request.EditPasswordRequest;
 import com.mp.karental.dto.request.EditProfileRequest;
+import com.mp.karental.dto.request.VerifyEmailRequest;
 import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
@@ -18,6 +19,8 @@ import com.mp.karental.repository.RoleRepository;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.repository.WalletRepository;
+import com.mp.karental.util.RedisUtil;
+import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -41,6 +44,9 @@ import java.util.Optional;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class UserService {
+
+    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
+
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
     RoleRepository roleRepository;
@@ -49,7 +55,9 @@ public class UserService {
     UserMapper userMapper;
 
     PasswordEncoder passwordEncoder;
-    private final FileService fileService;
+    FileService fileService;
+    EmailService emailService;
+    RedisUtil redisUtil;
 
     /**
      * Creates a new user account along with the associated user profile.
@@ -58,10 +66,9 @@ public class UserService {
      * @return a {@code UserResponse} DTO containing the details of the newly created account and profile
      *
      * @author DieuTTH4
-     *
-     * @version 1.0
      */
-    public UserResponse addNewAccount(AccountRegisterRequest request) {
+    public UserResponse addNewAccount(AccountRegisterRequest request){
+        log.info("Create new account");
         Account account = userMapper.toAccount(request);
         //set role for the account
         Optional<Role> role = roleRepository
@@ -71,7 +78,7 @@ public class UserService {
         } else {
             throw new AppException(ErrorCode.ROLE_NOT_FOUND_IN_DB);
         }
-        account.setActive(true); //set status of the account
+        account.setActive(false); //set status of the account, this will change after the email is verified
         //encode password
         account.setPassword(passwordEncoder.encode(account.getPassword()));
         account = accountRepository.save(account);
@@ -88,7 +95,37 @@ public class UserService {
                 .build();
         walletRepository.save(wallet);
 
+        sendVerifyEmail(account);
+        log.info("Account created, email={}", account.getEmail());
         return userMapper.toUserResponse(account, userProfile);
+    }
+
+    public String resendVerifyEmail(VerifyEmailRequest request){
+        log.info("User request sending verify email for {}", request.getEmail());
+        Account account = accountRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT));
+        //account already verify
+        if (account.isEmailVerified()){
+            //not send email any more
+            return "The email is already verified";
+        }
+        sendVerifyEmail(account);
+        return "The verify email is sent successfully. Please check your inbox again and follow instructions to verify your email.";
+    }
+
+
+    private void sendVerifyEmail(Account account) {
+        log.info("Send verify email to user.");
+        //send email to verified user email
+        String verifyEmailToken = redisUtil.generateVerifyEmailToken(account.getId());
+        String confirmUrl = DOMAIN_NAME + "/auth/verify-email?t=" + verifyEmailToken;
+        log.info("Verify email url: {}", confirmUrl);
+        //sending email
+        try {
+            emailService.sendRegisterEmail(account.getEmail(), confirmUrl);
+        } catch (MessagingException e) {
+            throw new AppException(ErrorCode.SEND_VERIFY_EMAIL_TO_USER_FAIL);
+        }
     }
 
     /**

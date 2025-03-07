@@ -49,9 +49,12 @@ public class SecurityConfig{
     public static final String[] PUBLIC_ENDPOINTS = {
             "/user/register",
             "/user/check-unique-email",
+            "/user/resend-verify-email",
             "/auth/login",
             "/auth/logout",
             "/auth/refresh-token",
+            "/auth/change-password",
+            "/auth/verify-email"
     };
     /**
      * Allow request from other origins below

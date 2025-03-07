@@ -1,5 +1,6 @@
 package com.mp.karental.service;
 
+import com.mp.karental.dto.request.ForgotPasswordRequest;
 import com.mp.karental.dto.request.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.LoginResponse;
@@ -11,6 +12,7 @@ import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.security.JwtUtils;
 import com.mp.karental.security.entity.UserDetailsImpl;
 import com.mp.karental.security.service.TokenService;
+import com.mp.karental.util.RedisUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
@@ -48,6 +50,7 @@ import org.springframework.web.util.WebUtils;
 public class AuthenticationService {
 
 
+    private final RedisUtil redisUtil;
     @Value("${application.security.jwt.access-token-cookie-name}")
     @NonFinal
     private String accessTokenCookieName;
@@ -85,6 +88,7 @@ public class AuthenticationService {
     UserProfileRepository userProfileRepository;
 
     public ResponseEntity<ApiResponse<?>> login(LoginRequest request) {
+        log.info("Processing login request, email={}", request.getEmail());
         //authenticate user's login information
         Authentication authentication = null;
 
@@ -115,7 +119,7 @@ public class AuthenticationService {
         ApiResponse<LoginResponse> apiResponse = ApiResponse.<LoginResponse>builder()
                 .data(new LoginResponse(role, fullName))
                 .build();
-
+        log.info("Account with email={} logged in successfully", request.getEmail());
         return sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);
     }
 
@@ -133,6 +137,7 @@ public class AuthenticationService {
     }
 
     public ResponseEntity<ApiResponse<?>> refreshToken(HttpServletRequest request) {
+        log.info("Processing refresh token request");
         //get the refresh token out from cookies
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
 
@@ -167,12 +172,12 @@ public class AuthenticationService {
         ApiResponse<String> apiResponse = ApiResponse.<String>builder()
                 .data("Successfully refresh token")
                 .build();
-
+        log.info("New refresh token is generated for account with email={}", account.getEmail());
         return sendApiResponseResponseEntity(newAccessToken, newRefreshToken, apiResponse);
     }
 
     public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request) {
-
+        log.info("Processing refresh token request");
         //get tokens out from cookies
         String accessToken = getCookieValueByName(request, accessTokenCookieName);
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
@@ -204,6 +209,7 @@ public class AuthenticationService {
         ApiResponse<String> apiResponse = ApiResponse.<String>builder()
                 .data("Successfully logged out")
                 .build();
+        log.info("Logged out successfully");
         return sendApiResponseResponseEntity(null, null, apiResponse);
     }
 
@@ -240,6 +246,44 @@ public class AuthenticationService {
         } else {
             return null;
         }
+    }
+
+    public void verifyEmail(String verifyEmailToken){
+        log.info("Verify email");
+        String accountId = redisUtil.verifyEmailToken(verifyEmailToken);
+        //check if the token valid
+        if (accountId != null && !accountId.isEmpty()) {
+            //token valid: exist in redis and still not expired
+            Account account = accountRepository.findById(accountId)
+                    .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT));
+            //Email is not already verify
+            if (!account.isEmailVerified()){
+                //set the email verified status to true
+                account.setEmailVerified(true);
+                //activate the account, so that user could use this account to login
+                account.setActive(true);
+                accountRepository.save(account);
+                log.info("Email={} verified successfully", account.getEmail());
+            }
+        } else {
+            //The verify email token is not valid or
+            //has expired or
+            //has been used
+            log.info("Verify token invalid, can not verify email");
+            throw new AppException(ErrorCode.INVALID_VERIFY_EMAIL_TOKEN);
+        }
+    }
+
+    public String requestChangePassword(ForgotPasswordRequest request){
+        //is the email used by one account in the system
+        Account account = accountRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT));
+        //The email in the account is not verified or the account is inactivated
+        if (!account.isEmailVerified() || !account.isActive()){
+            throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
+        }
+
+        return "An email has been send to your email address. Please click to the link in the email to change password.";
     }
 
 }

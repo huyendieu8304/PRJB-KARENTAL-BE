@@ -1,9 +1,6 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.AccountRegisterRequest;
-import com.mp.karental.dto.request.CheckUniqueEmailRequest;
-import com.mp.karental.dto.request.EditPasswordRequest;
-import com.mp.karental.dto.request.EditProfileRequest;
+import com.mp.karental.dto.request.*;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.EditProfileResponse;
@@ -71,6 +68,7 @@ public class UserController {
     ApiResponse<UserResponse> registerAccount(@RequestBody @Valid AccountRegisterRequest request){
         log.info("Registering account {}", request);
         return ApiResponse.<UserResponse>builder()
+                .message("Create account successfully. Please check your email inbox to verify your email address.")
                 .data(userService.addNewAccount(request))
                 .build();
     }
@@ -83,6 +81,14 @@ public class UserController {
     @PostMapping("/check-unique-email")
     ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueEmailRequest request){
         return ApiResponse.<String>builder()
+                .message("Email is unique.")
+                .build();
+    }
+
+    @PostMapping("/resend-verify-email")
+    ApiResponse<String> resendVerifyEmail(@RequestBody @Valid VerifyEmailRequest request){
+        return ApiResponse.<String>builder()
+                .message(userService.resendVerifyEmail(request))
                 .build();
     }
 
