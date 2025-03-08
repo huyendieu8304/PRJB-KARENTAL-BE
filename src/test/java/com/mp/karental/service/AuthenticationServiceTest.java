@@ -1,9 +1,9 @@
 package com.mp.karental.service;
 
 import com.mp.karental.constant.ERole;
-import com.mp.karental.dto.request.LoginRequest;
+import com.mp.karental.dto.request.auth.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.LoginResponse;
+import com.mp.karental.dto.response.auth.LoginResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
 import com.mp.karental.entity.UserProfile;

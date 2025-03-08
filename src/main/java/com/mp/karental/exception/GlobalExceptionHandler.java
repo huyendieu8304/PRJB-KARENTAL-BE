@@ -2,9 +2,8 @@ package com.mp.karental.exception;
 
 import com.mp.karental.dto.response.ApiResponse;
 import jakarta.validation.ConstraintViolation;
-import lombok.RequiredArgsConstructor;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -41,8 +39,6 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity in form of defined ApiResponse, containing code and message of the exception
      *
      * @author DieuTTH4
-     *
-     * @version 1.0
      */
     @ExceptionHandler(AppException.class)
     ResponseEntity<ApiResponse<String>> appExceptionHandler(AppException e) {
@@ -65,11 +61,10 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity in form of defined ApiResponse, containing code and message of the exception
      *
      * @author DieuTTH4
-     *
-     * @version 1.0
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ApiResponse<String>> methodArgumentNotValidException(MethodArgumentNotValidException e) {
+    ResponseEntity<ApiResponse<String>> methodArgumentNotValidExceptionHandler(MethodArgumentNotValidException e) {
+        log.info("Exception is catch by MethodArgumentNotValidExceptionHandler, exception: {}", e.getMessage());
         //Get the key of error code in the validation's message attribute
         ObjectError objectError = e.getBindingResult().getAllErrors().get(0);
         String enumKey = objectError.getDefaultMessage();
@@ -104,6 +99,44 @@ public class GlobalExceptionHandler {
                 .status(errorCode.getHttpStatusCode())
                 .body(apiResponse);
     }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    ResponseEntity<ApiResponse<String>> constraintViolationExceptionHandler(ConstraintViolationException e) {
+        log.info("Exception is catch by constraintViolationExceptionHandler, exception: {}", e.getMessage());
+
+        //Get the key of error code in the validation's message attribute
+        String enumKey = e.getConstraintViolations().iterator().next().getMessage();
+
+        //In case the key in the validation message is misspelled
+        ErrorCode errorCode = ErrorCode.INVALID_ERROR_KEY;
+
+        //Save attributes from the annotation
+        Map validationAttributes  = null;
+
+        try {
+            errorCode = ErrorCode.valueOf(enumKey);
+
+            //Get the first error in list of exceptions
+            ConstraintViolation<?> constrainViolation = e.getConstraintViolations().iterator().next();
+
+            //Get out all the attributes in the annotation
+            validationAttributes = constrainViolation.getConstraintDescriptor().getAttributes();
+        } catch (IllegalArgumentException ex) {
+            //Enum key is not valid
+        }
+
+        //Create the body for the response
+        ApiResponse<String> apiResponse = new ApiResponse<>();
+        apiResponse.setCode(errorCode.getCode());
+        apiResponse.setMessage(Objects.nonNull(validationAttributes)
+                ? mapAttributeMessage(errorCode.getMessage(), validationAttributes)
+                : errorCode.getMessage());
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatusCode())
+                .body(apiResponse);
+    }
+
     private String mapAttributeMessage(String message, Map<String, Object> validationAttributes) {
         //there are attributes in the validator annotation
         if (validationAttributes != null) {
@@ -144,10 +177,6 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity in form of defined ApiResponse, containing code and message of the exception
      *
      * @author DieuTTH4
-     *
-     * @version 1.0
-     *
-     * TEMPORARY disable for development
      */
     @ExceptionHandler(RuntimeException.class)
     ResponseEntity<ApiResponse<String>> runtimeExceptionHandler(Exception e) {

@@ -21,6 +21,7 @@ public class RedisUtil {
 
     private static final String BOOKING_SEQUENCE_KEY = "booking-sequence";
     private static final String VERIFY_EMAIL_TOKEN_PREFIX = "verify-email-tk:";
+    private static final String FORGOT_PASSWORD_TOKEN_PREFIX = "forgot-password-tk:";
 
     public String generateBookingNumber() {
         Long sequence = redisTemplate.opsForValue().increment(BOOKING_SEQUENCE_KEY, 1);
@@ -47,16 +48,35 @@ public class RedisUtil {
     }
 
     /**
-     * verify whether the verifyEmailToken valid or not
+     * get the value in the Email
      * @param token the token
      * @return valued of the key (aka accountId) if the key still valid (exist)
      *          or else return null
      */
-    public String verifyEmailToken(String token){
+    public String getValueOfVerifyEmailToken(String token){
         String key = VERIFY_EMAIL_TOKEN_PREFIX + token;
         String accountId = redisTemplate.opsForValue().getAndDelete(key);
         return accountId;
     }
 
+
+    public String generateForgotPasswordToken(String accountId){
+        String token = UUID.randomUUID().toString();
+        String key = FORGOT_PASSWORD_TOKEN_PREFIX + token;
+        redisTemplate.opsForValue().set(key, accountId, 24, TimeUnit.HOURS);
+        //TODO: test
+//        redisTemplate.opsForValue().set(key, accountId, 20, TimeUnit.SECONDS);
+        return token;
+    }
+
+    public String getValueOfForgotPasswordToken(String token){
+        String key = FORGOT_PASSWORD_TOKEN_PREFIX + token;
+        return redisTemplate.opsForValue().get(key); //accountId
+    }
+
+   public void deleteForgotPasswordToken(String token){
+        String key = FORGOT_PASSWORD_TOKEN_PREFIX + token;
+        redisTemplate.delete(key);
+   }
 
 }

@@ -60,9 +60,10 @@ public enum ErrorCode {
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),
     ACCOUNT_NOT_FOUND_IN_DB(3003, "The account is not exist in the system", HttpStatus.NOT_FOUND),
     MAXIMUM_FILE_UPLOAD_EXCEED(3004, "Maximum file upload exceeded. Each file should not exceed 5Mb", HttpStatus.BAD_REQUEST),
-    SEND_VERIFY_EMAIL_TO_USER_FAIL(3005, "Sending verify email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_VERIFY_EMAIL_TO_USER_FAIL(3005, "There was error during sending verify email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
     INCORRECT_PASSWORD(3006, "Current password is incorrect.", HttpStatus.BAD_REQUEST),
     CAR_NOT_FOUND_IN_DB(3007, "The car is not exist in the system", HttpStatus.NOT_FOUND),
+    SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3008, "There was error during sending forgot password email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -77,8 +78,9 @@ public enum ErrorCode {
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(4009, "Invalid refresh token. Please try again", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.UNAUTHORIZED),
-    INVALID_VERIFY_EMAIL_TOKEN(4011, "This link has expired or has been used.", HttpStatus.BAD_REQUEST),
-    EMAIL_NOT_USED_BY_ANY_ACCOUNT(4012, "The email address you’ve entered does not exist in our system. Please try again", HttpStatus.BAD_REQUEST),
+    EMAIL_NOT_USED_BY_ANY_ACCOUNT(4011, "The email address you’ve entered does not exist. Please try again", HttpStatus.BAD_REQUEST),
+    INVALID_ONETIME_TOKEN(4012, "The token is invalid or this link has expired or has been used.", HttpStatus.BAD_REQUEST),
+    INVALID_FORGOT_PASSWORD_TOKEN(4013, "This link has expired. Please go back to Homepage and try again.", HttpStatus.BAD_REQUEST),
     ;
 
     /**

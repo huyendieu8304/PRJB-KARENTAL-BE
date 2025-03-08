@@ -16,15 +16,22 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.server.PathContainer;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.PathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.WebUtils;
+import org.springframework.web.util.pattern.PathPatternParser;
 
 import java.io.IOException;
+import java.util.Arrays;
+
+import static com.mp.karental.configuration.SecurityConfig.PUBLIC_ENDPOINTS;
 
 /**
  * Authentication filter
@@ -52,16 +59,19 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws
             ServletException, IOException {
         String uri = request.getRequestURI();
+        log.info("{} go to AuthTokenFilter", uri);
         String contextPath = request.getContextPath();
         String path = uri.substring(contextPath.length());
-        String[] publicEndpoints = SecurityConfig.PUBLIC_ENDPOINTS;
-        //Skip authentication with public endpoints
-        for (String publicEndpoint : publicEndpoints) {
-            if (path.startsWith(publicEndpoint)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+
+        PathPatternParser pathPatternParser = new PathPatternParser();
+        if (Arrays.stream(SecurityConfig.PUBLIC_ENDPOINTS)
+                .anyMatch(endpoint -> pathPatternParser.parse(endpoint)
+                        .matches(PathContainer.parsePath(path)))) {
+            log.info("Public endpoint: {}, skipping authentication", path);
+            filterChain.doFilter(request, response);
+            return;
         }
+
 
         String jwt = null;
         try {

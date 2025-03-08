@@ -4,7 +4,6 @@ import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.AccountRegisterRequest;
 import com.mp.karental.dto.request.EditPasswordRequest;
 import com.mp.karental.dto.request.EditProfileRequest;
-import com.mp.karental.dto.request.VerifyEmailRequest;
 import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
@@ -45,6 +44,7 @@ import java.util.Optional;
 @Slf4j
 public class UserService {
 
+    //TODO: sửa lại khi deploy
     private static final String DOMAIN_NAME = "http://localhost:8080/karental";
 
     AccountRepository accountRepository;
@@ -100,9 +100,9 @@ public class UserService {
         return userMapper.toUserResponse(account, userProfile);
     }
 
-    public String resendVerifyEmail(VerifyEmailRequest request){
-        log.info("User request sending verify email for {}", request.getEmail());
-        Account account = accountRepository.findByEmail(request.getEmail())
+    public String resendVerifyEmail(String email){
+        log.info("User request sending verify email for {}", email);
+        Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT));
         //account already verify
         if (account.isEmailVerified()){
@@ -118,13 +118,39 @@ public class UserService {
         log.info("Send verify email to user.");
         //send email to verified user email
         String verifyEmailToken = redisUtil.generateVerifyEmailToken(account.getId());
-        String confirmUrl = DOMAIN_NAME + "/auth/verify-email?t=" + verifyEmailToken;
+        String confirmUrl = DOMAIN_NAME + "/user/verify-email?t=" + verifyEmailToken;
         log.info("Verify email url: {}", confirmUrl);
         //sending email
         try {
             emailService.sendRegisterEmail(account.getEmail(), confirmUrl);
         } catch (MessagingException e) {
             throw new AppException(ErrorCode.SEND_VERIFY_EMAIL_TO_USER_FAIL);
+        }
+    }
+
+    public void verifyEmail(String verifyEmailToken){
+        log.info("Verify email");
+        String accountId = redisUtil.getValueOfVerifyEmailToken(verifyEmailToken);
+        //check if the token valid
+        if (accountId != null && !accountId.isEmpty()) {
+            //token valid: exist in redis and still not expired
+            Account account = accountRepository.findById(accountId)
+                    .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT));
+            //Email is not already verify
+            if (!account.isEmailVerified()){
+                //set the email verified status to true
+                account.setEmailVerified(true);
+                //activate the account, so that user could use this account to login
+                account.setActive(true);
+                accountRepository.save(account);
+                log.info("Email={} verified successfully", account.getEmail());
+            }
+        } else {
+            //The verify email token is not valid or
+            //has expired or
+            //has been used
+            log.info("Verify token invalid, can not verify email");
+            throw new AppException(ErrorCode.INVALID_ONETIME_TOKEN);
         }
     }
 

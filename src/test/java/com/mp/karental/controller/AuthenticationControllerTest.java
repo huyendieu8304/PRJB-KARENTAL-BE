@@ -1,8 +1,8 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.LoginRequest;
+import com.mp.karental.dto.request.auth.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.LoginResponse;
+import com.mp.karental.dto.response.auth.LoginResponse;
 import com.mp.karental.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;

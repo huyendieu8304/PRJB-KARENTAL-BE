@@ -2,18 +2,13 @@ package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.*;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.dto.response.UserResponse;
-import com.mp.karental.entity.Account;
-import com.mp.karental.entity.UserProfile;
-import com.mp.karental.exception.AppException;
-import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.UserProfileRepository;
-import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -42,6 +37,7 @@ import java.util.Optional;
 @RequestMapping("/user")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Validated
 @Slf4j
 public class UserController {
 
@@ -85,10 +81,21 @@ public class UserController {
                 .build();
     }
 
-    @PostMapping("/resend-verify-email")
-    ApiResponse<String> resendVerifyEmail(@RequestBody @Valid VerifyEmailRequest request){
+    @GetMapping("/resend-verify-email/{email}")
+    ApiResponse<String> resendVerifyEmail(@PathVariable("email")
+                                          @Email(message = "INVALID_EMAIL")
+                                          String email){
         return ApiResponse.<String>builder()
-                .message(userService.resendVerifyEmail(request))
+                .message(userService.resendVerifyEmail(email))
+                .build();
+    }
+
+
+    @GetMapping("/verify-email")
+    public ApiResponse<String> verifyEmail(@RequestParam("t") String verifyEmailToken) {
+        userService.verifyEmail(verifyEmailToken);
+        return ApiResponse.<String>builder()
+                .message("Verify email successfully! Now you can use your account to login.")
                 .build();
     }
 

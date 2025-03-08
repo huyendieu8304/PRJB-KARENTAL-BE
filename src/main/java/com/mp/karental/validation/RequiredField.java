@@ -31,7 +31,7 @@ import java.lang.annotation.Target;
  *
  * @version 1.0
  */
-@Target({ElementType.FIELD})
+@Target({ElementType.PARAMETER, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = RequiredFieldValidator.class)
 public @interface RequiredField {
