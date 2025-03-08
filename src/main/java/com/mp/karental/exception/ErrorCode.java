@@ -53,9 +53,10 @@ public enum ErrorCode {
     INVALID_IMAGE_FILE(2021, "Invalid image file type. Accepted formats are .jpg, .jpeg, .png", HttpStatus.BAD_REQUEST),
     INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_NATIONAL_ID(2023, "The national id already existed. Please try another national id", HttpStatus.BAD_REQUEST),
-    INVALID_STATUS_EDIT(2024,"Status can edit only available/stopped", HttpStatus.BAD_REQUEST),
-    INVALID_PICK_UP_TIME(2025,"Invalid pick up time request", HttpStatus.BAD_REQUEST),
-    INVALID_DROP_OFF_TIME(2026,"Invalid drop off time request", HttpStatus.BAD_REQUEST),
+    INVALID_STATUS_EDIT(2024,"Status can edit only NOT_VERIFIED or STOPPED", HttpStatus.BAD_REQUEST),
+    INVALID_BOOKING_TIME(2025,"Invalid booking time", HttpStatus.BAD_REQUEST),
+    INVALID_PAYMENT_TYPE(2026,"Payment can only WALLET/CASH/BANK_TRANSFER", HttpStatus.BAD_REQUEST),
+    INVALID_ADDRESS_COMPONENT(2027,"Invalid address component", HttpStatus.BAD_REQUEST),
 
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),

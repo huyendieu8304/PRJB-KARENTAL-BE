@@ -53,6 +53,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' " +
             "AND b.paymentType = 'WALLET' " +
-            "AND b.createdAt <= :expiredTime")
+            "AND b.createdAt <= :expiredTime " +
+            "ORDER BY b.createdAt")
     List<Booking> findExpiredBookings(@Param("expiredTime") LocalDateTime expiredTime);
 }

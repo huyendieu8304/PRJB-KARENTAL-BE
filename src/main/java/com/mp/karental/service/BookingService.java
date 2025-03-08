@@ -45,108 +45,111 @@ public class BookingService {
     FileService fileService;
     CarService carService;
 
-    public BookingResponse createBooking(BookingRequest bookingRequest, String carId) throws AppException,Exception{
+    /**
+     * Creates a new booking for a car rental.
+     *
+     * @param bookingRequest The booking request details.
+     * @param carId The ID of the car being booked.
+     * @return BookingResponse containing booking details.
+     * @throws AppException if there are validation issues or car availability problems.
+     * @throws Exception for unexpected errors.
+     */
+    public BookingResponse createBooking(BookingRequest bookingRequest, String carId) throws AppException, Exception {
+        // Update expired bookings before creating a new one.
         updateExpiredBookings();
 
-        // Get the current user account Id
+        // Get the current logged-in user's account ID.
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Retrieve the account from the database, throw an exception if not found
+        // Retrieve the account details of the logged-in user.
         Account accountCustomer = SecurityUtil.getCurrentAccount();
 
+        // Retrieve car details from the database, throw an exception if not found.
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        // Retrieve the user's wallet, throw an exception if not found.
         Wallet walletCustomer = walletRepository.findById(accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
-        if(!carService.isCarAvailable(car.getId(), bookingRequest.getPickUpTime(), bookingRequest.getDropOffTime())){
+
+        // Check if the car is available for the requested pickup and drop-off time.
+        if (!carService.isCarAvailable(car.getId(), bookingRequest.getPickUpTime(), bookingRequest.getDropOffTime())) {
             throw new AppException(ErrorCode.CAR_NOT_AVAILABLE);
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalTime nowTime = now.toLocalTime();
-        LocalDate today = now.toLocalDate();
-        LocalDate pickUpDate = bookingRequest.getPickUpTime().toLocalDate();
-        LocalTime pickUpTime = bookingRequest.getPickUpTime().toLocalTime();
-        LocalTime dropOffTime = bookingRequest.getDropOffTime().toLocalTime();
-        long daysBetween = Duration.between(bookingRequest.getPickUpTime(), bookingRequest.getDropOffTime()).toDays();
-
-        if(nowTime.isAfter(LocalTime.of(4,0)) && nowTime.isBefore(LocalTime.of(20,0))){
-            if(pickUpTime.isBefore(nowTime.plusHours(2)) || pickUpDate.isAfter(today.plusDays(60))){
-                throw new AppException(ErrorCode.INVALID_PICK_UP_TIME);
-            }
-            if(dropOffTime.isBefore(nowTime.plusHours(4)) || daysBetween > 30){
-                throw new AppException(ErrorCode.INVALID_DROP_OFF_TIME);
-            }
-        } else if (nowTime.isAfter(LocalTime.of(20, 0)) && nowTime.isBefore(LocalTime.of(0, 0))) {
-            if(pickUpTime.isBefore(LocalTime.of(6,0)) || pickUpDate.isAfter(today.plusDays(60))){
-                throw new AppException(ErrorCode.INVALID_PICK_UP_TIME);
-            }
-            if(dropOffTime.isBefore(LocalTime.of(8,0)) || daysBetween > 30){
-                throw new AppException(ErrorCode.INVALID_DROP_OFF_TIME);
-            }
-        } else if(nowTime.isAfter(LocalTime.of(0, 0)) && nowTime.isBefore(LocalTime.of(4, 0))){
-            if(pickUpTime.isBefore(LocalTime.of(6,0)) || pickUpDate.isAfter(today.plusDays(60))){
-                throw new AppException(ErrorCode.INVALID_PICK_UP_TIME);
-            }
-            if(dropOffTime.isBefore(LocalTime.of(8,0)) || daysBetween > 30){
-                throw new AppException(ErrorCode.INVALID_DROP_OFF_TIME);
-            }
-        }
-
+        // Map the booking request to a Booking entity.
         Booking booking = bookingMapper.toBooking(bookingRequest);
         booking.setBookingNumber(redisUtil.generateBookingNumber());
+
+        // Upload the driver's license to S3 storage.
         MultipartFile drivingLicense = bookingRequest.getDriverDrivingLicense();
         String s3Key = "user/" + accountId + "/driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
         fileService.uploadFile(drivingLicense, s3Key);
         booking.setDriverDrivingLicenseUri(s3Key);
 
+        // Assign account and car to the booking.
         booking.setAccount(accountCustomer);
         booking.setCar(car);
 
+        // Store car deposit and base price at the time of booking.
         long depositAtBookingTime = car.getDeposit();
         long basePriceAtBookingTime = car.getBasePrice();
 
         booking.setDeposit(depositAtBookingTime);
 
+        // Calculate rental duration in minutes.
         long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
+        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
 
-        long days = (long) Math.ceil(minutes / (24.0 * 60));
-
+        // Set the total base price based on the rental duration.
         booking.setBasePrice(basePriceAtBookingTime * days);
 
+        // Set timestamps for booking creation and update.
         booking.setCreatedAt(LocalDateTime.now());
         booking.setUpdatedAt(booking.getCreatedAt());
 
+        // Handle different payment types.
         if (booking.getPaymentType().equals(EPaymentType.WALLET)) {
+            // If the user has enough balance in the wallet, deduct the deposit and proceed.
             if (walletCustomer.getBalance() >= car.getDeposit()) {
                 walletCustomer.setBalance(walletCustomer.getBalance() - car.getDeposit());
                 booking.setStatus(EBookingStatus.WAITING_CONFIRM);
-            }else{
+            } else {
                 booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
             }
-        }
-        else if (booking.getPaymentType().equals(EPaymentType.CASH) || booking.getPaymentType().equals(EPaymentType.BANK_TRANSFER)) {
+        } else if (booking.getPaymentType().equals(EPaymentType.CASH) || booking.getPaymentType().equals(EPaymentType.BANK_TRANSFER)) {
             booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
         }
+
+        // Convert the booking entity to a response DTO.
         BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
         bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(s3Key));
-
         bookingResponse.setCarId(booking.getCar().getId());
 
+        // Save the booking to the database.
         bookingRepository.save(booking);
 
         return bookingResponse;
     }
 
-    @Scheduled(fixedRate = 60000)
+    /**
+     * Scheduled task to update expired bookings.
+     * Runs every 10 seconds to check and cancel bookings that are not confirmed within 2 minutes.
+     */
+    @Scheduled(fixedRate = 10000)
     public void updateExpiredBookings() {
-        LocalDateTime expiredTime = LocalDateTime.now().minusMinutes(2);
-        List<Booking> expiredBookings = bookingRepository.findExpiredBookings(expiredTime);
+        LocalDateTime now = LocalDateTime.now();
 
+        // Find bookings that have expired (not confirmed within 2 minutes).
+        List<Booking> expiredBookings = bookingRepository.findExpiredBookings(now.minusMinutes(2));
+
+        // Cancel expired bookings.
         for (Booking booking : expiredBookings) {
-            booking.setStatus(EBookingStatus.CANCELLED);
-            booking.setUpdatedAt(LocalDateTime.now());
-            bookingRepository.saveAndFlush(booking);
+            if (booking.getCreatedAt().plusMinutes(2).isBefore(now)) {
+                booking.setStatus(EBookingStatus.CANCELLED);
+                booking.setUpdatedAt(now);
+                bookingRepository.saveAndFlush(booking);
+            }
         }
     }
 }

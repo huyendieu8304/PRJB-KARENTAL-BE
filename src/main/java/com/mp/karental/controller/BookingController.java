@@ -5,6 +5,7 @@ import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.BookingResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.service.BookingService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -23,7 +24,7 @@ public class BookingController {
     BookingService bookingService;
 
     @PostMapping(value = "/customer/createBook", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<BookingResponse> createBooking(@ModelAttribute BookingRequest bookingRequest,
+    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid BookingRequest bookingRequest,
                                                @RequestParam("carId") String carId) throws Exception {
         log.info("create booking {}", bookingRequest);
         return ApiResponse.<BookingResponse>builder()
