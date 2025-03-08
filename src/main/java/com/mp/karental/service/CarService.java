@@ -1,5 +1,6 @@
 package com.mp.karental.service;
 
+import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
@@ -27,6 +28,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Service class for handling car operations.
@@ -72,7 +77,7 @@ public class CarService {
         car.setAccount(account);
 
         // Set default status for the new car
-        car.setStatus(ECarStatus.NOT_VERIFIED.name());
+        car.setStatus(ECarStatus.NOT_VERIFIED);
 
         // Set transmission and fuel type based on request
         car.setAutomatic(request.isAutomatic());
@@ -129,7 +134,7 @@ public class CarService {
         // Ensure that the currently logged-in user is the owner of the car
         // Prevents unauthorized users from modifying someone else's car
         if (!car.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
 
         // Update the car details using the request data
@@ -138,9 +143,9 @@ public class CarService {
         // Update the car's status
         String status = request.getStatus();
         if (status == null) {
-            status = car.getStatus(); // Keep the existing status if none is provided
+            status = car.getStatus().name(); // Keep the existing status if none is provided
         }
-        car.setStatus(status.toUpperCase()); // Convert status to uppercase for consistency
+        car.setStatus(ECarStatus.valueOf(status)); // Convert status to uppercase for consistency
 
         // Update the car's address details
         setCarAddress(request, car);
@@ -254,42 +259,55 @@ public class CarService {
             String s3KeyCertificate = baseDocumentsUri + "certificate-of-inspection" + fileService.getFileExtension(certificateOfInspection);
             String s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(insurance);
 
+            s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(imageFront);
+            s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(imageBack);
+            s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(imageLeft);
+            s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(imageRight);
+
             // Upload document files to S3
             fileService.uploadFile(registrationPaper, s3KeyRegistration);
             fileService.uploadFile(certificateOfInspection, s3KeyCertificate);
             fileService.uploadFile(insurance, s3KeyInsurance);
 
+            fileService.uploadFile(imageFront, s3KeyImageFront);
+            fileService.uploadFile(imageBack, s3KeyImageBack);
+            fileService.uploadFile(imageLeft, s3KeyImageLeft);
+            fileService.uploadFile(imageRight, s3KeyImageRight);
+
             // Set document URIs in the car object
             car.setRegistrationPaperUri(s3KeyRegistration);
             car.setCertificateOfInspectionUri(s3KeyCertificate);
             car.setInsuranceUri(s3KeyInsurance);
+            // Set image URIs in the car object
+            car.setCarImageFront(s3KeyImageFront);
+            car.setCarImageBack(s3KeyImageBack);
+            car.setCarImageLeft(s3KeyImageLeft);
+            car.setCarImageRight(s3KeyImageRight);
         }
 
         // If the request is an EditCarRequest, only update image files
         if (request instanceof EditCarRequest) {
-            imageFront = ((EditCarRequest) request).getCarImageFront();
-            imageBack = ((EditCarRequest) request).getCarImageBack();
-            imageLeft = ((EditCarRequest) request).getCarImageLeft();
-            imageRight = ((EditCarRequest) request).getCarImageRight();
+            if (((EditCarRequest) request).getCarImageFront() != null && !((EditCarRequest) request).getCarImageFront().isEmpty()) {
+                s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(((EditCarRequest) request).getCarImageFront());
+                fileService.uploadFile(((EditCarRequest) request).getCarImageFront(), s3KeyImageFront);
+                car.setCarImageFront(s3KeyImageFront);
+            }
+            if (((EditCarRequest) request).getCarImageBack() != null && !((EditCarRequest) request).getCarImageBack().isEmpty()) {
+                s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(((EditCarRequest) request).getCarImageBack());
+                fileService.uploadFile(((EditCarRequest) request).getCarImageBack(), s3KeyImageBack);
+                car.setCarImageBack(s3KeyImageBack);
+            }
+            if (((EditCarRequest) request).getCarImageLeft() != null && !((EditCarRequest) request).getCarImageLeft().isEmpty()) {
+                s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(((EditCarRequest) request).getCarImageLeft());
+                fileService.uploadFile(((EditCarRequest) request).getCarImageLeft(), s3KeyImageLeft);
+                car.setCarImageLeft(s3KeyImageLeft);
+            }
+            if (((EditCarRequest) request).getCarImageRight() != null && !((EditCarRequest) request).getCarImageRight().isEmpty()) {
+                s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(((EditCarRequest) request).getCarImageRight());
+                fileService.uploadFile(((EditCarRequest) request).getCarImageRight(), s3KeyImageRight);
+                car.setCarImageRight(s3KeyImageRight);
+            }
         }
-
-        // Construct S3 keys for car images
-        s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(imageFront);
-        s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(imageBack);
-        s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(imageLeft);
-        s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(imageRight);
-
-        // Upload car images to S3
-        fileService.uploadFile(imageFront, s3KeyImageFront);
-        fileService.uploadFile(imageBack, s3KeyImageBack);
-        fileService.uploadFile(imageLeft, s3KeyImageLeft);
-        fileService.uploadFile(imageRight, s3KeyImageRight);
-
-        // Set image URIs in the car object
-        car.setCarImageFront(s3KeyImageFront);
-        car.setCarImageBack(s3KeyImageBack);
-        car.setCarImageLeft(s3KeyImageLeft);
-        car.setCarImageRight(s3KeyImageRight);
 
         return car; // Return the updated car entity with assigned file URIs
     }
@@ -393,9 +411,6 @@ public class CarService {
         return response;
     }
 
-
-
-
     /**
      * Retrieves a car by its ID and ensures that the current logged-in user owns the car.
      *
@@ -416,7 +431,7 @@ public class CarService {
 
         // Check if the car belongs to the current logged-in user
         if (!car.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS); // Custom error for unauthorized access
+            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS); // Custom error for unauthorized access
         }
 
         // Convert Car entity to CarResponse DTO
@@ -431,6 +446,39 @@ public class CarService {
 
         return carResponse;
     }
+
+    /**
+     * Checks if a car is available within the given time range.
+     *
+     * @param carId      the ID of the car
+     * @param pickUpTime the start time of the requested booking
+     * @param dropOffTime the end time of the requested booking
+     * @return true if the car is available, false otherwise
+     */
+    public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
+        long conflictingBookings = bookingRepository.countActiveBookingsInTimeRange(
+                carId, pickUpTime, dropOffTime, EBookingStatus.CANCELLED
+        );
+        return conflictingBookings == 0;
+    }
+
+    /**
+     * Checks if a car is booked by customer.
+     * @param carId the ID of the car
+     * @param accountId the ID of the customer
+     * @return true if the car is booked by account ID, false otherwise
+     */
+    public boolean isCarBooked(String carId, String accountId) {
+        List<EBookingStatus> activeStatuses = Arrays.asList(
+                EBookingStatus.CONFIRMED,
+                EBookingStatus.IN_PROGRESS,
+                EBookingStatus.PENDING_PAYMENT,
+                EBookingStatus.COMPLETED
+        );
+
+        return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);
+    }
+
 
 
 }

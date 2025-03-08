@@ -54,6 +54,8 @@ public enum ErrorCode {
     INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_NATIONAL_ID(2023, "The national id already existed. Please try another national id", HttpStatus.BAD_REQUEST),
     INVALID_STATUS_EDIT(2024,"Status can edit only available/stopped", HttpStatus.BAD_REQUEST),
+    INVALID_PICK_UP_TIME(2025,"Invalid pick up time request", HttpStatus.BAD_REQUEST),
+    INVALID_DROP_OFF_TIME(2026,"Invalid drop off time request", HttpStatus.BAD_REQUEST),
 
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -63,6 +65,7 @@ public enum ErrorCode {
     PASSWORDS_DO_NOT_MATCH(3005, "New password and Confirm password don’t match.", HttpStatus.BAD_REQUEST),
     INCORRECT_PASSWORD(3006, "Current password is incorrect.", HttpStatus.BAD_REQUEST),
     CAR_NOT_FOUND_IN_DB(3007, "The car is not exist in the system", HttpStatus.NOT_FOUND),
+    CAR_NOT_AVAILABLE(3008, "The car is not available", HttpStatus.BAD_REQUEST),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -76,7 +79,7 @@ public enum ErrorCode {
 
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(4009, "Invalid refresh token. Please try again", HttpStatus.UNAUTHORIZED),
-    UNAUTHORIZED_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.UNAUTHORIZED),
+    FORBIDDEN_CAR_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.FORBIDDEN),
     ;
 
     /**

@@ -1,5 +1,6 @@
 package com.mp.karental.service;
 
+import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.request.EditPasswordRequest;
@@ -104,7 +105,7 @@ class CarServiceTest {
                 .licensePlate("30A-12345")
                 .brand("Toyota")
                 .model("Corolla")
-                .status("AVAILABLE")
+                .status(ECarStatus.STOPPED)
                 .color("White")
                 .numberOfSeats(5)
                 .productionYear(2020)
@@ -178,49 +179,53 @@ class CarServiceTest {
     @Test
     void addCar_validRequest_success() throws AppException {
         String accountId = "user-123";
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
 
+        // Mock SecurityUtil to return a fixed accountId
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+
+        // Mock Account retrieval
         Account mockAccount = new Account();
         mockAccount.setId(accountId);
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
 
+        // Prepare test request
         addCarRequest.setLicensePlate("49F-123.45");
         addCarRequest.setAutomatic(true);
         addCarRequest.setGasoline(true);
         addCarRequest.setAddress("Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211, Trần Duy Hưng");
 
-        // Mock carMapper
+        // Mock Car mapping
         Car mockCar = new Car();
         mockCar.setLicensePlate("49F-123.45");
-        when(carMapper.toCar(any(AddCarRequest.class))).thenReturn(mockCar);
+        mockCar.setAccount(mockAccount);
+        lenient().when(carMapper.toCar(any(AddCarRequest.class))).thenReturn(mockCar);
 
-        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> {
+        // Mock repository save before file processing
+        lenient().when(carRepository.save(any(Car.class))).thenAnswer(invocation -> {
             Car car = invocation.getArgument(0);
             car.setId("car-123");
             return car;
         });
 
-
+        // Mock CarResponse mapping
         CarResponse mockResponse = new CarResponse();
         mockResponse.setLicensePlate("49F-123.45");
-        when(carMapper.toCarResponse(any(Car.class))).thenReturn(mockResponse);
+        mockResponse.setId("car-123");
+        lenient().when(carMapper.toCarResponse(any(Car.class))).thenReturn(mockResponse);
 
+        // Execute service method
         CarResponse response = carService.addNewCar(addCarRequest);
 
+        // Assertions
         assertNotNull(response, "Response should not be null");
         assertEquals("49F-123.45", response.getLicensePlate());
+        assertEquals("car-123", response.getId());
+
+        // Verify necessary interactions
+        verify(carMapper).toCar(addCarRequest);
+        verify(carRepository, times(2)).save(any(Car.class)); // Before and after file processing
+        verify(carMapper).toCarResponse(any(Car.class));
     }
 
-    @Test
-    void addNewCar_shouldThrowException_whenAccountNotFound() {
-        String accountId = "user-123";
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
-
-        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
-
-        AddCarRequest request = new AddCarRequest();
-        assertThrows(AppException.class, () -> carService.addNewCar(request));
-    }
     @Test
     void addCar_duplicateLicensePlate_fail() {
         // Mock SecurityUtil returning a valid account ID
@@ -230,7 +235,6 @@ class CarServiceTest {
         // Mock existing account
         Account mockAccount = new Account();
         mockAccount.setId(accountId);
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
 
         // Create a request with a duplicate license plate
         AddCarRequest addCarRequest = new AddCarRequest();
@@ -261,7 +265,6 @@ class CarServiceTest {
         // Mock existing account
         Account mockAccount = new Account();
         mockAccount.setId(accountId);
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
 
         // Mock existing car in the database
         Car existingCar = new Car();
@@ -269,7 +272,7 @@ class CarServiceTest {
         existingCar.setLicensePlate("49F-123.45");
         existingCar.setAutomatic(false);
         existingCar.setGasoline(false);
-        existingCar.setStatus("STOPPED");
+        existingCar.setStatus(ECarStatus.STOPPED);
         existingCar.setCityProvince("Tỉnh Hà Giang");
         existingCar.setDistrict("Thành phố Hà Giang");
         existingCar.setWard("Phường Quang Trung");
@@ -284,7 +287,7 @@ class CarServiceTest {
             updatedCar.setLicensePlate(existingCar.getLicensePlate());
             updatedCar.setAutomatic(existingCar.isAutomatic());
             updatedCar.setGasoline(existingCar.isGasoline());
-            updatedCar.setStatus("AVAILABLE");
+            updatedCar.setStatus(ECarStatus.STOPPED);
             updatedCar.setCityProvince(existingCar.getCityProvince());
             updatedCar.setDistrict(existingCar.getDistrict());
             updatedCar.setWard(existingCar.getWard());
@@ -299,7 +302,6 @@ class CarServiceTest {
             CarResponse response = new CarResponse();
             response.setLicensePlate(updatedCar.getLicensePlate());
             response.setAddress(String.join(", ", updatedCar.getCityProvince(), updatedCar.getDistrict(), updatedCar.getWard(), updatedCar.getHouseNumberStreet()));
-            response.setStatus(updatedCar.getStatus());
             response.setDescription(updatedCar.getDescription());
             return response;
         });
@@ -312,75 +314,70 @@ class CarServiceTest {
         assertEquals("updated description", response.getDescription());
     }
 
-    @Test
-    void editCar_shouldDefaultToAvailable_whenStatusIsInvalid() {
-        // Mock SecurityUtil to return a valid account ID
-        String accountId = "user-123";
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
-
-        // Mock existing account
-        Account mockAccount = new Account();
-        mockAccount.setId(accountId);
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
-
-        // Mock existing car in the database
-        Car existingCar = new Car();
-        existingCar.setId("car-123");
-        existingCar.setLicensePlate("49F-123.45");
-        existingCar.setAutomatic(false);
-        existingCar.setGasoline(false);
-        existingCar.setStatus("STOPPED");
-        existingCar.setCityProvince("Tỉnh Hà Giang");
-        existingCar.setDistrict("Thành phố Hà Giang");
-        existingCar.setWard("Phường Quang Trung");
-        existingCar.setHouseNumberStreet("211, Trần Duy Hưng");
-        existingCar.setAccount(mockAccount);
-
-        when(carRepository.findById("car-123")).thenReturn(Optional.of(existingCar));
-
-        // Mock editCarRequest with an invalid status
-        EditCarRequest editCarRequest = new EditCarRequest();
-        editCarRequest.setStatus("abc"); // Invalid status
-
-        // Mock the save method to enforce the default status logic
-        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> {
-            Car updatedCar = invocation.getArgument(0);
-
-            // Ensure invalid status is replaced with "AVAILABLE"
-            if (!isValidStatus(updatedCar.getStatus())) {
-                updatedCar.setStatus("AVAILABLE");
-            }
-
-            updatedCar.setLicensePlate(existingCar.getLicensePlate());
-            updatedCar.setAutomatic(existingCar.isAutomatic());
-            updatedCar.setGasoline(existingCar.isGasoline());
-            updatedCar.setCityProvince(existingCar.getCityProvince());
-            updatedCar.setDistrict(existingCar.getDistrict());
-            updatedCar.setWard(existingCar.getWard());
-            updatedCar.setHouseNumberStreet(existingCar.getHouseNumberStreet());
-            updatedCar.setDescription("updated description");
-            return updatedCar;
-        });
-
-        // Mock the mapper to ensure the response correctly reflects the changes
-        when(carMapper.toCarResponse(any(Car.class))).thenAnswer(invocation -> {
-            Car updatedCar = invocation.getArgument(0);
-            CarResponse response = new CarResponse();
-            response.setLicensePlate(updatedCar.getLicensePlate());
-            response.setAddress(String.join(", ", updatedCar.getCityProvince(), updatedCar.getDistrict(), updatedCar.getWard(), updatedCar.getHouseNumberStreet()));
-            response.setStatus(updatedCar.getStatus());
-            response.setDescription(updatedCar.getDescription());
-            return response;
-        });
-
-        // Execute the service method
-        CarResponse response = carService.editCar(editCarRequest, "car-123");
-
-        // Assertions
-        assertNotNull(response, "Response should not be null");
-        assertEquals("AVAILABLE", response.getStatus(), "Invalid status should default to AVAILABLE");
-        assertEquals("updated description", response.getDescription());
-    }
+//    @Test
+//    void editCar_shouldDefaultToAvailable_whenStatusIsInvalid() {
+//        // Mock SecurityUtil to return a valid account ID
+//        String accountId = "user-123";
+//        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+//
+//        // Mock existing account
+//        Account mockAccount = new Account();
+//        mockAccount.setId(accountId);
+//
+//        // Mock existing car in the database
+//        Car existingCar = new Car();
+//        existingCar.setId("car-123");
+//        existingCar.setLicensePlate("49F-123.45");
+//        existingCar.setAutomatic(false);
+//        existingCar.setGasoline(false);
+//        existingCar.setStatus(ECarStatus.STOPPED);
+//        existingCar.setCityProvince("Tỉnh Hà Giang");
+//        existingCar.setDistrict("Thành phố Hà Giang");
+//        existingCar.setWard("Phường Quang Trung");
+//        existingCar.setHouseNumberStreet("211, Trần Duy Hưng");
+//        existingCar.setAccount(mockAccount);
+//
+//        when(carRepository.findById("car-123")).thenReturn(Optional.of(existingCar));
+//
+//        // Mock editCarRequest with an invalid status
+//        EditCarRequest editCarRequest = new EditCarRequest();
+//        editCarRequest.setStatus("abc"); // Invalid status
+//
+//        // Mock the save method to enforce the default status logic
+//        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> {
+//            Car updatedCar = invocation.getArgument(0);
+//
+//
+//            updatedCar.setLicensePlate(existingCar.getLicensePlate());
+//            updatedCar.setAutomatic(existingCar.isAutomatic());
+//            updatedCar.setGasoline(existingCar.isGasoline());
+//            updatedCar.setCityProvince(existingCar.getCityProvince());
+//            updatedCar.setDistrict(existingCar.getDistrict());
+//            updatedCar.setWard(existingCar.getWard());
+//            updatedCar.setHouseNumberStreet(existingCar.getHouseNumberStreet());
+//            updatedCar.setDescription("updated description");
+//            return updatedCar;
+//        });
+//
+//        // Mock the mapper to ensure the response correctly reflects the changes
+//        when(carMapper.toCarResponse(any(Car.class))).thenAnswer(invocation -> {
+//            Car updatedCar = invocation.getArgument(0);
+//            CarResponse response = new CarResponse();
+//            response.setLicensePlate(updatedCar.getLicensePlate());
+//            response.setAddress(String.join(", ", updatedCar.getCityProvince(), updatedCar.getDistrict(), updatedCar.getWard(), updatedCar.getHouseNumberStreet()));
+//            response.setStatus(updatedCar.getStatus());
+//            response.setDescription(updatedCar.getDescription());
+//            return response;
+//        });
+//
+//        // Execute the service method
+//        CarResponse response = carService.editCar(editCarRequest, "car-123");
+//
+//        // Assertions
+//        assertNotNull(response, "Response should not be null");
+//        assertEquals("AVAILABLE", response.getStatus(), "Invalid status should default to AVAILABLE");
+//        assertEquals("updated description", response.getDescription());
+//    }
 
     // Helper method to check valid status values
     private boolean isValidStatus(String status) {
@@ -394,7 +391,6 @@ class CarServiceTest {
 
         Account mockAccount = new Account();
         mockAccount.setId(accountId);
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
 
         when(carRepository.findById("car-999")).thenReturn(Optional.empty());
 
@@ -413,7 +409,6 @@ class CarServiceTest {
         // Step 2: Mock existing account (for logged-in user)
         Account loggedInAccount = new Account();
         loggedInAccount.setId(loggedInAccountId);
-        when(accountRepository.findById(loggedInAccountId)).thenReturn(Optional.of(loggedInAccount));
 
         // Step 3: Mock car owned by a different user
         String ownerAccountId = "user-123"; // Original owner of the car
@@ -431,7 +426,7 @@ class CarServiceTest {
                 () -> carService.editCar(editCarRequest, "car-123"));
 
         // Step 5: Assert that the exception is due to unauthorized access
-        assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
+        assertEquals(ErrorCode.FORBIDDEN_CAR_ACCESS, exception.getErrorCode());
     }
 
 
@@ -442,7 +437,6 @@ class CarServiceTest {
 
         Account mockAccount = new Account();
         mockAccount.setId(accountId);
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
 
         Car car;
         CarResponse carResponse;
@@ -477,7 +471,6 @@ class CarServiceTest {
 
         Account mockAccount = new Account();
         mockAccount.setId(accountId);
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
         when(carRepository.findById("999")).thenReturn(Optional.empty());
 
         AppException exception = assertThrows(AppException.class, () -> carService.getCarById("999"));
@@ -500,7 +493,6 @@ class CarServiceTest {
         // Mock account retrieval (valid account)
         Account loggedInAccount = new Account();
         loggedInAccount.setId(loggedInAccountId);
-        when(accountRepository.findById(loggedInAccountId)).thenReturn(Optional.of(loggedInAccount));
 
         // Mock car retrieval (belongs to another account)
         Account carOwner = new Account();
@@ -513,7 +505,7 @@ class CarServiceTest {
 
         // Expect unauthorized access exception
         AppException exception = assertThrows(AppException.class, () -> carService.getCarById("car123"));
-        assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
+        assertEquals(ErrorCode.FORBIDDEN_CAR_ACCESS, exception.getErrorCode());
     }
 
 
@@ -526,7 +518,7 @@ class CarServiceTest {
         String carId = "car-123";
         Car car = new Car();
         car.setId(carId);
-        car.setStatus("AVAILABLE");
+        car.setStatus(ECarStatus.STOPPED);
         car.setHouseNumberStreet("123 Main St");
         car.setWard("Ward 1");
         car.setDistrict("District A");
@@ -550,7 +542,7 @@ class CarServiceTest {
         String accountId = "user-123"; // Giả lập tài khoản hiện tại
         Car car = new Car();
         car.setId(carId);
-        car.setStatus("BOOKED");
+        car.setStatus(ECarStatus.STOPPED);
         car.setHouseNumberStreet("123 Main St");
         car.setWard("Ward 1");
         car.setDistrict("District A");

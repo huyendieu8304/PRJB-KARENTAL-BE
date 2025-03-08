@@ -1,5 +1,6 @@
 package com.mp.karental.entity;
 
+import com.mp.karental.constant.ECarStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -36,7 +37,8 @@ public class Car {
     String model;
 
     @Column(nullable = false)
-    String status;
+    @Enumerated(EnumType.STRING)
+    ECarStatus status;
 
     @Column(nullable = false)
     String color;
