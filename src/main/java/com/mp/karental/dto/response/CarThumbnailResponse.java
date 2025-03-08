@@ -29,6 +29,6 @@ public class CarThumbnailResponse {
     private String carImageRight;
     private String carImageLeft;
     private String carImageBack;
-
+    long noOfRides;
 
 }

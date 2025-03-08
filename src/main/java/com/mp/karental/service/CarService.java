@@ -5,6 +5,7 @@ import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.CarDetailRequest;
 import com.mp.karental.dto.request.EditCarRequest;
+import com.mp.karental.dto.request.SearchCarRequest;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
@@ -23,17 +24,16 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Service class for handling car operations.
@@ -117,7 +117,7 @@ public class CarService {
      * Edits an existing car's details.
      *
      * @param request The request object containing the updated car details.
-     * @param id The ID of the car to be edited.
+     * @param id      The ID of the car to be edited.
      * @return The response object containing the updated car details.
      * @throws AppException If the account or car is not found in the database.
      */
@@ -189,7 +189,7 @@ public class CarService {
      * Extracts and sets the address components of a car from the request object.
      *
      * @param request The request object containing the address string.
-     * @param car The car entity to which the address will be assigned.
+     * @param car     The car entity to which the address will be assigned.
      * @throws AppException If the address format is incorrect.
      */
     private void setCarAddress(Object request, Car car) throws AppException {
@@ -216,12 +216,13 @@ public class CarService {
             car.setHouseNumberStreet(addressParts[3].trim()); // Fourth part: House Number & Street
         }
     }
+
     /**
      * Handles file uploads for a car and assigns the corresponding URIs.
      *
-     * @param request The request object containing the uploaded files.
+     * @param request   The request object containing the uploaded files.
      * @param accountId The ID of the account uploading the files.
-     * @param car The car entity to which the file URIs will be assigned.
+     * @param car       The car entity to which the file URIs will be assigned.
      * @return The updated car entity with assigned file URIs.
      * @throws AppException If file upload fails.
      */
@@ -331,6 +332,8 @@ public class CarService {
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
             response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
+            long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
+            response.setNoOfRides(noOfRides);
             return response;
         });
 
@@ -363,34 +366,13 @@ public class CarService {
             throw new AppException(ErrorCode.INVALID_DATE_RANGE);
         }
 
-//        // Check if the car has active bookings within the requested time range
-//        boolean hasActiveBookings = bookingRepository.countActiveBookingsInTimeRange(
-//                request.getCarId(), request.getPickUpTime(), request.getDropOffTime(), EBookingStatus.CANCELLED) > 0;
-//
-//        // If there are no active bookings, the car is available
-//        boolean isAvailable = !hasActiveBookings;
-//
-//        // If the car has never been booked before, it is considered available
-//        boolean hasAnyBooking = bookingRepository.existsByCarId(request.getCarId());
-//        if (!hasAnyBooking) {
-//            isAvailable = true;
-//        }
-
         //Check car is available
         boolean isAvailable = isCarAvailable(request.getCarId(), request.getPickUpTime(), request.getDropOffTime());
-
 
         // Map the car entity to a CarDetailResponse DTO
         CarDetailResponse response = carMapper.toCarDetailResponse(car, isAvailable);
 
-        // Check if the current user has booked this car with specific statuses
-//        boolean isBooked = bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(
-//                request.getCarId(), accountId,
-//                Arrays.asList(EBookingStatus.CONFIRMED, EBookingStatus.IN_PROGRESS,
-//                        EBookingStatus.PENDING_PAYMENT, EBookingStatus.COMPLETED));
-
         boolean isBooked = isCarBooked(request.getCarId(), accountId);
-
 
         if (isBooked) {
             // If the booking status is COMPLETE, display the full address
@@ -439,41 +421,34 @@ public class CarService {
     /**
      * Checks if a car is available within the given time range.
      *
-     * @param carId      the ID of the car
-     * @param pickUpTime the start time of the requested booking
+     * @param carId       the ID of the car
+     * @param pickUpTime  the start time of the requested booking
      * @param dropOffTime the end time of the requested booking
      * @return true if the car is available, false otherwise
      */
-//    public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
-//        long conflictingBookings = bookingRepository.countActiveBookingsInTimeRange(
-//                carId, pickUpTime.minusDays(1), dropOffTime.plusDays(1), EBookingStatus.CANCELLED
-//        );
-//        return conflictingBookings == 0;
-//    }
-
     public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
         // Lấy danh sách booking của xe trong khoảng từ (pickUp - 1 ngày) đến (dropOff + 1 ngày)
         LocalDateTime searchStart = pickUpTime.minusDays(1);
         LocalDateTime searchEnd = dropOffTime.plusDays(1);
 
         List<Booking> bookings = bookingRepository.findBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
+        log.info("🔍 Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
 
         // Nếu không có booking nào thì xe Available
         if (bookings.isEmpty()) {
             return true;
         }
-
         // Kiểm tra xem tất cả các booking trong khoảng thời gian đó có phải đều bị hủy hay không
         boolean allCancelled = bookings.stream()
                 .allMatch(booking -> booking.getStatus() == EBookingStatus.CANCELLED);
-
         return allCancelled;
     }
 
 
     /**
      * Checks if a car is booked by customer.
-     * @param carId the ID of the car
+     *
+     * @param carId     the ID of the car
      * @param accountId the ID of the customer
      * @return true if the car is booked by account ID, false otherwise
      */
@@ -524,5 +499,64 @@ public class CarService {
         return carResponse;
     }
 
+    /**
+     * Search for cars based on address, time, and sorting criteria.
+     *
+     * @param request The search request containing address, pickup, and drop-off times.
+     * @param page The page number to retrieve.
+     * @param size The number of cars per page.
+     * @param sort The sorting string in the format "field,direction" (e.g., "price,asc").
+     * @return A paginated list of available cars.
+     */
+    public Page<CarThumbnailResponse> searchCars(SearchCarRequest request, int page, int size, String sort) {
+        log.info("🔍 Search request received - Address: {}, PickUp: {}, DropOff: {}",
+                request.getAddress(), request.getPickUpTime(), request.getDropOffTime());
+
+        // Xác định kiểu sắp xếp, mặc định là theo productionYear (mới nhất trước)
+        String sortField = "productionYear";
+        Sort.Direction sortDirection = Sort.Direction.DESC;
+
+        if (sort != null && !sort.isEmpty()) {
+            String[] sortParams = sort.split(",");
+            sortField = sortParams[0];
+            sortDirection = Sort.Direction.fromString(sortParams[1]);
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+
+        // Lấy danh sách xe VERIFIED với phân trang
+        Page<Car> verifiedCars = carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, request.getAddress(), pageable);
+
+        // Lọc chỉ lấy xe AVAILABLE
+        List<CarThumbnailResponse> availableCars = new ArrayList<>();
+
+        for (Car car : verifiedCars) {
+            // Lấy danh sách booking liên quan đến xe này
+            LocalDateTime searchStart = request.getPickUpTime().minusDays(1);
+            LocalDateTime searchEnd = request.getDropOffTime().plusDays(1);
+            List<Booking> bookings = bookingRepository.findBookingsByCarIdAndTimeRange(car.getId(), searchStart, searchEnd);
+
+            boolean available = isCarAvailable(car.getId(), request.getPickUpTime(), request.getDropOffTime());
+
+            if (!available) {
+                continue; // Bỏ qua xe không available
+            }
+
+            long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
+
+            CarThumbnailResponse response = carMapper.toSearchCar(car, noOfRides);
+            response.setAddress(car.getWard() + ", " + car.getCityProvince() + ", " + car.getWard());
+
+            // Lấy URL hình ảnh xe
+            response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
+            response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
+            response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
+            response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
+
+            availableCars.add(response);
+        }
+
+        return new PageImpl<>(availableCars, pageable, verifiedCars.getTotalElements());
+    }
 
 }
