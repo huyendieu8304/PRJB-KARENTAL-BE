@@ -119,4 +119,34 @@ class FileServiceTest {
         GetObjectRequest getObjectRequest = capturedRequest.getObjectRequest();
         assertEquals(key, getObjectRequest.key());
     }
+
+    @Test
+    void getFileExtension_ShouldReturnExtension_WhenFileNameHasExtension() {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn("example.jpg");
+
+        String extension = fileService.getFileExtension(file);
+
+        assertEquals(".jpg", extension);
+    }
+
+    @Test
+    void getFileExtension_ShouldReturnEmptyString_WhenFileNameHasNoExtension() {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn("example");
+
+        String extension = fileService.getFileExtension(file);
+
+        assertEquals("", extension);
+    }
+
+    @Test
+    void getFileExtension_ShouldReturnEmptyString_WhenFileNameIsNull() {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn(null);
+
+        String extension = fileService.getFileExtension(file);
+
+        assertEquals("", extension);
+    }
 }

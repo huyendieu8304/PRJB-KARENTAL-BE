@@ -254,6 +254,8 @@ public class AuthenticationService {
         }
     }
 
+    //=====================================================
+    //FORGOT PASSWORD
 
     public void sendForgotPasswordEmail(String email) {
         log.info("user with email={} request to change password.", email);
@@ -290,8 +292,6 @@ public class AuthenticationService {
 
         //generate  change password token
         return forgotPasswordToken;
-
-
     }
 
     private Account verifyForgotPasswordToken(String forgotPasswordToken) {

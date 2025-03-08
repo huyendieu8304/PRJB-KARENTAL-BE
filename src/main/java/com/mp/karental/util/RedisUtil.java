@@ -28,7 +28,7 @@ public class RedisUtil {
         if(sequence!= null && sequence == 1){ //the first booking is placed
             //reset sequence every day
             redisTemplate.expireAt(BOOKING_SEQUENCE_KEY, new Date(System.currentTimeMillis() + 86400000));
-            //TODO: TEST
+            //TODO: FOR TEST ONLY
 //            redisTemplate.expire(BOOKING_SEQUENCE_KEY, 1, TimeUnit.MINUTES);
         }
 

@@ -42,8 +42,6 @@ import java.util.Optional;
 public class UserController {
 
     UserService userService;
-    private final UserProfileRepository userProfileRepository;
-    UserMapper userMapper;
 
     /**
      * Registers a new user account.

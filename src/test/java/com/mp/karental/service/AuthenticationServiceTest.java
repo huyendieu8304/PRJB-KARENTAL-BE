@@ -1,6 +1,7 @@
 package com.mp.karental.service;
 
 import com.mp.karental.constant.ERole;
+import com.mp.karental.dto.request.auth.ChangePasswordRequest;
 import com.mp.karental.dto.request.auth.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.auth.LoginResponse;
@@ -14,6 +15,8 @@ import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.JwtUtils;
 import com.mp.karental.security.entity.UserDetailsImpl;
 import com.mp.karental.security.service.TokenService;
+import com.mp.karental.util.RedisUtil;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +32,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
@@ -56,7 +60,16 @@ class AuthenticationServiceTest {
     private JwtUtils jwtUtils;
 
     @Mock
+    private RedisUtil redisUtil;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @Mock
     private TokenService tokenService;
+
+    @Mock
+    private EmailService emailService;
 
     @Mock
     private AccountRepository accountRepository;
@@ -65,11 +78,18 @@ class AuthenticationServiceTest {
     private UserProfileRepository userProfileRepository;
 
     @Mock
-    private HttpServletRequest request;
+    private HttpServletRequest httpServletRequest;
 
     @InjectMocks
     private AuthenticationService authenticationService;
 
+    private static final String EMAIL = "test@example.com";
+    private static final String ACCOUNT_ID = "123";
+    private static final String FORGOT_PASSWORD_TOKEN = "forgot-token";
+    private static final String NEW_PASSWORD = "new-password";
+    private static final String ENCODED_PASSWORD = "encoded-password";
+    //TODO: sửa lại khi deploy
+    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
 
     @BeforeEach
     void setup() {
@@ -166,8 +186,8 @@ class AuthenticationServiceTest {
     void testRefreshToken_Successful() {
         // GIven
         String refreshToken = "validRefreshToken";
-        String accountId = "123";
-        String userEmail = "test@example.com";
+        String accountId = ACCOUNT_ID;
+        String userEmail = EMAIL;
         String newAccessToken = "newAccessToken";
         String newRefreshToken = "newRefreshToken";
 
@@ -178,7 +198,7 @@ class AuthenticationServiceTest {
 
         Instant mockInstant = mock(Instant.class);
 
-        when(request.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
+        when(httpServletRequest.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
@@ -191,7 +211,7 @@ class AuthenticationServiceTest {
         when(jwtUtils.generateRefreshTokenFromAccountId(accountId)).thenReturn(newRefreshToken);
 
         // Calling
-        ResponseEntity<ApiResponse<?>> response = authenticationService.refreshToken(request);
+        ResponseEntity<ApiResponse<?>> response = authenticationService.refreshToken(httpServletRequest);
 
         // Assert
         assertNotNull(response);
@@ -204,11 +224,11 @@ class AuthenticationServiceTest {
 
     @Test
     void testRefreshToken_Fail_NoToken() {
-        when(request.getCookies()).thenReturn(null);
+        when(httpServletRequest.getCookies()).thenReturn(null);
 
         //assert throw exceptiion ìf no token in cookie
         AppException exception = assertThrows(AppException.class, () -> {
-            authenticationService.refreshToken(request);
+            authenticationService.refreshToken(httpServletRequest);
         });
 
         assertEquals(ErrorCode.INVALID_REFRESH_TOKEN, exception.getErrorCode());
@@ -218,7 +238,7 @@ class AuthenticationServiceTest {
     void testRefreshToken_Fail_CannotValidateToken() {
         String refreshToken = "invalidatedToken";
 
-        when(request.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
+        when(httpServletRequest.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
 
@@ -226,7 +246,7 @@ class AuthenticationServiceTest {
 
         //assert
         AppException exception = assertThrows(AppException.class, () -> {
-            authenticationService.refreshToken(request);
+            authenticationService.refreshToken(httpServletRequest);
         });
 
         assertEquals(ErrorCode.REFRESH_TOKEN_EXPIRED, exception.getErrorCode());
@@ -236,7 +256,7 @@ class AuthenticationServiceTest {
     void testRefreshToken_Fail_InvalidatedToken() {
         String refreshToken = "invalidatedToken";
 
-        when(request.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
+        when(httpServletRequest.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
@@ -244,7 +264,7 @@ class AuthenticationServiceTest {
 
         // Assert
         AppException exception = assertThrows(AppException.class, () -> {
-            authenticationService.refreshToken(request);
+            authenticationService.refreshToken(httpServletRequest);
         });
 
         assertEquals(ErrorCode.INVALID_REFRESH_TOKEN, exception.getErrorCode());
@@ -256,7 +276,7 @@ class AuthenticationServiceTest {
         String refreshToken = "validToken";
         String accountId = "nonExistingAccount";
 
-        when(request.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
+        when(httpServletRequest.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
@@ -267,7 +287,7 @@ class AuthenticationServiceTest {
 
         // Assert
         AppException exception = assertThrows(AppException.class, () -> {
-            authenticationService.refreshToken(request);
+            authenticationService.refreshToken(httpServletRequest);
         });
 
         assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
@@ -277,12 +297,12 @@ class AuthenticationServiceTest {
     @Test
     void testRefreshToken_Fail_AccountInactive() {
         String refreshToken = "validToken";
-        String accountId = "123";
+        String accountId = ACCOUNT_ID;
         Account mockAccount = new Account();
         mockAccount.setId(accountId);
         mockAccount.setActive(false);
 
-        when(request.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
+        when(httpServletRequest.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
@@ -293,7 +313,7 @@ class AuthenticationServiceTest {
 
         // Assert
         AppException exception = assertThrows(AppException.class, () -> {
-            authenticationService.refreshToken(request);
+            authenticationService.refreshToken(httpServletRequest);
         });
 
         assertEquals(ErrorCode.ACCOUNT_IS_INACTIVE, exception.getErrorCode());
@@ -310,7 +330,7 @@ class AuthenticationServiceTest {
         Cookie cookieRefresh = new Cookie("refreshToken", refreshToken);
 
         Instant mockInstant = mock(Instant.class);
-        when(request.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });
+        when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });
 
         // mock valid not throw exception
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
@@ -320,7 +340,7 @@ class AuthenticationServiceTest {
         when(jwtUtils.getExpirationAtFromAccessToken(accessToken)).thenReturn(mockInstant);
 
         // logout
-        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(request);
+        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(httpServletRequest);
 
         // verify tokenService is called
         verify(tokenService, times(1)).invalidateAccessToken(eq(accessToken), any(Instant.class));
@@ -338,7 +358,7 @@ class AuthenticationServiceTest {
 
         Cookie cookieAccess = new Cookie("accessToken", accessToken);
         Cookie cookieRefresh = new Cookie("refreshToken", refreshToken);
-        when(request.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });
+        when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });
 
         // Mock invalid refresh token
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenThrow(new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED));
@@ -347,7 +367,7 @@ class AuthenticationServiceTest {
         when(jwtUtils.validateJwtAccessToken(accessToken)).thenReturn(true);
 
         // Gọi logout
-        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(request);
+        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(httpServletRequest);
 
         // verify not saving invalidate for refresh token
         verify(tokenService, times(0)).invalidateRefreshToken(anyString(), any(Instant.class));
@@ -372,7 +392,7 @@ class AuthenticationServiceTest {
 
         Instant mockInstant = mock(Instant.class);
 
-        when(request.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });
+        when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });
 
         // Mock valid refresh token
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
@@ -382,7 +402,7 @@ class AuthenticationServiceTest {
         when(jwtUtils.validateJwtAccessToken(accessToken)).thenThrow(new AppException(ErrorCode.UNAUTHENTICATED));
 
         // Gọi logout
-        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(request);
+        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(httpServletRequest);
 
         // saving access token to invalidated Access token
         verify(tokenService, times(1)).invalidateRefreshToken(eq(refreshToken), any(Instant.class));
@@ -398,9 +418,9 @@ class AuthenticationServiceTest {
     @Test
     void testLogout_NoTokens() {
         //Given tokens in cookies is null
-        when(request.getCookies()).thenReturn(null);
+        when(httpServletRequest.getCookies()).thenReturn(null);
 
-        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(request);
+        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(httpServletRequest);
 
         // no saving
         verify(tokenService, never()).invalidateAccessToken(any(String.class), any(Instant.class));
@@ -411,4 +431,297 @@ class AuthenticationServiceTest {
         assertEquals(200, response.getStatusCodeValue());
     }
 
+    @Test
+    void sendForgotPasswordEmail_ShouldSendEmail_WhenAccountIsActiveAndEmailVerified() throws Exception {
+        // Arrange
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmailVerified(true);
+        account.setActive(true);
+
+        when(accountRepository.findByEmail(EMAIL)).thenReturn(Optional.of(account));
+        when(redisUtil.generateForgotPasswordToken(ACCOUNT_ID)).thenReturn("test-token");
+
+        // Act
+        authenticationService.sendForgotPasswordEmail(EMAIL);
+
+        // Assert
+        verify(accountRepository).findByEmail(EMAIL);
+        verify(redisUtil).generateForgotPasswordToken(ACCOUNT_ID);
+        verify(emailService).sendForgotPasswordEmail(eq(EMAIL), anyString());
+    }
+
+    @Test
+    void sendForgotPasswordEmail_ShouldThrowException_WhenEmailDoesNotExist() {
+        // Arrange
+        when(accountRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () ->
+                authenticationService.sendForgotPasswordEmail(EMAIL)
+        );
+
+        // Check error code
+        assert(exception.getErrorCode()).equals(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT);
+        verify(accountRepository).findByEmail(EMAIL);
+        verifyNoInteractions(redisUtil);
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void sendForgotPasswordEmail_ShouldThrowException_WhenAccountIsInactive() {
+        // Arrange
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmailVerified(false); // Chưa xác minh email
+        account.setActive(true);
+
+        when(accountRepository.findByEmail(EMAIL)).thenReturn(Optional.of(account));
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () ->
+                authenticationService.sendForgotPasswordEmail(EMAIL)
+        );
+
+        // Kiểm tra mã lỗi
+        assert(exception.getErrorCode()).equals(ErrorCode.ACCOUNT_IS_INACTIVE);
+        verify(accountRepository).findByEmail(EMAIL);
+        verifyNoInteractions(redisUtil);
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void sendForgotPasswordEmail_ShouldThrowException_WhenEmailSendingFails() throws Exception {
+        // Arrange
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmailVerified(true);
+        account.setActive(true);
+
+        when(accountRepository.findByEmail(EMAIL)).thenReturn(Optional.of(account));
+        when(redisUtil.generateForgotPasswordToken(ACCOUNT_ID)).thenReturn("test-token");
+
+        // Mô phỏng lỗi khi gửi email
+        doThrow(new MessagingException("Failed to send email")).when(emailService)
+                .sendForgotPasswordEmail(anyString(), anyString());
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () ->
+                authenticationService.sendForgotPasswordEmail(EMAIL)
+        );
+
+        // Check error code
+        assert(exception.getErrorCode()).equals(ErrorCode.SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL);
+        verify(accountRepository).findByEmail(EMAIL);
+        verify(redisUtil).generateForgotPasswordToken(ACCOUNT_ID);
+        verify(emailService).sendForgotPasswordEmail(anyString(), anyString());
+    }
+
+    @Test
+    void verifyForgotPassword_ShouldReturnToken_WhenTokenIsValid() {
+        // Arrange
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmailVerified(true);
+        account.setActive(true);
+
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        // Act
+        String result = authenticationService.verifyForgotPassword(FORGOT_PASSWORD_TOKEN);
+
+        // Assert
+        assertEquals(FORGOT_PASSWORD_TOKEN, result);
+        verify(redisUtil).getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        verify(accountRepository).findById(ACCOUNT_ID);
+    }
+
+    @Test
+    void verifyForgotPassword_ShouldThrowException_WhenTokenIsInvalidOrExpired() {
+        // Arrange
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(null);
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () ->
+                authenticationService.verifyForgotPassword(FORGOT_PASSWORD_TOKEN)
+        );
+
+        // Check error code
+        assertEquals(ErrorCode.INVALID_FORGOT_PASSWORD_TOKEN, exception.getErrorCode());
+        verify(redisUtil).getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        verifyNoInteractions(accountRepository);
+    }
+
+    @Test
+    void verifyForgotPassword_ShouldThrowException_WhenAccountNotFound() {
+        // Arrange
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () ->
+                authenticationService.verifyForgotPassword(FORGOT_PASSWORD_TOKEN)
+        );
+
+        // Check error code
+        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
+        verify(redisUtil).getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        verify(accountRepository).findById(ACCOUNT_ID);
+    }
+
+    @Test
+    void verifyForgotPassword_ShouldThrowException_WhenAccountIsInactive() {
+        // Arrange
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmailVerified(false); // Email chưa xác minh
+        account.setActive(true);
+
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () ->
+                authenticationService.verifyForgotPassword(FORGOT_PASSWORD_TOKEN)
+        );
+
+        // Check error code
+        assertEquals(ErrorCode.ACCOUNT_IS_INACTIVE, exception.getErrorCode());
+        verify(redisUtil).getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        verify(accountRepository).findById(ACCOUNT_ID);
+    }
+
+    @Test
+    void verifyForgotPassword_ShouldThrowException_WhenAccountIsNotActive() {
+        // Arrange
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmailVerified(true);
+        account.setActive(false); // Account chưa được kích hoạt
+
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () ->
+                authenticationService.verifyForgotPassword(FORGOT_PASSWORD_TOKEN)
+        );
+
+        // Check error code
+        assertEquals(ErrorCode.ACCOUNT_IS_INACTIVE, exception.getErrorCode());
+        verify(redisUtil).getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        verify(accountRepository).findById(ACCOUNT_ID);
+    }
+
+    @Test
+    void changePassword_ShouldUpdatePassword_WhenTokenIsValid() {
+        // Arrange
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        request.setNewPassword(NEW_PASSWORD);
+
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmailVerified(true);
+        account.setActive(true);
+
+        // Mock
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(java.util.Optional.of(account));
+        when(passwordEncoder.encode(NEW_PASSWORD)).thenReturn(ENCODED_PASSWORD);
+
+        // Act
+        authenticationService.changePassword(request);
+
+        // Assert
+        assertEquals(ENCODED_PASSWORD, account.getPassword());
+        verify(accountRepository).save(account);
+        verify(redisUtil).deleteForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+    }
+
+    @Test
+    void changePassword_ShouldThrowException_WhenTokenIsInvalid() {
+        // Arrange
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        request.setNewPassword(NEW_PASSWORD);
+
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(null);
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> authenticationService.changePassword(request));
+        assertEquals(ErrorCode.INVALID_FORGOT_PASSWORD_TOKEN, exception.getErrorCode());
+
+        // not save and not delete token
+        verify(accountRepository, never()).save(any());
+        verify(redisUtil, never()).deleteForgotPasswordToken(any());
+    }
+
+    @Test
+    void changePassword_ShouldThrowException_WhenAccountNotFound() {
+        // Arrange
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        request.setNewPassword(NEW_PASSWORD);
+
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(java.util.Optional.empty());
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> authenticationService.changePassword(request));
+        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
+
+        // not save and not delete token
+        verify(accountRepository, never()).save(any());
+        verify(redisUtil, never()).deleteForgotPasswordToken(any());
+    }
+
+    @Test
+    void changePassword_ShouldThrowException_WhenAccountIsInactive() {
+        // Arrange
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        request.setNewPassword(NEW_PASSWORD);
+
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmailVerified(false); // Chưa xác minh email
+        account.setActive(true);
+
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(java.util.Optional.of(account));
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> authenticationService.changePassword(request));
+        assertEquals(ErrorCode.ACCOUNT_IS_INACTIVE, exception.getErrorCode());
+
+        // not save and not delete token
+        verify(accountRepository, never()).save(any());
+        verify(redisUtil, never()).deleteForgotPasswordToken(any());
+    }
+
+    @Test
+    void changePassword_ShouldThrowException_WhenAccountIsNotActive() {
+        // Arrange
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setForgotPasswordToken(FORGOT_PASSWORD_TOKEN);
+        request.setNewPassword(NEW_PASSWORD);
+
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmailVerified(true);
+        account.setActive(false); // not active the account
+
+        when(redisUtil.getValueOfForgotPasswordToken(FORGOT_PASSWORD_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(java.util.Optional.of(account));
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> authenticationService.changePassword(request));
+        assertEquals(ErrorCode.ACCOUNT_IS_INACTIVE, exception.getErrorCode());
+
+        // not save and not delete token
+        verify(accountRepository, never()).save(any());
+        verify(redisUtil, never()).deleteForgotPasswordToken(any());
+    }
 }
