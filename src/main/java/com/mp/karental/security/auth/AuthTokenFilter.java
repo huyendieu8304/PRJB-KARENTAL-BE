@@ -8,6 +8,7 @@ import com.mp.karental.security.service.UserDetailsServiceImpl;
 import com.mp.karental.security.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
@@ -58,11 +59,14 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws
             ServletException, IOException {
+
         String uri = request.getRequestURI();
         log.info("{} go to AuthTokenFilter", uri);
+
         String contextPath = request.getContextPath();
         String path = uri.substring(contextPath.length());
 
+        //skip authentication with public endpoints
         PathPatternParser pathPatternParser = new PathPatternParser();
         if (Arrays.stream(SecurityConfig.PUBLIC_ENDPOINTS)
                 .anyMatch(endpoint -> pathPatternParser.parse(endpoint)
@@ -72,13 +76,12 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-
         String jwt = null;
-        try {
-            //get jwt from the HTTP Cookies
-            jwt = WebUtils.getCookie(request, accessTokenCookieName).getValue();
-
-        } catch (NullPointerException e) {
+        Cookie cookie = WebUtils.getCookie(request, accessTokenCookieName);
+        if (cookie != null) {
+            jwt = cookie.getValue();
+        } else {
+            log.info("Missing access token cookie");
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 

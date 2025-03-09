@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -97,13 +96,7 @@ public class SecurityConfig{
                     }
                 }))
                 .exceptionHandling(exception -> exception
-//                        .authenticationEntryPoint(jwtAuthenticationEntryPoint) //unauthenticated request
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            // Skip 404
-                            if (response.getStatus() != HttpStatus.NOT_FOUND.value()) {
-                                jwtAuthenticationEntryPoint.commence(request, response, authException);
-                            }
-                        })
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint) //unauthenticated request
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) //unauthorized access
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //make each request independently
@@ -111,7 +104,6 @@ public class SecurityConfig{
                         request -> request
                                 //open public endpoints
                                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                                .requestMatchers("/error").permitAll() //Allow to access /error to handle 404
                                 //endpoints for user has role CAR_OWNER
                                 .requestMatchers("/car/car-owner/**").hasRole("CAR_OWNER")
                                 .requestMatchers("/customer/**").hasRole("CUSTOMER")
@@ -120,7 +112,6 @@ public class SecurityConfig{
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
-//        http.httpBasic(Customizer.withDefaults());
         return http.build();
     }
 
@@ -134,7 +125,6 @@ public class SecurityConfig{
      *
      * @return A PasswordEncoder that uses BCrypt hashing algorithm.
      * @author DieuTTH4
-     * @version 1.0
      */
     @Bean
     PasswordEncoder passwordEncoder() {
