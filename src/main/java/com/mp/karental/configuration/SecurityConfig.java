@@ -52,10 +52,6 @@ public class SecurityConfig{
             "/auth/login",
             "/auth/logout",
             "/auth/refresh-token",
-//            "/car/addCar", //unit test
-//            "/car/car-owner/my-cars",//unit test
-//            "/car/customer/view-detail"//unit test
-
     };
     /**
      * Allow request from other origins below
@@ -110,7 +106,7 @@ public class SecurityConfig{
                                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                 //endpoints for user has role CAR_OWNER
                                 .requestMatchers("/car/car-owner/**").hasRole("CAR_OWNER")
-                                .requestMatchers("/customer/**").hasRole("CUSTOMER")
+                                .requestMatchers("/car/customer/**").hasRole("CUSTOMER")
                                 .anyRequest().authenticated()
                 );
         http.authenticationProvider(authenticationProvider());

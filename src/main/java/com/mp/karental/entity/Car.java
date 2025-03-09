@@ -1,5 +1,6 @@
 package com.mp.karental.entity;
 
+import com.mp.karental.constant.ECarStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -36,7 +37,8 @@ public class Car {
     String model;
 
     @Column(nullable = false)
-    String status;
+    @Enumerated(EnumType.STRING)
+    ECarStatus status;
 
     @Column(nullable = false)
     String color;
@@ -54,10 +56,10 @@ public class Car {
     float fuelConsumption;
 
     @Column(name = "base_price", nullable = false)
-    int basePrice;
+    long basePrice;
 
     @Column(nullable = false)
-    int deposit;
+    long deposit;
 
     //address
     @Column(name = "city_province",nullable = false)

@@ -9,6 +9,12 @@ import org.mockito.MockitoAnnotations;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * test number of seat validator
+ *
+ * QuangPM20
+ * version 1.0
+ */
 class NumberOfSeatValidatorTest {
 
     private NumberOfSeatValidator validator;

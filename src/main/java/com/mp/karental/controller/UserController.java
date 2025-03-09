@@ -1,6 +1,9 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.*;
+import com.mp.karental.dto.request.AccountRegisterRequest;
+import com.mp.karental.dto.request.CheckUniqueEmailRequest;
+import com.mp.karental.dto.request.EditPasswordRequest;
+import com.mp.karental.dto.request.EditProfileRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.EditProfileResponse;
@@ -78,8 +81,8 @@ public class UserController {
      * @return ApiResponse Object
      */
     @PostMapping("/check-unique-email")
-    ApiResponse<UserResponse> registerAccount(@RequestBody @Valid CheckUniqueEmailRequest request){
-        return ApiResponse.<UserResponse>builder()
+    ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueEmailRequest request){
+        return ApiResponse.<String>builder()
                 .build();
     }
 

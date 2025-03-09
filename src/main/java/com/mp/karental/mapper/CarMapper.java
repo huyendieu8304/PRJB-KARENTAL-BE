@@ -1,12 +1,15 @@
 package com.mp.karental.mapper;
 
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Car;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+
 /**
  * Mapper interface for converting between car-related DTOs and entities.
  *
@@ -16,7 +19,13 @@ import org.mapstruct.Mapping;
  */
 @Mapper(componentModel = "spring")
 public interface CarMapper {
-    @Mapping(target = "id", ignore = true)
+    /**
+     * Maps an AddCarRequest DTO to a Car entity.
+     * Some fields related to images and address details are ignored.
+     *
+     * @param addCarRequest The request DTO containing car details.
+     * @return A Car entity with mapped fields.
+     */
     @Mapping(target = "registrationPaperUri", ignore = true)
     @Mapping(target = "certificateOfInspectionUri", ignore = true)
     @Mapping(target = "insuranceUri", ignore = true)
@@ -30,18 +39,76 @@ public interface CarMapper {
     @Mapping(target = "houseNumberStreet", ignore = true)
     Car toCar(AddCarRequest addCarRequest);
 
+    /**
+     * Updates an existing Car entity with values from an EditCarRequest DTO.
+     * Fields related to images and address details are ignored.
+     *
+     * @param car The existing Car entity to update.
+     * @param editCarRequest The request DTO containing updated car details.
+     */
+    @Mapping(target = "registrationPaperUri", ignore = true)
+    @Mapping(target = "certificateOfInspectionUri", ignore = true)
+    @Mapping(target = "insuranceUri", ignore = true)
+    @Mapping(target = "carImageFront", ignore = true)
+    @Mapping(target = "carImageBack", ignore = true)
+    @Mapping(target = "carImageLeft", ignore = true)
+    @Mapping(target = "carImageRight", ignore = true)
+    @Mapping(target = "cityProvince", ignore = true)
+    @Mapping(target = "district", ignore = true)
+    @Mapping(target = "ward", ignore = true)
+    @Mapping(target = "houseNumberStreet", ignore = true)
+    void editCar(@MappingTarget Car car, EditCarRequest editCarRequest);
+
+    /**
+     * Converts a Car entity into a CarResponse DTO.
+     * Maps 'automatic' to 'isAutomatic' and 'gasoline' to 'isGasoline'.
+     *
+     * @param car The Car entity to be converted.
+     * @return A CarResponse DTO containing mapped car details.
+     */
     @Mapping(target = "isAutomatic", source = "automatic")
     @Mapping(target = "isGasoline", source = "gasoline")
     CarResponse toCarResponse(Car car);
 
+    /**
+     * Converts a Car entity to CarThumbnailResponse.
+     * Ignores the address field in the response.
+     *
+     * @param car The car entity to convert.
+     * @return CarThumbnailResponse containing car details.
+     */
     @Mapping(target = "address", ignore = true)
     CarThumbnailResponse toCarThumbnailResponse(Car car);
 
+    /**
+     * Converts a Car entity to CarDetailResponse.
+     * Ignores sensitive document URLs such as registration papers,
+     * certificate of inspection, and insurance details.
+     *
+     * @param car The car entity to convert.
+     * @param isAvailable The availability status of the car.
+     * @return CarDetailResponse containing detailed car information.
+     */
     @Mapping(target = "address", ignore = true)
     @Mapping(target = "registrationPaperUrl", ignore = true)
     @Mapping(target = "certificateOfInspectionUrl", ignore = true)
     @Mapping(target = "insuranceUrl", ignore = true)
-    CarDetailResponse toCarDetailResponse(Car car, boolean isBooked);
+    CarDetailResponse toCarDetailResponse(Car car, boolean isAvailable);
+
+    /**
+     * Converts a Car entity to CarThumbnailResponse for search results.
+     * Ignores images and the number of completed rides.
+     *
+     * @param car The car entity to convert.
+     * @param noOfRides The number of completed rides for this car.
+     * @return CarThumbnailResponse with summarized car details.
+     */
+    @Mapping(target = "noOfRides", ignore = true)
+    @Mapping(target = "carImageFront", ignore = true)
+    @Mapping(target = "carImageBack", ignore = true)
+    @Mapping(target = "carImageLeft", ignore = true)
+    @Mapping(target = "carImageRight", ignore = true)
+    CarThumbnailResponse toSearchCar(Car car, long noOfRides);
 
 
 }

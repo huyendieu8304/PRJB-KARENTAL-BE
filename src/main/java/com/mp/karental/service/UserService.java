@@ -18,8 +18,6 @@ import com.mp.karental.repository.RoleRepository;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.repository.WalletRepository;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -123,11 +121,11 @@ public class UserService {
             }
             userProfile.setNationalId(request.getNationalId());
         }
-
+        //user upload file
         if (request.getDrivingLicense() != null) {
-            String newUri2 = "user/" + accountID + "/driving-license";
-            fileService.uploadFile(request.getDrivingLicense(), newUri2);
-            userProfile.setDrivingLicenseUri(newUri2);
+            String newUri = "user/" + accountID + "/driving-license" + fileService.getFileExtension(request.getDrivingLicense());
+            fileService.uploadFile(request.getDrivingLicense(), newUri);
+            userProfile.setDrivingLicenseUri(newUri);
         }
 
         // Update user profile from request
@@ -197,8 +195,7 @@ public class UserService {
     public void editPassword(EditPasswordRequest request) {
         // Get information of current password
         String accountID = SecurityUtil.getCurrentAccountId();
-        Account account = accountRepository.findById(accountID)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        Account account = SecurityUtil.getCurrentAccount();
 
         // Confirm current password
         if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {

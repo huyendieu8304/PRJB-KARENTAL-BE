@@ -17,7 +17,6 @@ import java.util.List;
  * </p>
  *
  * @author DieuTTH4
- *
  * @version 1.0
  */
 @Entity
@@ -31,8 +30,12 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.UUID)
     String id;
 
-    @Column(name = "email", nullable = false, unique=true)
+    @Column(name = "email", nullable = false, unique = true)
     String email;
+
+    @Column(nullable = false)
+    boolean isEmailVerified = false;
+
     @Column(name = "password", nullable = false)
     String password;
 
@@ -51,8 +54,5 @@ public class Account {
 
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
     UserProfile profile;
-
-//    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
-//    List<Car> cars;
 
 }

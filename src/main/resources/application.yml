@@ -40,7 +40,7 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: your_email@gmail.com
+    username: your_email@gmail.com  # Replace with your email
     password: your_app_password  # Replace with your Gmail App Password
     properties:
       mail:
@@ -48,6 +48,13 @@ spring:
           auth: true
           starttls:
             enable: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      timeout: 6000
+      database: 0
 cloud:
   aws:
     region:

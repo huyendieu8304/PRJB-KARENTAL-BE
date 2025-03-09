@@ -1,6 +1,5 @@
 package com.mp.karental.validation.validator;
 
-import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.validation.ValidBrandModel;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.service.ExcelService;
@@ -11,11 +10,25 @@ import lombok.RequiredArgsConstructor;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Validator class for validating brand-model
+ * (brand, model) exist in the predefined dataset from ExcelService.
+ *
+ * QuangPM20
+ * @version 1.0
+ */
 @RequiredArgsConstructor
 public class BrandAndModelValidator implements ConstraintValidator<ValidBrandModel, AddCarRequest> {
 
     private final ExcelService excelService;
 
+    /**
+     * Validates whether the given brand and model combination is valid based on data from ExcelService.
+     *
+     * @param value   The AddCarRequest object containing the brand and model to validate.
+     * @param context The validation context.
+     * @return true if the brand and model combination is valid, false otherwise.
+     */
     @Override
     public boolean isValid(AddCarRequest value, ConstraintValidatorContext context) {
         if (value == null) {
