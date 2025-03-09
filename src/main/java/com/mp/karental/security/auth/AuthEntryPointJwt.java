@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -31,8 +32,25 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
                          HttpServletResponse response,
                          AuthenticationException authException)
             throws IOException, ServletException {
+
+
         log.info("go to AuthEntryPointJwt commence");
         log.info(authException.getMessage());
+
+        // Kiểm tra xem request có trả về 404 hay không
+        if (response.getStatus() == HttpStatus.NOT_FOUND.value()) {
+            ApiResponse<String> apiResponse = ApiResponse.<String>builder()
+                    .code(4999)
+                    .message("Resource not found")
+                    .build();
+
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            ObjectMapper objectMapper = new ObjectMapper();
+            response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+            response.getWriter().flush();
+            return;
+        }
 
         ErrorCode errorCode = ErrorCode.UNAUTHENTICATED; //by default, it would be ErrorCode.UNAUTHENTICATED
 

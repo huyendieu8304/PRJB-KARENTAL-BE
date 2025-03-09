@@ -69,7 +69,7 @@ public class AuthenticationController {
                 .build();
     }
 
-    @PostMapping("/forgot-password/change")
+    @PutMapping("/forgot-password/change")
     public ApiResponse<String> changePassword(@RequestBody @Valid ChangePasswordRequest request){
         authenticationService.changePassword(request);
         return ApiResponse.<String>builder()
