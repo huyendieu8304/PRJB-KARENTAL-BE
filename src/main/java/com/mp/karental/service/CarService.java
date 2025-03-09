@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -117,7 +118,7 @@ public class CarService {
      * Edits an existing car's details.
      *
      * @param request The request object containing the updated car details.
-     * @param id      The ID of the car to be edited.
+     * @param id The ID of the car to be edited.
      * @return The response object containing the updated car details.
      * @throws AppException If the account or car is not found in the database.
      */
@@ -136,7 +137,7 @@ public class CarService {
         // Ensure that the currently logged-in user is the owner of the car
         // Prevents unauthorized users from modifying someone else's car
         if (!car.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
 
         // Update the car details using the request data
@@ -189,7 +190,7 @@ public class CarService {
      * Extracts and sets the address components of a car from the request object.
      *
      * @param request The request object containing the address string.
-     * @param car     The car entity to which the address will be assigned.
+     * @param car The car entity to which the address will be assigned.
      * @throws AppException If the address format is incorrect.
      */
     private void setCarAddress(Object request, Car car) throws AppException {
@@ -216,13 +217,12 @@ public class CarService {
             car.setHouseNumberStreet(addressParts[3].trim()); // Fourth part: House Number & Street
         }
     }
-
     /**
      * Handles file uploads for a car and assigns the corresponding URIs.
      *
-     * @param request   The request object containing the uploaded files.
+     * @param request The request object containing the uploaded files.
      * @param accountId The ID of the account uploading the files.
-     * @param car       The car entity to which the file URIs will be assigned.
+     * @param car The car entity to which the file URIs will be assigned.
      * @return The updated car entity with assigned file URIs.
      * @throws AppException If file upload fails.
      */
@@ -262,42 +262,55 @@ public class CarService {
             String s3KeyCertificate = baseDocumentsUri + "certificate-of-inspection" + fileService.getFileExtension(certificateOfInspection);
             String s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(insurance);
 
+            s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(imageFront);
+            s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(imageBack);
+            s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(imageLeft);
+            s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(imageRight);
+
             // Upload document files to S3
             fileService.uploadFile(registrationPaper, s3KeyRegistration);
             fileService.uploadFile(certificateOfInspection, s3KeyCertificate);
             fileService.uploadFile(insurance, s3KeyInsurance);
 
+            fileService.uploadFile(imageFront, s3KeyImageFront);
+            fileService.uploadFile(imageBack, s3KeyImageBack);
+            fileService.uploadFile(imageLeft, s3KeyImageLeft);
+            fileService.uploadFile(imageRight, s3KeyImageRight);
+
             // Set document URIs in the car object
             car.setRegistrationPaperUri(s3KeyRegistration);
             car.setCertificateOfInspectionUri(s3KeyCertificate);
             car.setInsuranceUri(s3KeyInsurance);
+            // Set image URIs in the car object
+            car.setCarImageFront(s3KeyImageFront);
+            car.setCarImageBack(s3KeyImageBack);
+            car.setCarImageLeft(s3KeyImageLeft);
+            car.setCarImageRight(s3KeyImageRight);
         }
 
         // If the request is an EditCarRequest, only update image files
         if (request instanceof EditCarRequest) {
-            imageFront = ((EditCarRequest) request).getCarImageFront();
-            imageBack = ((EditCarRequest) request).getCarImageBack();
-            imageLeft = ((EditCarRequest) request).getCarImageLeft();
-            imageRight = ((EditCarRequest) request).getCarImageRight();
+            if (((EditCarRequest) request).getCarImageFront() != null && !((EditCarRequest) request).getCarImageFront().isEmpty()) {
+                s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(((EditCarRequest) request).getCarImageFront());
+                fileService.uploadFile(((EditCarRequest) request).getCarImageFront(), s3KeyImageFront);
+                car.setCarImageFront(s3KeyImageFront);
+            }
+            if (((EditCarRequest) request).getCarImageBack() != null && !((EditCarRequest) request).getCarImageBack().isEmpty()) {
+                s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(((EditCarRequest) request).getCarImageBack());
+                fileService.uploadFile(((EditCarRequest) request).getCarImageBack(), s3KeyImageBack);
+                car.setCarImageBack(s3KeyImageBack);
+            }
+            if (((EditCarRequest) request).getCarImageLeft() != null && !((EditCarRequest) request).getCarImageLeft().isEmpty()) {
+                s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(((EditCarRequest) request).getCarImageLeft());
+                fileService.uploadFile(((EditCarRequest) request).getCarImageLeft(), s3KeyImageLeft);
+                car.setCarImageLeft(s3KeyImageLeft);
+            }
+            if (((EditCarRequest) request).getCarImageRight() != null && !((EditCarRequest) request).getCarImageRight().isEmpty()) {
+                s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(((EditCarRequest) request).getCarImageRight());
+                fileService.uploadFile(((EditCarRequest) request).getCarImageRight(), s3KeyImageRight);
+                car.setCarImageRight(s3KeyImageRight);
+            }
         }
-
-        // Construct S3 keys for car images
-        s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(imageFront);
-        s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(imageBack);
-        s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(imageLeft);
-        s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(imageRight);
-
-        // Upload car images to S3
-        fileService.uploadFile(imageFront, s3KeyImageFront);
-        fileService.uploadFile(imageBack, s3KeyImageBack);
-        fileService.uploadFile(imageLeft, s3KeyImageLeft);
-        fileService.uploadFile(imageRight, s3KeyImageRight);
-
-        // Set image URIs in the car object
-        car.setCarImageFront(s3KeyImageFront);
-        car.setCarImageBack(s3KeyImageBack);
-        car.setCarImageLeft(s3KeyImageLeft);
-        car.setCarImageRight(s3KeyImageRight);
 
         return car; // Return the updated car entity with assigned file URIs
     }
@@ -483,7 +496,7 @@ public class CarService {
 
         // Check if the car belongs to the current logged-in user
         if (!car.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS); // Custom error for unauthorized access
+            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS); // Custom error for unauthorized access
         }
 
         // Convert Car entity to CarResponse DTO

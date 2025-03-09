@@ -53,8 +53,11 @@ public enum ErrorCode {
     INVALID_IMAGE_FILE(2021, "Invalid image file type. Accepted formats are .jpg, .jpeg, .png", HttpStatus.BAD_REQUEST),
     INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_NATIONAL_ID(2023, "The national id already existed. Please try another national id", HttpStatus.BAD_REQUEST),
-    INVALID_STATUS_EDIT(2024,"Status can edit only available/stopped", HttpStatus.BAD_REQUEST),
+    INVALID_STATUS_EDIT(2024,"Status can edit only NOT_VERIFIED or STOPPED", HttpStatus.BAD_REQUEST),
     INVALID_DATE_RANGE(2025, "Invalid date range. Pick-up date must be before drop-off date.", HttpStatus.BAD_REQUEST),
+    INVALID_BOOKING_TIME(2026,"Invalid booking time", HttpStatus.BAD_REQUEST),
+    INVALID_PAYMENT_TYPE(2027,"Payment can only WALLET/CASH/BANK_TRANSFER", HttpStatus.BAD_REQUEST),
+    INVALID_ADDRESS_COMPONENT(2028,"Invalid address component", HttpStatus.BAD_REQUEST),
 
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -66,6 +69,7 @@ public enum ErrorCode {
     CAR_NOT_FOUND_IN_DB(3007, "The car is not exist in the system", HttpStatus.NOT_FOUND),
     CAR_NOT_VERIFIED(3008, "This car has not been verified and cannot be viewed.", HttpStatus.FORBIDDEN),
     CAR_STOPPED(3009, "This car has stopped and cannot be viewed.", HttpStatus.FORBIDDEN),
+    CAR_NOT_AVAILABLE(3010, "The car is not available", HttpStatus.BAD_REQUEST),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -79,7 +83,7 @@ public enum ErrorCode {
 
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(4009, "Invalid refresh token. Please try again", HttpStatus.UNAUTHORIZED),
-    UNAUTHORIZED_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.UNAUTHORIZED),
+    FORBIDDEN_CAR_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.FORBIDDEN),
     ;
 
     /**
