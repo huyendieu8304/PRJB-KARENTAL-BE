@@ -58,7 +58,6 @@ public class GlobalExceptionHandler {
                 .body(apiResponse);
     }
 
-
     /**
      * Handle exception from validation
      * @param e the exception

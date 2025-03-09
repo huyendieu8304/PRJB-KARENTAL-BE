@@ -1,12 +1,9 @@
 package com.mp.karental.repository;
 import com.mp.karental.constant.EBookingStatus;
-import com.mp.karental.dto.response.BookingThumbnailResponse;
 import com.mp.karental.entity.Booking;
-import com.mp.karental.entity.Car;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -49,7 +46,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         OR (b.pickUpTime >= :startRange AND b.dropOffTime <= :endRange)
     )
 """)
-    List<Booking> findBookingsByCarIdAndTimeRange(
+    List<Booking> findActiveBookingsByCarIdAndTimeRange(
             @Param("carId") String carId,
             @Param("startRange") LocalDateTime startRange,
             @Param("endRange") LocalDateTime endRange
@@ -70,6 +67,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                         @Param("startRange") LocalDateTime startRange,
                                         @Param("endRange") LocalDateTime endRange,
                                         @Param("cancelledStatus") EBookingStatus cancelledStatus);
+
+
 
     @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' " +
             "AND b.paymentType = 'WALLET' " +

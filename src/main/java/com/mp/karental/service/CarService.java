@@ -15,10 +15,8 @@ import com.mp.karental.entity.Car;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
-import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
-import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +32,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service class for handling car operations.
@@ -49,15 +46,10 @@ import java.util.stream.Collectors;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CarService {
 
-    private static final String carAvailableStatus = "Available";
-    private static final String carNotAvailableStatus = "Unavailable";
-
     CarRepository carRepository;
     CarMapper carMapper;
     FileService fileService;
-    UserProfileRepository userProfileRepository;
     BookingRepository bookingRepository;
-    private final AccountRepository accountRepository;
 
     /**
      * Adds a new car to the system.
@@ -440,26 +432,26 @@ public class CarService {
      * @return true if the car is available, false otherwise
      */
     public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
-        // Lấy danh sách booking của xe trong khoảng từ (pickUp - 1 ngày) đến (dropOff + 1 ngày)
+        // get list booking in range (pickUp - 1 day) to (dropOff + 1 day)
         LocalDateTime searchStart = pickUpTime.minusDays(1);
         LocalDateTime searchEnd = dropOffTime.plusDays(1);
 
-        List<Booking> bookings = bookingRepository.findBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
-        log.info("🔍 Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
+        List<Booking> bookings = bookingRepository.findActiveBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
+        log.info("Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
 
-        // Nếu không có booking nào thì xe Available
+        // If there isn't any booking -> Available
         if (bookings.isEmpty()) {
             return true;
         }
-        // Kiểm tra xem tất cả các booking trong khoảng thời gian đó có phải đều bị hủy hay không
-        boolean allCancelled = bookings.stream()
-                .allMatch(booking -> booking.getStatus() == EBookingStatus.CANCELLED);
-        return allCancelled;
+        // Check whether all booking is CANCELED OR  PENDING_DEPOSIT
+        return bookings.stream()
+                .allMatch(booking -> booking.getStatus() == EBookingStatus.CANCELLED
+                                    || booking.getStatus() == EBookingStatus.PENDING_DEPOSIT);
     }
 
 
     /**
-     * Checks if a car is booked by customer.
+     * Checks if a car has been booked by customer.
      *
      * @param carId     the ID of the car
      * @param accountId the ID of the customer
@@ -486,9 +478,6 @@ public class CarService {
     public CarResponse getCarById(String id) {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
-
-        // Fetch the account details from the database, or throw an error if the account is not found
-        Account account = SecurityUtil.getCurrentAccount();
 
         // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)
@@ -522,7 +511,7 @@ public class CarService {
      * @return A paginated list of available cars.
      */
     public Page<CarThumbnailResponse> searchCars(SearchCarRequest request, int page, int size, String sort) {
-        log.info("🔍 Search request received - Address: {}, PickUp: {}, DropOff: {}",
+        log.info("Search request received - Address: {}, PickUp: {}, DropOff: {}",
                 request.getAddress(), request.getPickUpTime(), request.getDropOffTime());
 
         // Xác định kiểu sắp xếp, mặc định là theo productionYear (mới nhất trước)
@@ -544,15 +533,11 @@ public class CarService {
         List<CarThumbnailResponse> availableCars = new ArrayList<>();
 
         for (Car car : verifiedCars) {
-            // Lấy danh sách booking liên quan đến xe này
-            LocalDateTime searchStart = request.getPickUpTime().minusDays(1);
-            LocalDateTime searchEnd = request.getDropOffTime().plusDays(1);
-            List<Booking> bookings = bookingRepository.findBookingsByCarIdAndTimeRange(car.getId(), searchStart, searchEnd);
 
             boolean available = isCarAvailable(car.getId(), request.getPickUpTime(), request.getDropOffTime());
 
             if (!available) {
-                continue; // Bỏ qua xe không available
+                continue; // Bỏ qua xe unavailable
             }
 
             long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
