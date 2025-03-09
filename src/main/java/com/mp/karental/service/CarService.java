@@ -8,14 +8,13 @@ import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
+import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Car;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
-import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
-import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -45,16 +44,10 @@ import java.util.List;
 @Transactional
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CarService {
-
-    private static final String carAvailableStatus = "Available";
-    private static final String carNotAvailableStatus = "Unavailable";
-
     CarRepository carRepository;
     CarMapper carMapper;
     FileService fileService;
-    UserProfileRepository userProfileRepository;
     BookingRepository bookingRepository;
-    private final AccountRepository accountRepository;
 
     /**
      * Adds a new car to the system.
@@ -122,9 +115,6 @@ public class CarService {
     public CarResponse editCar(EditCarRequest request, String id) throws AppException {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
-
-        // Fetch the account details from the database, or throw an error if the account is not found
-        Account account = SecurityUtil.getCurrentAccount();
 
         // Retrieve the car entity from the database using the provided car ID
         // If the car does not exist, throw an exception
@@ -422,9 +412,6 @@ public class CarService {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Fetch the account details from the database, or throw an error if the account is not found
-        Account account = SecurityUtil.getCurrentAccount();
-
         // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
@@ -456,11 +443,23 @@ public class CarService {
      * @return true if the car is available, false otherwise
      */
     public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
-        long conflictingBookings = bookingRepository.countActiveBookingsInTimeRange(
-                carId, pickUpTime, dropOffTime, EBookingStatus.CANCELLED
-        );
-        return conflictingBookings == 0;
+        // get list booking in range (pickUp - 1 day) to (dropOff + 1 day)
+        LocalDateTime searchStart = pickUpTime.minusDays(1);
+        LocalDateTime searchEnd = dropOffTime.plusDays(1);
+
+        List<Booking> bookings = bookingRepository.findActiveBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
+        log.info("Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
+
+        // If there isn't any booking -> Available
+        if (bookings.isEmpty()) {
+            return true;
+        }
+        // Check whether all booking is CANCELED OR  PENDING_DEPOSIT
+        return bookings.stream()
+                .allMatch(booking -> booking.getStatus() == EBookingStatus.CANCELLED
+                        || booking.getStatus() == EBookingStatus.PENDING_DEPOSIT);
     }
+
 
     /**
      * Checks if a car is booked by customer.

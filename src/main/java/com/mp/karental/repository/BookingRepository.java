@@ -36,24 +36,40 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     @Query("""
-    SELECT COUNT(b) 
+    SELECT b 
     FROM Booking b 
-    WHERE b.car.id = :carId 
-    AND b.status <> :cancelledStatus 
+    WHERE b.car.id = :carId
     AND (
-        :startRange BETWEEN b.pickUpTime AND b.dropOffTime 
-        OR :endRange BETWEEN b.pickUpTime AND b.dropOffTime
-        OR (b.pickUpTime <= :startRange AND b.dropOffTime >= :endRange)
+        (:startRange BETWEEN b.pickUpTime AND b.dropOffTime)
+        OR (:endRange BETWEEN b.pickUpTime AND b.dropOffTime)
+        OR (b.pickUpTime >= :startRange AND b.dropOffTime <= :endRange)
     )
 """)
-    long countActiveBookingsInTimeRange(@Param("carId") String carId,
-                                        @Param("startRange") LocalDateTime startRange,
-                                        @Param("endRange") LocalDateTime endRange,
-                                        @Param("cancelledStatus") EBookingStatus cancelledStatus);
+    List<Booking> findActiveBookingsByCarIdAndTimeRange(
+            @Param("carId") String carId,
+            @Param("startRange") LocalDateTime startRange,
+            @Param("endRange") LocalDateTime endRange
+    );
+
 
     @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' " +
             "AND b.paymentType = 'WALLET' " +
             "AND b.createdAt <= :expiredTime " +
             "ORDER BY b.createdAt")
     List<Booking> findExpiredBookings(@Param("expiredTime") LocalDateTime expiredTime);
+
+    @Query("SELECT b FROM Booking b WHERE b.car.id = :carId AND b.status = :status " +
+            "AND ((b.pickUpTime BETWEEN :pickUpTime AND :dropOffTime) OR " +
+            "(b.dropOffTime BETWEEN :pickUpTime AND :dropOffTime) OR " +
+            "(:pickUpTime BETWEEN b.pickUpTime AND b.dropOffTime) OR " +
+            "(:dropOffTime BETWEEN b.pickUpTime AND b.dropOffTime))")
+    List<Booking> findByCarIdAndStatusAndTimeOverlap(
+            @Param("carId") String carId,
+            @Param("status") EBookingStatus status,
+            @Param("pickUpTime") LocalDateTime pickUpTime,
+            @Param("dropOffTime") LocalDateTime dropOffTime
+    );
+
+    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' AND b.createdAt > :threshold")
+    List<Booking> findPendingDepositBookings(@Param("threshold") LocalDateTime threshold);
 }
