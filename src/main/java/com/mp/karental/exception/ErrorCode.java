@@ -49,7 +49,7 @@ public enum ErrorCode {
     INVALID_CAR_IMAGE_FILE(2017,"Invalid file type. Accepted formats are .jpg, .jpeg, .png, .gif", HttpStatus.BAD_REQUEST),
     INVALID_VALUE_MIN(2018,"This attribute must be >=0", HttpStatus.BAD_REQUEST),
     INVALID_ADDRESS(2019,"The address is invalid", HttpStatus.BAD_REQUEST),
-    INVALID_DATE_OF_BIRTH(2020, "Date of birth must be in the past.", HttpStatus.BAD_REQUEST),
+    INVALID_DATE_OF_BIRTH(2020, "Date of birth must be at least 18 years old.", HttpStatus.BAD_REQUEST),
     INVALID_IMAGE_FILE(2021, "Invalid image file type. Accepted formats are .jpg, .jpeg, .png", HttpStatus.BAD_REQUEST),
     INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_NATIONAL_ID(2023, "The national id already existed. Please try another national id", HttpStatus.BAD_REQUEST),
@@ -58,6 +58,7 @@ public enum ErrorCode {
     INVALID_BOOKING_TIME(2026,"Invalid booking time", HttpStatus.BAD_REQUEST),
     INVALID_PAYMENT_TYPE(2027,"Payment can only WALLET/CASH/BANK_TRANSFER", HttpStatus.BAD_REQUEST),
     INVALID_ADDRESS_COMPONENT(2028,"Invalid address component", HttpStatus.BAD_REQUEST),
+    INVALID_DATE_FORMAT(2029, "Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST),
 
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),

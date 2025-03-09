@@ -8,6 +8,8 @@ import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
+import com.mp.karental.exception.AppException;
+import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.CarService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -94,7 +96,7 @@ public class CarController {
      * @param request CarDetailRequest object containing carId, pickUp, and dropOff time.
      * @return ApiResponse<CarDetailResponse> containing car details and booking status.
      */
-    @GetMapping("/customer/view-detail")
+    @GetMapping("/customer/car-detail")
     public ApiResponse<CarDetailResponse> getCarDetail(@Valid @RequestBody CarDetailRequest request) {
         log.info("Fetching car details for ID: {}, pickUp: {}, dropOff: {}",
                 request.getCarId(), request.getPickUpTime(), request.getDropOffTime());
@@ -136,7 +138,7 @@ public class CarController {
      * @return A response entity containing a paginated list of available cars.
      */
     @GetMapping("/customer/search-car")
-    public ResponseEntity<ApiResponse<Page<CarThumbnailResponse>>> searchCars(
+    public ApiResponse<Page<CarThumbnailResponse>> searchCars(
             @RequestParam String address,
             @RequestParam String pickUpTime,
             @RequestParam String dropOffTime,
@@ -145,19 +147,24 @@ public class CarController {
             @RequestParam(defaultValue = "productionYear,desc") String sort) {
 
         try {
+            // Parse the pickup and drop-off time from String to LocalDateTime
             LocalDateTime realPickUpTime = LocalDateTime.parse(pickUpTime.trim());
             LocalDateTime realDropOffTime = LocalDateTime.parse(dropOffTime.trim());
 
+            // Create a request DTO to hold the search parameters
             SearchCarRequest request = new SearchCarRequest(realPickUpTime, realDropOffTime, address);
+
+            // Call service to fetch the list of available cars based on the criteria
             Page<CarThumbnailResponse> cars = carService.searchCars(request, page, size, sort);
 
-            return ResponseEntity.ok(ApiResponse.<Page<CarThumbnailResponse>>builder()
+            // Return a successful API response
+            return ApiResponse.<Page<CarThumbnailResponse>>builder()
+                    .code(ErrorCode.SUCCESS.getCode()) // Default success code
                     .data(cars)
-                    .build());
+                    .build();
         } catch (DateTimeParseException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.<Page<CarThumbnailResponse>>builder()
-                    .message("Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss")
-                    .build());
+            // If the date format is incorrect, throw an AppException with the predefined error code
+            throw new AppException(ErrorCode.INVALID_DATE_FORMAT);
         }
     }
 
