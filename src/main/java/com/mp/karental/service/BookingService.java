@@ -173,23 +173,36 @@ public class BookingService {
         // Get the currently authenticated user's account ID
         String accountId = SecurityUtil.getCurrentAccountId();
 
+        // Validate and limit size (maximum 100)
+        if (size <= 0 || size > 100) {
+            size = 10; // Default value if client provides an invalid input
+        }
+
+        // Ensure page number is non-negative (set to 0 if negative)
+        if (page < 0) {
+            page = 0;
+        }
+
         // Default sorting field and direction
-        String sortField = "car.productionYear"; // Fix the sorting issue by referencing the correct field
+        // Sorting by createdAt in descending order (latest first)
+        String sortField = "createdAt";
         Sort.Direction sortDirection = Sort.Direction.DESC;
 
+        // Validate and process sorting input
         if (sort != null && !sort.isEmpty()) {
             String[] sortParams = sort.split(",");
-            if (sortParams.length > 1) {
-                // Ensure correct mapping for sorting by productionYear
-                sortField = sortParams[0].equals("productionYear") ? "car.productionYear" : sortParams[0];
+            if (sortParams.length == 2) {
+                if (sortParams[0].equals("createdAt")) {
+                    sortField = "createdAt"; // Only allow sorting by createdAt
+                }
                 try {
                     sortDirection = Sort.Direction.fromString(sortParams[1].toUpperCase());
                 } catch (IllegalArgumentException e) {
-                    // Default to DESC if an invalid sorting direction is provided
-                    sortDirection = Sort.Direction.DESC;
+                    sortDirection = Sort.Direction.DESC; // Default to DESC if the format is invalid
                 }
             }
         }
+
 
         // Create pageable object with sorting
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));

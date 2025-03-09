@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
 public class BookingThumbnailResponse {
     String bookingNumber;
 
-    EBookingStatus bookingStatus;
+    EBookingStatus status;
 
     LocalDateTime pickUpTime;
 

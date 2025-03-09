@@ -318,10 +318,30 @@ public class CarService {
     public Page<CarThumbnailResponse> getCarsByUserId(int page, int size, String sort) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Define sort direction
-        String[] sortParams = sort.split(",");
-        String sortField = sortParams[0];
-        Sort.Direction sortDirection = Sort.Direction.fromString(sortParams[1]);
+        // Validate and limit size (maximum 100)
+        if (size <= 0 || size > 100) {
+            size = 10; // Default value if client provides an invalid input
+        }
+
+        // Ensure page number is non-negative (set to 0 if negative)
+        if (page < 0) {
+            page = 0;
+        }
+
+        // Define sorting field and direction
+        String sortField = "productionYear"; // Default sorting field
+        Sort.Direction sortDirection = Sort.Direction.DESC; // Default sorting order
+
+        if (sort != null && !sort.isEmpty()) {
+            String[] sortParams = sort.split(",");
+            if (sortParams.length == 2 && sortParams[0].equals("productionYear")) {
+                try {
+                    sortDirection = Sort.Direction.fromString(sortParams[1].toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    sortDirection = Sort.Direction.DESC; // Default to DESC if invalid sorting direction
+                }
+            }
+        }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
 
@@ -354,21 +374,18 @@ public class CarService {
     public CarDetailResponse getCarDetail(CarDetailRequest request) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
+        // Validate that the pick-up date is before the drop-off date
+        if (request.getPickUpTime().isAfter(request.getDropOffTime())) {
+            throw new AppException(ErrorCode.INVALID_DATE_RANGE);
+        }
+
         // Retrieve car details from the database
         Car car = carRepository.findById(request.getCarId())
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
 
-        // Check if the car is verified and available for booking
-        if (car.getStatus() == ECarStatus.NOT_VERIFIED) {
+        // Check if the car is verified
+        if (car.getStatus() != ECarStatus.VERIFIED) {
             throw new AppException(ErrorCode.CAR_NOT_VERIFIED);
-        }
-        if (car.getStatus() == ECarStatus.STOPPED) {
-            throw new AppException(ErrorCode.CAR_STOPPED);
-        }
-
-        // Validate that the pick-up date is before the drop-off date
-        if (request.getPickUpTime().isAfter(request.getDropOffTime())) {
-            throw new AppException(ErrorCode.INVALID_DATE_RANGE);
         }
 
         //Check car is available
@@ -380,7 +397,7 @@ public class CarService {
         boolean isBooked = isCarBooked(request.getCarId(), accountId);
 
         if (isBooked) {
-            // If the booking status is COMPLETE, display the full address
+            // If the booking status is CONFIRMED, IN_PROGRESS, PENDING_PAYMENT, COMPLETED so display the full address
             response.setAddress(car.getHouseNumberStreet() + ", "
                     + car.getWard() + ", "
                     + car.getDistrict() + ", "
@@ -392,7 +409,7 @@ public class CarService {
             response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
 
         } else {
-            // If the booking status is not COMPLETE, hide document URLs and provide a partial address
+            // If the booking status is CANCELLED or PENDING_DEPOSIT, hide document URLs and provide a partial address
             response.setCertificateOfInspectionUrl(null);
             response.setInsuranceUrl(null);
             response.setRegistrationPaperUrl(null);
@@ -432,7 +449,7 @@ public class CarService {
      * @return true if the car is available, false otherwise
      */
     public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
-        // get list booking in range (pickUp - 1 day) to (dropOff + 1 day)
+        // Get list booking in range (pickUp - 1 day) to (dropOff + 1 day)
         LocalDateTime searchStart = pickUpTime.minusDays(1);
         LocalDateTime searchEnd = dropOffTime.plusDays(1);
 
@@ -507,29 +524,45 @@ public class CarService {
      * @param request The search request containing address, pickup, and drop-off times.
      * @param page The page number to retrieve.
      * @param size The number of cars per page.
-     * @param sort The sorting string in the format "field,direction" (e.g., "price,asc").
+     * @param sort The sorting string in the format "field,direction" (e.g., "productionYear,desc").
      * @return A paginated list of available cars.
      */
     public Page<CarThumbnailResponse> searchCars(SearchCarRequest request, int page, int size, String sort) {
         log.info("Search request received - Address: {}, PickUp: {}, DropOff: {}",
                 request.getAddress(), request.getPickUpTime(), request.getDropOffTime());
 
-        // Xác định kiểu sắp xếp, mặc định là theo productionYear (mới nhất trước)
+        // Validate and limit size (maximum 100)
+        if (size <= 0 || size > 100) {
+            size = 10; // Default value if client provides an invalid input
+        }
+
+        // Ensure page number is non-negative (set to 0 if negative)
+        if (page < 0) {
+            page = 0;
+        }
+
+        // Default sorting by productionYear (newest first)
         String sortField = "productionYear";
         Sort.Direction sortDirection = Sort.Direction.DESC;
 
+        // Validate sorting input
         if (sort != null && !sort.isEmpty()) {
             String[] sortParams = sort.split(",");
-            sortField = sortParams[0];
-            sortDirection = Sort.Direction.fromString(sortParams[1]);
+            if (sortParams.length == 2 && sortParams[0].equals("productionYear")) {
+                try {
+                    sortDirection = Sort.Direction.fromString(sortParams[1].toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    sortDirection = Sort.Direction.DESC; // Default to DESC if invalid direction
+                }
+            }
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
 
-        // Lấy danh sách xe VERIFIED với phân trang
+        // Get list car is VERIFIED with pagination
         Page<Car> verifiedCars = carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, request.getAddress(), pageable);
 
-        // Lọc chỉ lấy xe AVAILABLE
+        // Filter to take car is AVAILABLE
         List<CarThumbnailResponse> availableCars = new ArrayList<>();
 
         for (Car car : verifiedCars) {
@@ -537,7 +570,7 @@ public class CarService {
             boolean available = isCarAvailable(car.getId(), request.getPickUpTime(), request.getDropOffTime());
 
             if (!available) {
-                continue; // Bỏ qua xe unavailable
+                continue; // Ignore unavailable car
             }
 
             long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
@@ -545,7 +578,7 @@ public class CarService {
             CarThumbnailResponse response = carMapper.toSearchCar(car, noOfRides);
             response.setAddress(car.getWard() + ", " + car.getCityProvince() + ", " + car.getWard());
 
-            // Lấy URL hình ảnh xe
+            // Get URL image car
             response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
             response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));

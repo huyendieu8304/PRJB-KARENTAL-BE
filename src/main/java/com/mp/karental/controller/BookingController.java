@@ -36,14 +36,14 @@ public class BookingController {
      *
      * @param page the page number (default is 0)
      * @param size the number of records per page (default is 10)
-     * @param sort sorting field and direction in the format "field,DIRECTION" (default is "productionYear,DESC")
+     * @param sort sorting field and direction in the format "field,DIRECTION" (default is "createdAt,DESC")
      * @return a paginated list of bookings wrapped in `ApiResponse<Page<BookingThumbnailResponse>>`
      */
     @GetMapping("/customer/my-bookings")
     public ApiResponse<Page<BookingThumbnailResponse>> getBookings(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "productionYear,DESC") String sort) {
+            @RequestParam(defaultValue = "createdAt,DESC") String sort) {
 
         Page<BookingThumbnailResponse> bookings = bookingService.getBookingsByUserId(page, size, sort);
         return ApiResponse.<Page<BookingThumbnailResponse>>builder()
