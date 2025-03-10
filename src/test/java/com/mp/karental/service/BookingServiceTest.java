@@ -124,4 +124,76 @@ class BookingServiceTest {
 
         verify(bookingRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
     }
+
+    @Test
+    void getBookingsByUserId_InvalidPage_ShouldResetToZero() {
+        // Arrange
+        int page = -1; // Không hợp lệ, sẽ được reset về 0
+        int size = 10;
+        String sort = "createdAt,DESC";
+
+        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
+
+        // Act
+        bookingService.getBookingsByUserId(page, size, sort);
+
+        // Verify page đã reset về 0
+        verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
+                pageable.getPageNumber() == 0
+        ));
+    }
+
+    @Test
+    void getBookingsByUserId_InvalidSize_ShouldResetToDefault() {
+        // Arrange
+        int page = 0;
+        int size = 200; // Quá 100, sẽ bị reset về 10
+        String sort = "createdAt,DESC";
+
+        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
+
+        // Act
+        bookingService.getBookingsByUserId(page, size, sort);
+
+        // Verify size đã reset về 10
+        verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
+                pageable.getPageSize() == 10
+        ));
+    }
+
+    @Test
+    void getBookingsByUserId_InvalidSort_ShouldUseDefault() {
+        // Arrange
+        int page = 0;
+        int size = 10;
+        String sort = "invalidSort,DESC"; // Trường không hợp lệ -> dùng default (createdAt)
+
+        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
+
+        // Act
+        bookingService.getBookingsByUserId(page, size, sort);
+
+        // Verify sorting giữ nguyên mặc định
+        verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
+                pageable.getSort().equals(Sort.by(Sort.Direction.DESC, "createdAt"))
+        ));
+    }
+
+    @Test
+    void getBookingsByUserId_SortByBasePrice() {
+        // Arrange
+        int page = 0;
+        int size = 10;
+        String sort = "basePrice,ASC"; // Sắp xếp theo basePrice
+
+        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
+
+        // Act
+        bookingService.getBookingsByUserId(page, size, sort);
+
+        // Verify sorting là basePrice ASC
+        verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
+                pageable.getSort().equals(Sort.by(Sort.Direction.ASC, "basePrice"))
+        ));
+    }
 }

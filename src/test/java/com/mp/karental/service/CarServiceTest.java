@@ -445,32 +445,6 @@ class CarServiceTest {
         assertEquals(ErrorCode.FORBIDDEN_CAR_ACCESS, exception.getErrorCode());
     }
 
-
-
-
-
-
-//    @Test
-//    void testGetCarDetail_WhenCarExistsAndNotBooked_ShouldReturnCarResponseWithHiddenAddress() {
-//        String carId = "car-123";
-//        Car car = new Car();
-//        car.setId(carId);
-//        car.setStatus(ECarStatus.STOPPED);
-//        car.setHouseNumberStreet("123 Main St");
-//        car.setWard("Ward 1");
-//        car.setDistrict("District A");
-//        car.setCityProvince("City X");
-//
-//        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
-//        CarDetailResponse mockResponse = new CarDetailResponse();
-//        mockResponse.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
-//        mockResponse.setNoOfRides(8);
-//        when(carMapper.toCarDetailResponse(any(Car.class), eq(false))).thenReturn(mockResponse);
-//
-//        CarDetailResponse response = carService.getCarDetail(carId);
-//
-//        assertNotNull(response);
-//    }
     @Test
     void testGetCarDetail_WhenCarExistsAndVerified_ShouldReturnDetails() {
         String accountId = "user-123";
@@ -760,4 +734,38 @@ class CarServiceTest {
         // Act & Assert
         assertThrows(AppException.class, () -> carService.getCarDetail(request));
     }
+
+    @Test
+    void getCarDetail_UnbookedCar_HidesSensitiveData() {
+        // Arrange
+        String accountId = "user123";
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+        CarDetailRequest request = new CarDetailRequest();
+        request.setCarId("1");
+        request.setPickUpTime(LocalDateTime.now().plusDays(1));
+        request.setDropOffTime(LocalDateTime.now().plusDays(3));
+
+        Car car = new Car();
+        car.setId("1");
+        car.setDistrict("District 1");
+        car.setCityProvince("Ho Chi Minh City");
+        car.setStatus(ECarStatus.VERIFIED);
+
+        when(carRepository.findById("1")).thenReturn(Optional.of(car));
+        when(bookingRepository.countCompletedBookingsByCar("1")).thenReturn(5L);
+        when(carMapper.toCarDetailResponse(any(), anyBoolean())).thenReturn(new CarDetailResponse());
+        when(carService.isCarBooked("1", accountId)).thenReturn(false);
+
+        // Act
+        CarDetailResponse response = carService.getCarDetail(request);
+
+        // Assert
+        assertNotNull(response);
+        assertNull(response.getCertificateOfInspectionUrl());
+        assertNull(response.getInsuranceUrl());
+        assertNull(response.getRegistrationPaperUrl());
+        assertEquals("District 1, Ho Chi Minh City (Full address will be available after you've paid the deposit to rent).", response.getAddress());
+    }
+
 }
