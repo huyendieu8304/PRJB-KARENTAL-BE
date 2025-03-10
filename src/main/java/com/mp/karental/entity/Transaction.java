@@ -26,7 +26,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Immutable //can not edit after create
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -79,8 +79,8 @@ cloud:
 
 payment:
   vnpay:
-    tmn-code: T3GTKJIG
-    secret-key: TP761QRSR4UT3A09XSGLQ4N8R1S6C4XU
+    tmn-code: ${TMN_CODE}
+    secret-key: ${VNPAY_SECRET_KEY}
     init-payment-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
     return-url: http://localhost:3000/my-wallet
     timeout: 2 # in minutes
