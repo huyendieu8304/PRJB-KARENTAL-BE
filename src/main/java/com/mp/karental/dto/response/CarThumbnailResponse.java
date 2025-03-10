@@ -23,7 +23,7 @@ public class CarThumbnailResponse {
     private int productionYear;
     private String status;
     private float mileage;
-    private int basePrice;
+    private long basePrice;
     private String address;
     private String carImageFront;
     private String carImageRight;
