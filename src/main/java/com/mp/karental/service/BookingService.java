@@ -148,13 +148,12 @@ public class BookingService {
         LocalDateTime now = LocalDateTime.now();
 
         // Find bookings that have expired (not confirmed within 2 minutes).
-        List<Booking> expiredBookings = bookingRepository.findExpiredBookings(now.minusMinutes(2));
+        List<Booking> expiredBookings = bookingRepository.findExpiredBookings(now.minusHours(1));
 
         // Cancel expired bookings.
         for (Booking booking : expiredBookings) {
             if (booking.getCreatedAt().plusMinutes(2).isBefore(now)) {
                 booking.setStatus(EBookingStatus.CANCELLED);
-                booking.setUpdatedAt(now);
                 bookingRepository.saveAndFlush(booking);
             }
         }

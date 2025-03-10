@@ -273,7 +273,7 @@ class CarServiceTest {
         existingCar.setLicensePlate("49F-123.45");
         existingCar.setAutomatic(false);
         existingCar.setGasoline(false);
-        existingCar.setStatus(ECarStatus.STOPPED);
+        existingCar.setStatus(ECarStatus.NOT_VERIFIED);
         existingCar.setCityProvince("Tỉnh Hà Giang");
         existingCar.setDistrict("Thành phố Hà Giang");
         existingCar.setWard("Phường Quang Trung");
@@ -288,7 +288,7 @@ class CarServiceTest {
             updatedCar.setLicensePlate(existingCar.getLicensePlate());
             updatedCar.setAutomatic(existingCar.isAutomatic());
             updatedCar.setGasoline(existingCar.isGasoline());
-            updatedCar.setStatus(ECarStatus.STOPPED);
+            updatedCar.setStatus(ECarStatus.NOT_VERIFIED);
             updatedCar.setCityProvince(existingCar.getCityProvince());
             updatedCar.setDistrict(existingCar.getDistrict());
             updatedCar.setWard(existingCar.getWard());
@@ -302,6 +302,7 @@ class CarServiceTest {
             Car updatedCar = invocation.getArgument(0);
             CarResponse response = new CarResponse();
             response.setLicensePlate(updatedCar.getLicensePlate());
+            response.setStatus(ECarStatus.NOT_VERIFIED.name().toUpperCase());
             response.setAddress(String.join(", ", updatedCar.getCityProvince(), updatedCar.getDistrict(), updatedCar.getWard(), updatedCar.getHouseNumberStreet()));
             response.setDescription(updatedCar.getDescription());
             return response;
@@ -311,6 +312,8 @@ class CarServiceTest {
         CarResponse response = carService.editCar(editCarRequest, "car-123");
         // Assertions
         assertNotNull(response, "Response should not be null");
+        assertEquals("NOT_VERIFIED", response.getStatus());
+        assertEquals("updated description", response.getDescription());
     }
 
     // Helper method to check valid status values
@@ -442,6 +445,32 @@ class CarServiceTest {
         assertEquals(ErrorCode.FORBIDDEN_CAR_ACCESS, exception.getErrorCode());
     }
 
+
+
+
+
+
+//    @Test
+//    void testGetCarDetail_WhenCarExistsAndNotBooked_ShouldReturnCarResponseWithHiddenAddress() {
+//        String carId = "car-123";
+//        Car car = new Car();
+//        car.setId(carId);
+//        car.setStatus(ECarStatus.STOPPED);
+//        car.setHouseNumberStreet("123 Main St");
+//        car.setWard("Ward 1");
+//        car.setDistrict("District A");
+//        car.setCityProvince("City X");
+//
+//        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+//        CarDetailResponse mockResponse = new CarDetailResponse();
+//        mockResponse.setAddress("Note: Full address will be available after you've paid the deposit to rent.");
+//        mockResponse.setNoOfRides(8);
+//        when(carMapper.toCarDetailResponse(any(Car.class), eq(false))).thenReturn(mockResponse);
+//
+//        CarDetailResponse response = carService.getCarDetail(carId);
+//
+//        assertNotNull(response);
+//    }
     @Test
     void testGetCarDetail_WhenCarExistsAndVerified_ShouldReturnDetails() {
         String accountId = "user-123";

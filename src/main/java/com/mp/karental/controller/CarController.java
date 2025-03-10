@@ -93,13 +93,19 @@ public class CarController {
     /**
      * Retrieves car details including booking status within a specified date range.
      *
-     * @param request CarDetailRequest object containing carId, pickUp, and dropOff time.
      * @return ApiResponse<CarDetailResponse> containing car details and booking status.
      */
     @GetMapping("/customer/car-detail")
-    public ApiResponse<CarDetailResponse> getCarDetail(@Valid @RequestBody CarDetailRequest request) {
-        log.info("Fetching car details for ID: {}, pickUp: {}, dropOff: {}",
-                request.getCarId(), request.getPickUpTime(), request.getDropOffTime());
+    public ApiResponse<CarDetailResponse> getCarDetail(
+            @RequestParam String carId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime pickUpTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dropOffTime) {
+
+        CarDetailRequest request = CarDetailRequest.builder()
+                .carId(carId)
+                .pickUpTime(pickUpTime)
+                .dropOffTime(dropOffTime)
+                .build();
 
         return ApiResponse.<CarDetailResponse>builder()
                 .data(carService.getCarDetail(request))
@@ -120,6 +126,7 @@ public class CarController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "productionYear,DESC") String sort) {
+        log.info("controller - getCars");
         Page<CarThumbnailResponse> cars = carService.getCarsByUserId(page, size, sort);
         return ApiResponse.<Page<CarThumbnailResponse>>builder()
                 .data(cars)
@@ -159,7 +166,6 @@ public class CarController {
 
             // Return a successful API response
             return ApiResponse.<Page<CarThumbnailResponse>>builder()
-                    .code(ErrorCode.SUCCESS.getCode()) // Default success code
                     .data(cars)
                     .build();
         } catch (DateTimeParseException e) {
