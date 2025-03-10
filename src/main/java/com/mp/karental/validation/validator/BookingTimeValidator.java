@@ -56,7 +56,7 @@ public class BookingTimeValidator implements ConstraintValidator<ValidBookingTim
 
         // Drop-off must be after 08:00 AM
         LocalTime dropOffTime = dropOffDateTime.toLocalTime();
-        if (dropOffTime.isBefore(DROPOFF_START_TIME) || dropOffTime.isAfter(PICKUP_END_TIME)) {
+        if (dropOffTime.isBefore(DROPOFF_START_TIME) || dropOffTime.isAfter(DROPOFF_END_TIME)) {
             return false;
         }
 

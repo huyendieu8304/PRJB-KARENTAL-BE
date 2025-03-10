@@ -120,21 +120,6 @@ public class BookingService {
             booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
         }
 
-        //
-        if (booking.getStatus().equals(EBookingStatus.WAITING_CONFIRM)) {
-            List<Booking> overlappingBookings = bookingRepository.findByCarIdAndStatusAndTimeOverlap(
-                    booking.getCar().getId(),
-                    EBookingStatus.PENDING_DEPOSIT,
-                    booking.getPickUpTime(),
-                    booking.getDropOffTime()
-            );
-
-            for (Booking pendingBooking : overlappingBookings) {
-                pendingBooking.setStatus(EBookingStatus.CANCELLED);
-                bookingRepository.saveAndFlush(pendingBooking);
-            }
-        }
-
         // Save the booking to the database.
         bookingRepository.save(booking);
 
@@ -197,6 +182,4 @@ public class BookingService {
             }
         }
     }
-
-
 }

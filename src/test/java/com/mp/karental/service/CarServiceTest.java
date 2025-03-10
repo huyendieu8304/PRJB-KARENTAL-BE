@@ -4,20 +4,15 @@ import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
-import com.mp.karental.dto.request.EditPasswordRequest;
-import com.mp.karental.dto.request.EditProfileRequest;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
-import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Car;
-import com.mp.karental.entity.UserProfile;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
-import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
@@ -32,8 +27,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -81,17 +74,6 @@ class CarServiceTest {
     void setUp() {
         mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class);
     }
-
-    @Mock
-    private UserMapper userMapper;
-
-    @Mock
-    private UserService userService;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-
 
     @AfterEach
     void tearDown() {
