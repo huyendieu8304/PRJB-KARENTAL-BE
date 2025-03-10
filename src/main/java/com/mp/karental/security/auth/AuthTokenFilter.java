@@ -23,8 +23,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.util.PathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.WebUtils;
 import org.springframework.web.util.pattern.PathPatternParser;
@@ -32,7 +30,6 @@ import org.springframework.web.util.pattern.PathPatternParser;
 import java.io.IOException;
 import java.util.Arrays;
 
-import static com.mp.karental.configuration.SecurityConfig.PUBLIC_ENDPOINTS;
 
 /**
  * Authentication filter
