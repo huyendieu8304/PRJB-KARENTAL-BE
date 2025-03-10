@@ -30,6 +30,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import java.util.Optional;
 
@@ -50,7 +51,7 @@ class UserServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
-    @InjectMocks
+    @Mock
     private FileService fileService;
 
     @Mock
@@ -190,7 +191,7 @@ class UserServiceTest {
     void getUserProfile_Success() {
         String userId = "12345";
         String email = "test@example.com";
-        UserProfile userProfile = new UserProfile();
+        UserProfile userProfile = mock(UserProfile.class);
 
         try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
             mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(userId);
@@ -199,6 +200,9 @@ class UserServiceTest {
             when(userProfileRepository.findById(userId)).thenReturn(Optional.of(userProfile));
             EditProfileResponse expectedResponse = new EditProfileResponse();
             when(userMapper.toEditProfileResponse(userProfile)).thenReturn(expectedResponse);
+
+            when(userProfile.getDrivingLicenseUri()).thenReturn("drivingLicenseUri");
+            when(fileService.getFileUrl("drivingLicenseUri")).thenReturn("fileUrl");
 
             EditProfileResponse result = userService.getUserProfile();
 
@@ -209,7 +213,44 @@ class UserServiceTest {
     }
 
     @Test
-    void editProfile_Success() {
+    void editProfile_Success_hasFile() {
+        String accountId = "12345";
+        String email = "test@example.com";
+
+        MultipartFile file = mock(MultipartFile.class);
+
+        EditProfileRequest request = new EditProfileRequest();
+        request.setPhoneNumber("0987654321");
+        request.setNationalId("123456789");
+        request.setDrivingLicense(file);
+
+        UserProfile userProfile = new UserProfile();
+        userProfile.setPhoneNumber("0987654320"); // Khác số cũ để kiểm tra cập nhật
+        userProfile.setNationalId("123456788"); // Khác ID cũ để kiểm tra cập nhật
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+            mockedStatic.when(SecurityUtil::getCurrentEmail).thenReturn(email);
+
+            when(userProfileRepository.findById(accountId)).thenReturn(Optional.of(userProfile));
+            when(userProfileRepository.existsByPhoneNumber(request.getPhoneNumber())).thenReturn(false);
+            when(userProfileRepository.existsByNationalId(request.getNationalId())).thenReturn(false);
+
+            EditProfileResponse expectedResponse = new EditProfileResponse();
+            when(userMapper.toEditProfileResponse(userProfile)).thenReturn(expectedResponse);
+
+            EditProfileResponse result = userService.editProfile(request);
+
+            assertNotNull(result);
+            verify(userProfileRepository).findById(accountId);
+            verify(userProfileRepository).save(userProfile);
+            verify(userMapper).toEditProfileResponse(userProfile);
+            assertEquals(email, result.getEmail());
+        }
+    }
+
+    @Test
+    void editProfile_Success_notHasFile() {
         String accountId = "12345";
         String email = "test@example.com";
 
