@@ -322,39 +322,8 @@ public class CarService {
     public Page<CarThumbnailResponse> getCarsByUserId(int page, int size, String sort) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Validate and limit size (maximum 100)
-        if (size <= 0 || size > 100) {
-            size = 10; // Default value if client provides an invalid input
-        }
-
-        // Ensure page number is non-negative (set to 0 if negative)
-        if (page < 0) {
-            page = 0;
-        }
-
-        // Define default sorting field and direction
-        String sortField = FIELD_PRODUCTION_YEAR;
-        Sort.Direction sortDirection = Sort.Direction.DESC;
-
-        if (sort != null && !sort.isBlank()) {
-            String[] sortParams = sort.split(",");
-            if (sortParams.length == 2) {
-                String requestedField = sortParams[0].trim();
-                String requestedDirection = sortParams[1].trim().toUpperCase();
-
-                // Check if requestedField valid
-                if (List.of(FIELD_PRODUCTION_YEAR, FIELD_PRICE).contains(requestedField)) {
-                    sortField = requestedField;
-                }
-
-                // Check if requestedDirection valid
-                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
-                    sortDirection = Sort.Direction.valueOf(requestedDirection);
-                }
-            }
-        }
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+        // Validate page, size and sort
+        Pageable pageable = getPageable(page, size, sort);
 
         // Get list of cars
         // Map cars to CarThumbnailResponse using fromCar method
@@ -542,6 +511,41 @@ public class CarService {
         log.info("Search request received - Address: {}, PickUp: {}, DropOff: {}",
                 request.getAddress(), request.getPickUpTime(), request.getDropOffTime());
 
+        // Validate page, size and sort
+        Pageable pageable = getPageable(page, size, sort);
+
+        // Get list car is VERIFIED with pagination
+        Page<Car> verifiedCars = carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, request.getAddress(), pageable);
+
+        // Filter to take car is AVAILABLE
+        List<CarThumbnailResponse> availableCars = new ArrayList<>();
+
+        for (Car car : verifiedCars) {
+
+            boolean available = isCarAvailable(car.getId(), request.getPickUpTime(), request.getDropOffTime());
+
+            if (!available) {
+                continue; // Ignore unavailable car
+            }
+
+            long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
+
+            CarThumbnailResponse response = carMapper.toSearchCar(car, noOfRides);
+            response.setAddress(car.getWard() + ", " + car.getCityProvince() + ", " + car.getWard());
+
+            // Get URL image car
+            response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
+            response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
+            response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
+            response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
+
+            availableCars.add(response);
+        }
+
+        return new PageImpl<>(availableCars, pageable, verifiedCars.getTotalElements());
+    }
+
+    private static Pageable getPageable(int page, int size, String sort) {
         // Validate and limit size (maximum 100)
         if (size <= 0 || size > 100) {
             size = 10; // Default value if client provides an invalid input
@@ -574,37 +578,7 @@ public class CarService {
             }
         }
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
-
-        // Get list car is VERIFIED with pagination
-        Page<Car> verifiedCars = carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, request.getAddress(), pageable);
-
-        // Filter to take car is AVAILABLE
-        List<CarThumbnailResponse> availableCars = new ArrayList<>();
-
-        for (Car car : verifiedCars) {
-
-            boolean available = isCarAvailable(car.getId(), request.getPickUpTime(), request.getDropOffTime());
-
-            if (!available) {
-                continue; // Ignore unavailable car
-            }
-
-            long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
-
-            CarThumbnailResponse response = carMapper.toSearchCar(car, noOfRides);
-            response.setAddress(car.getWard() + ", " + car.getCityProvince() + ", " + car.getWard());
-
-            // Get URL image car
-            response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
-            response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
-            response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
-            response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
-
-            availableCars.add(response);
-        }
-
-        return new PageImpl<>(availableCars, pageable, verifiedCars.getTotalElements());
+        return PageRequest.of(page, size, Sort.by(sortDirection, sortField));
     }
 
 }

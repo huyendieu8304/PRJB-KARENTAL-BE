@@ -208,10 +208,6 @@ public class BookingService {
             }
         }
 
-        System.out.println("Sort parameter received: " + sort);
-
-
-
         // Create pageable object with sorting
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
 
