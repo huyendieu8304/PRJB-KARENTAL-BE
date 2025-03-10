@@ -24,6 +24,9 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class BookingThumbnailResponse {
+
+    LocalDateTime createdAt;
+
     String bookingNumber;
 
     EBookingStatus status;

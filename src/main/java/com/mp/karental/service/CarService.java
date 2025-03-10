@@ -51,6 +51,10 @@ public class CarService {
     FileService fileService;
     BookingRepository bookingRepository;
 
+    // Define constant field names to avoid repetition
+    private static final String FIELD_PRODUCTION_YEAR = "productionYear";
+    private static final String FIELD_PRICE = "basePrice";
+
     /**
      * Adds a new car to the system.
      *
@@ -328,17 +332,24 @@ public class CarService {
             page = 0;
         }
 
-        // Define sorting field and direction
-        String sortField = "productionYear"; // Default sorting field
-        Sort.Direction sortDirection = Sort.Direction.DESC; // Default sorting order
+        // Define default sorting field and direction
+        String sortField = FIELD_PRODUCTION_YEAR;
+        Sort.Direction sortDirection = Sort.Direction.DESC;
 
-        if (sort != null && !sort.isEmpty()) {
+        if (sort != null && !sort.isBlank()) {
             String[] sortParams = sort.split(",");
-            if (sortParams.length == 2 && sortParams[0].equals("productionYear")) {
-                try {
-                    sortDirection = Sort.Direction.fromString(sortParams[1].toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    sortDirection = Sort.Direction.DESC; // Default to DESC if invalid sorting direction
+            if (sortParams.length == 2) {
+                String requestedField = sortParams[0].trim();
+                String requestedDirection = sortParams[1].trim().toUpperCase();
+
+                // Check if requestedField valid
+                if (List.of(FIELD_PRODUCTION_YEAR, FIELD_PRICE).contains(requestedField)) {
+                    sortField = requestedField;
+                }
+
+                // Check if requestedDirection valid
+                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
+                    sortDirection = Sort.Direction.valueOf(requestedDirection);
                 }
             }
         }
@@ -541,18 +552,24 @@ public class CarService {
             page = 0;
         }
 
-        // Default sorting by productionYear (newest first)
-        String sortField = "productionYear";
+        // Define default sorting field and direction
+        String sortField = FIELD_PRODUCTION_YEAR;
         Sort.Direction sortDirection = Sort.Direction.DESC;
 
-        // Validate sorting input
-        if (sort != null && !sort.isEmpty()) {
+        if (sort != null && !sort.isBlank()) {
             String[] sortParams = sort.split(",");
-            if (sortParams.length == 2 && sortParams[0].equals("productionYear")) {
-                try {
-                    sortDirection = Sort.Direction.fromString(sortParams[1].toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    sortDirection = Sort.Direction.DESC; // Default to DESC if invalid direction
+            if (sortParams.length == 2) {
+                String requestedField = sortParams[0].trim();
+                String requestedDirection = sortParams[1].trim().toUpperCase();
+
+                // Check if requestedField valid
+                if (List.of(FIELD_PRODUCTION_YEAR, FIELD_PRICE).contains(requestedField)) {
+                    sortField = requestedField;
+                }
+
+                // Check if requestedDirection valid
+                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
+                    sortDirection = Sort.Direction.valueOf(requestedDirection);
                 }
             }
         }

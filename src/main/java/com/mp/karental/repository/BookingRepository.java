@@ -80,7 +80,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     SELECT b FROM Booking b
     JOIN FETCH b.car c
     WHERE b.account.id = :accountId
-    ORDER BY c.productionYear DESC
 """)
     Page<Booking> findByAccountId(@Param("accountId") String accountId, Pageable pageable);
 

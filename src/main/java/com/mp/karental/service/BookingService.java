@@ -52,6 +52,10 @@ public class BookingService {
     FileService fileService;
     CarService carService;
 
+    // Define constant field names to avoid repetition
+    private static final String FIELD_CREATED_AT = "createdAt";
+    private static final String FIELD_BASE_PRICE = "basePrice";
+
     /**
      * Creates a new booking for a car rental.
      *
@@ -182,25 +186,30 @@ public class BookingService {
             page = 0;
         }
 
-        // Default sorting field and direction
-        // Sorting by createdAt in descending order (latest first)
-        String sortField = "createdAt";
+        // Define default sorting field and direction
+        String sortField = FIELD_CREATED_AT;
         Sort.Direction sortDirection = Sort.Direction.DESC;
 
-        // Validate and process sorting input
-        if (sort != null && !sort.isEmpty()) {
+        if (sort != null && !sort.isBlank()) {
             String[] sortParams = sort.split(",");
             if (sortParams.length == 2) {
-                if (sortParams[0].equals("createdAt")) {
-                    sortField = "createdAt"; // Only allow sorting by createdAt
+                String requestedField = sortParams[0].trim();
+                String requestedDirection = sortParams[1].trim().toUpperCase();
+
+                // Check if requestedField valid
+                if (List.of(FIELD_CREATED_AT, FIELD_BASE_PRICE).contains(requestedField)) {
+                    sortField = requestedField;
                 }
-                try {
-                    sortDirection = Sort.Direction.fromString(sortParams[1].toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    sortDirection = Sort.Direction.DESC; // Default to DESC if the format is invalid
+
+                // Check if requestedDirection valid
+                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
+                    sortDirection = Sort.Direction.valueOf(requestedDirection);
                 }
             }
         }
+
+        System.out.println("Sort parameter received: " + sort);
+
 
 
         // Create pageable object with sorting
@@ -222,6 +231,7 @@ public class BookingService {
 
             response.setNumberOfDay((int) numberOfDay);
             response.setTotalPrice(totalPrice);
+            response.setCreatedAt(booking.getCreatedAt());
 
             // Retrieve car images from the file storage service
             response.setCarImageFrontUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
