@@ -9,6 +9,7 @@ import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.service.BookingService;
 import com.mp.karental.service.FileService;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,14 +47,22 @@ class BookingServiceTest {
 
     private String accountId;
 
+    private MockedStatic<SecurityUtil> securityUtilMock;
+
     @BeforeEach
     void setup() {
         accountId = "user123";
+        securityUtilMock = mockStatic(SecurityUtil.class);
+        securityUtilMock.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+    }
+
+    @AfterEach
+    void tearDown() {
+        securityUtilMock.close();
     }
 
     @Test
     void getBookingsByUserId_Success() {
-        try (MockedStatic<SecurityUtil> securityUtilMock = mockStatic(SecurityUtil.class)) {
             // Arrange
             securityUtilMock.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
 
@@ -92,16 +101,13 @@ class BookingServiceTest {
             assertEquals(300, result.getContent().get(0).getTotalPrice());
 
             verify(bookingRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
-        }
+
     }
 
 
 
     @Test
     void getBookingsByUserId_EmptyResult() {
-        // Arrange
-        mockStatic(SecurityUtil.class);
-        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
 
         int page = 0;
         int size = 10;
