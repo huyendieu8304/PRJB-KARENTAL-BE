@@ -1,22 +1,14 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.AccountRegisterRequest;
-import com.mp.karental.dto.request.CheckUniqueEmailRequest;
-import com.mp.karental.dto.request.EditPasswordRequest;
-import com.mp.karental.dto.request.EditProfileRequest;
+import com.mp.karental.dto.request.*;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.dto.response.UserResponse;
-import com.mp.karental.entity.Account;
-import com.mp.karental.entity.UserProfile;
-import com.mp.karental.exception.AppException;
-import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.UserProfileRepository;
-import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -45,12 +37,11 @@ import java.util.Optional;
 @RequestMapping("/user")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Validated
 @Slf4j
 public class UserController {
 
     UserService userService;
-    private final UserProfileRepository userProfileRepository;
-    UserMapper userMapper;
 
     /**
      * Registers a new user account.
@@ -71,6 +62,7 @@ public class UserController {
     ApiResponse<UserResponse> registerAccount(@RequestBody @Valid AccountRegisterRequest request){
         log.info("Registering account {}", request);
         return ApiResponse.<UserResponse>builder()
+                .message("Create account successfully. Please check your email inbox to verify your email address.")
                 .data(userService.addNewAccount(request))
                 .build();
     }
@@ -83,6 +75,25 @@ public class UserController {
     @PostMapping("/check-unique-email")
     ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueEmailRequest request){
         return ApiResponse.<String>builder()
+                .message("Email is unique.")
+                .build();
+    }
+
+    @GetMapping("/resend-verify-email/{email}")
+    ApiResponse<String> resendVerifyEmail(@PathVariable("email")
+                                          @Email(message = "INVALID_EMAIL")
+                                          String email){
+        return ApiResponse.<String>builder()
+                .message(userService.resendVerifyEmail(email))
+                .build();
+    }
+
+
+    @GetMapping("/verify-email")
+    public ApiResponse<String> verifyEmail(@RequestParam("t") String verifyEmailToken) {
+        userService.verifyEmail(verifyEmailToken);
+        return ApiResponse.<String>builder()
+                .message("Verify email successfully! Now you can use your account to login.")
                 .build();
     }
 

@@ -1,10 +1,12 @@
 package com.mp.karental.payment.service;
 
+import com.mp.karental.constant.ETransactionType;
 import com.mp.karental.payment.configuration.PaymentConfig;
 import com.mp.karental.payment.constant.VNPayParams;
 import com.mp.karental.payment.dto.request.InitPaymentRequest;
 import com.mp.karental.payment.dto.response.InitPaymentResponse;
 import com.mp.karental.payment.util.DateUtils;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.Value;
@@ -22,20 +24,30 @@ import java.util.*;
 public class VNPayService implements PaymentService{
     //according to VNPAY rules
     public static final String VERSION = "2.1.0";
-    public static final String COMMAND = "pay";
+
     public static final String ORDER_TYPE = "190000";
     public static final long DEFAULT_MULTIPLIER = 100L;
 
     //get instance from payment config
-    private final  PaymentConfig paymentConfig = new PaymentConfig();
+    private final  PaymentConfig paymentConfig;
 
-    private String tmnCode = paymentConfig.getTmnCode();
+    private String tmnCode ;
 
-    private String initPaymentPrefixUrl = paymentConfig.getInitPaymentUrl();
+    private String initPaymentPrefixUrl;
 
-    private String returnUrlFormat = paymentConfig.getReturnUrl();
+    private String returnUrlFormat;
 
-    private Integer paymentTimeout =paymentConfig.getTimeout();
+    private Integer paymentTimeout;
+
+    @PostConstruct
+    public void init() {
+        this.tmnCode = paymentConfig.getTmnCode();
+        this.initPaymentPrefixUrl = paymentConfig.getInitPaymentUrl();
+        this.returnUrlFormat = paymentConfig.getReturnUrl();
+        this.paymentTimeout = paymentConfig.getTimeout();
+
+        log.info("VNPay Config Loaded: tmnCode={}, initPaymentUrl={}", tmnCode, initPaymentPrefixUrl);
+    }
 
     private final CryptoService cryptoService;
 
@@ -48,15 +60,36 @@ public class VNPayService implements PaymentService{
         var createdDate = DateUtils.formatVnTime(vnCalendar);
         vnCalendar.add(Calendar.MINUTE, paymentTimeout);
         var expiredDate = DateUtils.formatVnTime(vnCalendar);    // 4. expiredDate for secure
-
+        var orderInfo ="";
         var ipAddress = request.getIpAddress();
-        var orderInfo = buildPaymentDetail(request);
         var requestId = request.getRequestId();
 
         Map<String, String> params = new HashMap<>();
 
         params.put(VNPayParams.VERSION, VERSION);
-        params.put(VNPayParams.COMMAND, COMMAND);
+        params.put(VNPayParams.COMMAND, "pay");
+        switch (request.getTransactionType()) {
+            case TOP_UP:
+
+                orderInfo =  String.format("Top-Up transaction %s", request.getTxnRef())      ;
+                break;
+            case WITHDRAW:
+//                params.put(VNPayParams.COMMAND, "refund");
+//                orderInfo =  String.format("Withdraw transaction %s", request.getTxnRef())      ;
+                break;
+            case PAY_DEPOSIT:
+                orderInfo =  String.format("Pay deposit transaction %s", request.getTxnRef())      ;
+                break;
+            case RECEIVE_PAYMENT:
+                orderInfo =  String.format("Thanh toan transaction %s", request.getTxnRef())      ;
+                break;
+            case REFUND_DEPOSIT:
+                orderInfo =  String.format("Thanh toan transaction %s", request.getTxnRef())      ;
+                break;
+            case OFFSET_FINAL_PAYMENT:
+                orderInfo =  String.format("Thanh toan transaction %s", request.getTxnRef())      ;
+                break;
+        }
 
         params.put(VNPayParams.TMN_CODE, tmnCode);
         params.put(VNPayParams.AMOUNT, String.valueOf(amount));
@@ -70,7 +103,7 @@ public class VNPayService implements PaymentService{
 
         params.put(VNPayParams.IP_ADDRESS, ipAddress);
         params.put(VNPayParams.LOCALE, "en");
-
+       // params.put(VNPayParams.BANK_CODE, "VNPAYQR");
         params.put(VNPayParams.ORDER_INFO, orderInfo);
         params.put(VNPayParams.ORDER_TYPE, ORDER_TYPE);
         var initPaymentUrl = buildInitPaymentUrl(params);

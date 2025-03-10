@@ -1,5 +1,6 @@
 package com.mp.karental.entity;
 
+import com.mp.karental.constant.ETransactionStatus;
 import com.mp.karental.constant.ETransactionType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -52,5 +53,6 @@ public class Transaction {
     @ManyToOne
     @JoinColumn(name = "booking_number")
     Booking bookingNumber;
-
+    @Enumerated(EnumType.STRING)
+    ETransactionStatus status;
 }

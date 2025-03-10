@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -15,12 +16,17 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class TransactionRequest {
-    LocalDateTime createdAt;
     @ValidTransactionType(message = "INVALID_TRANSACTION_TYPE")
     @NotNull
     ETransactionType type;
+
     String bookingNo;
+
      String carName;
+
     long amount;
+
     String message;
+
+    private String ipAddress;
 }

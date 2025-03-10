@@ -14,7 +14,6 @@ import java.time.Instant;
 public class TokenService {
     RedisTemplate<String, String> redisTemplate;
 
-
     private static final String INVALIDATED_ACCESS_TOKEN_PREFIX = "accessTk:";
     private static final String INVALIDATED_REFRESH_TOKEN_PREFIX = "refreshTk:";
 

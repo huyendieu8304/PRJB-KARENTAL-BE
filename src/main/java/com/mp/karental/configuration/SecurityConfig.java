@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -49,9 +48,9 @@ public class SecurityConfig{
     public static final String[] PUBLIC_ENDPOINTS = {
             "/user/register",
             "/user/check-unique-email",
-            "/auth/login",
-            "/auth/logout",
-            "/auth/refresh-token",
+            "/user/resend-verify-email/**",
+            "/user/verify-email/**",
+            "/auth/**",
     };
     /**
      * Allow request from other origins below
@@ -96,7 +95,8 @@ public class SecurityConfig{
                         return config;
                     }
                 }))
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint) //unauthenticated request
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint) //unauthenticated request
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) //unauthorized access
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //make each request independently
@@ -111,7 +111,7 @@ public class SecurityConfig{
                 );
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
-//        http.httpBasic(Customizer.withDefaults());
+
         return http.build();
     }
 
@@ -125,7 +125,6 @@ public class SecurityConfig{
      *
      * @return A PasswordEncoder that uses BCrypt hashing algorithm.
      * @author DieuTTH4
-     * @version 1.0
      */
     @Bean
     PasswordEncoder passwordEncoder() {

@@ -37,17 +37,31 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 50MB
+#  mail:
+#    host: smtp.gmail.com
+#    port: 587
+#    username: ${EMAIL_USERNAME}
+#    password: ${EMAIL_PASSWORD}
+#    properties:
+#      mail:
+#        smtp:
+#          auth: true
+#          starttls:
+#            enable: true
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: your_email@gmail.com  # Replace with your email
-    password: your_app_password  # Replace with your Gmail App Password
+    host: sandbox.smtp.mailtrap.io
+    port: 2525
+    username: ${MAILTRAP_USERNAME}
+    password: ${MAILTRAP_PASSWORD}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+    default-encoding: UTF-8
+
+
   data:
     redis:
       host: localhost
@@ -68,5 +82,5 @@ payment:
     tmn-code: T3GTKJIG
     secret-key: TP761QRSR4UT3A09XSGLQ4N8R1S6C4XU
     init-payment-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-    return-url: https://dev.roninhub.com/order/%s/status
-    timeout: 15 # in minutes
+    return-url: http://localhost:3000/my-wallet
+    timeout: 2 # in minutes

@@ -3,6 +3,9 @@ package com.mp.karental.repository;
 import com.mp.karental.entity.Wallet;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
 /**
  * Repository interface for performing CRUD operations on Wallet entities.
  * <p>
@@ -17,5 +20,5 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface WalletRepository extends JpaRepository<Wallet, String> {
-    Wallet findByAccountId(String accountId);
+    Optional<Wallet> findById(String id);
 }

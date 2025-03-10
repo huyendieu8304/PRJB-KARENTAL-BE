@@ -2,6 +2,7 @@ package com.mp.karental.payment.dto.request;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.mp.karental.constant.ETransactionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 @Builder
 public class InitPaymentRequest {
+    private ETransactionType transactionType;
     private String requestId;
     private String ipAddress;
     private String userId;
