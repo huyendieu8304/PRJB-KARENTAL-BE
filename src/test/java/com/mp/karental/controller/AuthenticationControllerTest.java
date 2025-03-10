@@ -1,8 +1,9 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.LoginRequest;
+import com.mp.karental.dto.request.auth.ChangePasswordRequest;
+import com.mp.karental.dto.request.auth.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.LoginResponse;
+import com.mp.karental.dto.response.auth.LoginResponse;
 import com.mp.karental.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
@@ -77,6 +78,67 @@ class AuthenticationControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(apiResponse, response.getBody());
         verify(authenticationService, times(1)).logout(any(HttpServletRequest.class));
+    }
+
+    @Test
+    void testSendForgotPasswordEmail_ValidEmail() {
+        // Arrange
+        String email = "test@example.com";
+
+        // Act
+        ApiResponse<String> response = authenticationController.sendForgotPasswordEmail(email);
+
+        // Assert
+        assertEquals("An email has been send to your email address. Please click to the link in the email to change password.",
+                response.getMessage());
+        verify(authenticationService, times(1)).sendForgotPasswordEmail(email);
+    }
+
+    @Test
+    void testVerifyForgotPassword_ValidToken() {
+        // Arrange
+        String token = "valid-token";
+        String expectedResponse = "AccountId123";
+        when(authenticationService.verifyForgotPassword(token)).thenReturn(expectedResponse);
+
+        // Act
+        ApiResponse<String> response = authenticationController.verifyForgotPassword(token);
+
+        // Assert
+        assertEquals("Verify change password request successfully!", response.getMessage());
+        assertEquals(expectedResponse, response.getData());
+        verify(authenticationService, times(1)).verifyForgotPassword(token);
+    }
+
+    @Test
+    void testVerifyForgotPassword_InvalidToken() {
+        // Arrange
+        String token = "invalid-token";
+        when(authenticationService.verifyForgotPassword(token)).thenThrow(new RuntimeException("Invalid token"));
+
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+                authenticationController.verifyForgotPassword(token)
+        );
+        assertEquals("Invalid token", exception.getMessage());
+        verify(authenticationService, times(1)).verifyForgotPassword(token);
+    }
+
+    @Test
+    void testChangePassword_ValidRequest() {
+        // Arrange
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setForgotPasswordToken("valid-token");
+        request.setNewPassword("NewP@ssword123");
+
+        doNothing().when(authenticationService).changePassword(request);
+
+        // Act
+        ApiResponse<String> response = authenticationController.changePassword(request);
+
+        // Assert
+        assertEquals("Change password successfully!", response.getMessage());
+        verify(authenticationService, times(1)).changePassword(request);
     }
 
 }

@@ -64,6 +64,7 @@ public enum ErrorCode {
     SEND_VERIFY_EMAIL_TO_USER_FAIL(3005, "There was error during sending verify email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
     INCORRECT_PASSWORD(3006, "Current password is incorrect.", HttpStatus.BAD_REQUEST),
     CAR_NOT_FOUND_IN_DB(3007, "The car is not exist in the system", HttpStatus.NOT_FOUND),
+    SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3008, "There was error during sending forgot password email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
 
     VNPAY_SIGNING_FAILED(3008,"Your information is wrong. ", HttpStatus.BAD_REQUEST),
     VNPAY_CHECKSUM_FAILED(3009,"VNPAY Checksum sequence has error. ", HttpStatus.BAD_REQUEST),
