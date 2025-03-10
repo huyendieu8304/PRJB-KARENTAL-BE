@@ -1,8 +1,9 @@
 package com.mp.karental.repository;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.entity.Booking;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -51,6 +52,23 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("endRange") LocalDateTime endRange
     );
 
+    @Query("""
+    SELECT COUNT(b) 
+    FROM Booking b 
+    WHERE b.car.id = :carId 
+    AND b.status <> :cancelledStatus 
+    AND (
+        :startRange BETWEEN b.pickUpTime AND b.dropOffTime 
+        OR :endRange BETWEEN b.pickUpTime AND b.dropOffTime
+        OR (b.pickUpTime <= :startRange AND b.dropOffTime >= :endRange)
+    )
+""")
+    long countActiveBookingsInTimeRange(@Param("carId") String carId,
+                                        @Param("startRange") LocalDateTime startRange,
+                                        @Param("endRange") LocalDateTime endRange,
+                                        @Param("cancelledStatus") EBookingStatus cancelledStatus);
+
+
 
     @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' " +
             "AND b.paymentType = 'WALLET' " +
@@ -72,4 +90,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' AND b.createdAt > :threshold")
     List<Booking> findPendingDepositBookings(@Param("threshold") LocalDateTime threshold);
+
+
+    @Query("""
+    SELECT b FROM Booking b
+    JOIN FETCH b.car c
+    WHERE b.account.id = :accountId
+""")
+    Page<Booking> findByAccountId(@Param("accountId") String accountId, Pageable pageable);
+
+
+}
 }

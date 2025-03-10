@@ -1,8 +1,8 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.KarentalApplication;
-import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.request.CarDetailRequest;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.request.EditCarRequest;
 import com.mp.karental.dto.response.CarResponse;
@@ -34,6 +34,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -72,6 +75,7 @@ public class CarControllerTest {
 
     private AddCarRequest addCarRequest;
     private EditCarRequest editCarRequest;
+    private CarDetailRequest carDetailRequest;
 
     // Initialize the data before each test
     @BeforeEach
@@ -109,7 +113,13 @@ public class CarControllerTest {
                 .description("This is a test after edit")
                 .additionalFunction("Bluetooth")
                 .termOfUse("Yes")
-                .status(ECarStatus.NOT_VERIFIED.name())  // This can be either "AVAILABLE" or "STOPPED"
+                .status("STOPPED")  // This can be either "AVAILABLE" or "STOPPED"
+                .build();
+
+        carDetailRequest = CarDetailRequest.builder()
+                .carId("123")
+                .pickUpTime(LocalDateTime.of(2025, 3, 12, 6, 0)) // 12/03/2025 06:00 AM
+                .dropOffTime(LocalDateTime.of(2025, 3, 15, 22, 0)) // 15/03/2025 10:00 PM
                 .build();
     }
 
@@ -358,7 +368,6 @@ public class CarControllerTest {
 
     @Test
     void getCarDetail_Success() throws Exception {
-        String carId = "123";
         CarDetailResponse carDetail = CarDetailResponse.builder()
                 .licensePlate("49F-123.45")
                 .brand("Toyota")
@@ -379,10 +388,12 @@ public class CarControllerTest {
                 .isGasoline(true)
                 .build();
 
-        Mockito.when(carService.getCarDetail(carId)).thenReturn(carDetail);
+        Mockito.when(carService.getCarDetail(Mockito.any())).thenReturn(carDetail);
 
-        mockMvc.perform(get("/car/customer/view-detail")
-                        .param("carId", carId)
+        mockMvc.perform(get("/car/customer/car-detail")
+                        .param("carId", "123")
+                        .param("pickUpTime", "2025-03-12T06:00:00")
+                        .param("dropOffTime", "2025-03-15T22:00:00")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.licensePlate").value("49F-123.45"))
@@ -391,9 +402,10 @@ public class CarControllerTest {
     }
 
 
+
     @Test
     void getCarDetail_NoError() throws Exception {
-        String carId = "456";
+        String carId = "123";
         CarDetailResponse carDetail = CarDetailResponse.builder()
                 .licensePlate("51A-678.90")
                 .brand("Honda")
@@ -414,10 +426,12 @@ public class CarControllerTest {
                 .isGasoline(true)
                 .build();
 
-        Mockito.when(carService.getCarDetail(carId)).thenReturn(carDetail);
+        Mockito.when(carService.getCarDetail(Mockito.any())).thenReturn(carDetail);
 
-        mockMvc.perform(get("/car/customer/view-detail")
-                        .param("carId", carId)
+        mockMvc.perform(get("/car/customer/car-detail")
+                        .param("carId", "123")
+                        .param("pickUpTime", "2025-03-12T06:00:00")
+                        .param("dropOffTime", "2025-03-15T22:00:00")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.licensePlate").value("51A-678.90"))
@@ -425,7 +439,72 @@ public class CarControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.model").value("Civic"));
     }
 
+    @Test
+    void searchCars_Success() throws Exception {
+        // Arrange: Mock data
+        LocalDateTime pickUpTime = LocalDateTime.of(2025, 3, 12, 6, 0);
+        LocalDateTime dropOffTime = LocalDateTime.of(2025, 3, 15, 22, 0);
 
+        CarThumbnailResponse car1 = CarThumbnailResponse.builder()
+                .id("1")
+                .brand("Toyota")
+                .model("Camry")
+                .productionYear(2020)
+                .status("Available")
+                .mileage(15000)
+                .basePrice(50000)
+                .address("Hà Nội")
+                .carImageFront("image_front_url")
+                .carImageRight("image_right_url")
+                .carImageLeft("image_left_url")
+                .carImageBack("image_back_url")
+                .noOfRides(10)
+                .build();
+
+        Page<CarThumbnailResponse> carPage = new PageImpl<>(Collections.singletonList(car1));
+
+        Mockito.when(carService.searchCars(Mockito.any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyString()))
+                .thenReturn(carPage);
+
+        // Act & Assert
+        mockMvc.perform(get("/car/customer/search-car")
+                        .param("address", "Hà Nội")
+                        .param("pickUpTime", "2025-03-12T06:00:00")
+                        .param("dropOffTime", "2025-03-15T22:00:00")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "productionYear,desc")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].id").value("1"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].brand").value("Toyota"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].model").value("Camry"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].productionYear").value(2020))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].status").value("Available"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].mileage").value(15000))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].basePrice").value(50000))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].address").value("Hà Nội"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].carImageFront").value("image_front_url"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].carImageRight").value("image_right_url"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].carImageLeft").value("image_left_url"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].carImageBack").value("image_back_url"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].noOfRides").value(10));
+    }
+
+    @Test
+    void searchCars_Failed_InvalidDateFormat() throws Exception {
+        // Act & Assert
+        mockMvc.perform(get("/car/customer/search-car")
+                        .param("address", "Hà Nội")
+                        .param("pickUpTime", "invalid-date-format")  // ❌ Sai định dạng
+                        .param("dropOffTime", "2025-03-15T22:00:00")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "productionYear,desc")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()) // ⬅️ Kỳ vọng HTTP 400
+                .andExpect(MockMvcResultMatchers.jsonPath("code").value(2029));
+    }
 
 
 }

@@ -3,7 +3,9 @@ package com.mp.karental.service;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.request.CarDetailRequest;
 import com.mp.karental.dto.request.EditCarRequest;
+import com.mp.karental.dto.request.SearchCarRequest;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
@@ -20,15 +22,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -44,10 +45,15 @@ import java.util.List;
 @Transactional
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CarService {
+
     CarRepository carRepository;
     CarMapper carMapper;
     FileService fileService;
     BookingRepository bookingRepository;
+
+    // Define constant field names to avoid repetition
+    private static final String FIELD_PRODUCTION_YEAR = "productionYear";
+    private static final String FIELD_PRICE = "basePrice";
 
     /**
      * Adds a new car to the system.
@@ -313,12 +319,8 @@ public class CarService {
     public Page<CarThumbnailResponse> getCarsByUserId(int page, int size, String sort) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Define sort direction
-        String[] sortParams = sort.split(",");
-        String sortField = sortParams[0];
-        Sort.Direction sortDirection = Sort.Direction.fromString(sortParams[1]);
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+        // Validate page, size and sort
+        Pageable pageable = getPageable(page, size, sort);
 
         // Get list of cars
         // Map cars to CarThumbnailResponse using fromCar method
@@ -332,6 +334,8 @@ public class CarService {
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
             response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
+            long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
+            response.setNoOfRides(noOfRides);
             return response;
         });
 
@@ -339,25 +343,35 @@ public class CarService {
     }
 
     /**
-     * Retrieves detailed information of a car by its ID.
+     * Retrieves detailed information of a car and checks its booking status within a given time range.
      *
-     * @param carId The unique identifier of the car.
-     * @return CarDetailResponse containing detailed information of the car.
-     * @throws AppException if the car is not found.
+     * @param request CarDetailRequest object with carId, pickUp, and dropOff times.
+     * @return CarDetailResponse containing car details, booking status, images, and address visibility.
      */
-    public CarDetailResponse getCarDetail(String carId) {
-        // Get the currently authenticated account ID
+    public CarDetailResponse getCarDetail(CarDetailRequest request) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Retrieve the car entity from the repository, throw an exception if not found
-        Car car = carRepository.findById(carId)
+        // Validate that the pick-up date is before the drop-off date
+        if (request.getPickUpTime().isAfter(request.getDropOffTime())) {
+            throw new AppException(ErrorCode.INVALID_DATE_RANGE);
+        }
+
+        // Retrieve car details from the database
+        Car car = carRepository.findById(request.getCarId())
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
 
-        // Check if the current user has booked this car
-        boolean isBooked = bookingRepository.isCarBookedByAccount(carId, accountId);
+        // Check if the car is verified
+        if (car.getStatus() != ECarStatus.VERIFIED) {
+            throw new AppException(ErrorCode.CAR_NOT_VERIFIED);
+        }
+
+        //Check car is available
+        boolean isAvailable = isCarAvailable(request.getCarId(), request.getPickUpTime(), request.getDropOffTime());
 
         // Map the car entity to a CarDetailResponse DTO
-        CarDetailResponse response = carMapper.toCarDetailResponse(car, isBooked);
+        CarDetailResponse response = carMapper.toCarDetailResponse(car, isAvailable);
+
+        boolean isBooked = isCarBooked(request.getCarId(), accountId);
 
         if (isBooked) {
             // If the booking_status is COMPLETE, display the full address
@@ -372,8 +386,7 @@ public class CarService {
             response.setRegistrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()));
 
         } else {
-            // If the booking_status is not COMPLETE, hide document URLs and provide a partial address
-            // Hide document URLs and show "Verified" instead
+            // If the booking status is CANCELLED or PENDING_DEPOSIT, hide document URLs and provide a partial address
             response.setCertificateOfInspectionUrl(null);
             response.setInsuranceUrl(null);
             response.setRegistrationPaperUrl(null);
@@ -394,11 +407,59 @@ public class CarService {
         response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
         response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
+        // Set booking status in the response
+        response.setBooked(isBooked);
+
         // Count the number of completed bookings for this car and set it
-        long noOfRides = bookingRepository.countCompletedBookingsByCar(carId);
+        long noOfRides = bookingRepository.countCompletedBookingsByCar(request.getCarId());
         response.setNoOfRides(noOfRides);
 
         return response;
+    }
+
+    /**
+     * Checks if a car is available within the given time range.
+     *
+     * @param carId       the ID of the car
+     * @param pickUpTime  the start time of the requested booking
+     * @param dropOffTime the end time of the requested booking
+     * @return true if the car is available, false otherwise
+     */
+    public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
+        // Get list booking in range (pickUp - 1 day) to (dropOff + 1 day)
+        LocalDateTime searchStart = pickUpTime.minusDays(1);
+        LocalDateTime searchEnd = dropOffTime.plusDays(1);
+
+        List<Booking> bookings = bookingRepository.findActiveBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
+        log.info("Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
+
+        // If there isn't any booking -> Available
+        if (bookings.isEmpty()) {
+            return true;
+        }
+        // Check whether all booking is CANCELED OR  PENDING_DEPOSIT
+        return bookings.stream()
+                .allMatch(booking -> booking.getStatus() == EBookingStatus.CANCELLED
+                                    || booking.getStatus() == EBookingStatus.PENDING_DEPOSIT);
+    }
+
+
+    /**
+     * Checks if a car has been booked by customer.
+     *
+     * @param carId     the ID of the car
+     * @param accountId the ID of the customer
+     * @return true if the car is booked by account ID, false otherwise
+     */
+    public boolean isCarBooked(String carId, String accountId) {
+        List<EBookingStatus> activeStatuses = Arrays.asList(
+                EBookingStatus.CONFIRMED,
+                EBookingStatus.IN_PROGRESS,
+                EBookingStatus.PENDING_PAYMENT,
+                EBookingStatus.COMPLETED
+        );
+
+        return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);
     }
 
     /**
@@ -411,6 +472,9 @@ public class CarService {
     public CarResponse getCarById(String id) {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Fetch the account details from the database, or throw an error if the account is not found
+        Account account = SecurityUtil.getCurrentAccount();
 
         // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)
@@ -433,51 +497,4 @@ public class CarService {
 
         return carResponse;
     }
-
-    /**
-     * Checks if a car is available within the given time range.
-     *
-     * @param carId      the ID of the car
-     * @param pickUpTime the start time of the requested booking
-     * @param dropOffTime the end time of the requested booking
-     * @return true if the car is available, false otherwise
-     */
-    public boolean isCarAvailable(String carId, LocalDateTime pickUpTime, LocalDateTime dropOffTime) {
-        // get list booking in range (pickUp - 1 day) to (dropOff + 1 day)
-        LocalDateTime searchStart = pickUpTime.minusDays(1);
-        LocalDateTime searchEnd = dropOffTime.plusDays(1);
-
-        List<Booking> bookings = bookingRepository.findActiveBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
-        log.info("Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
-
-        // If there isn't any booking -> Available
-        if (bookings.isEmpty()) {
-            return true;
-        }
-        // Check whether all booking is CANCELED OR  PENDING_DEPOSIT
-        return bookings.stream()
-                .allMatch(booking -> booking.getStatus() == EBookingStatus.CANCELLED
-                        || booking.getStatus() == EBookingStatus.PENDING_DEPOSIT);
-    }
-
-
-    /**
-     * Checks if a car is booked by customer.
-     * @param carId the ID of the car
-     * @param accountId the ID of the customer
-     * @return true if the car is booked by account ID, false otherwise
-     */
-    public boolean isCarBooked(String carId, String accountId) {
-        List<EBookingStatus> activeStatuses = Arrays.asList(
-                EBookingStatus.CONFIRMED,
-                EBookingStatus.IN_PROGRESS,
-                EBookingStatus.PENDING_PAYMENT,
-                EBookingStatus.COMPLETED
-        );
-
-        return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);
-    }
-
-
-
 }

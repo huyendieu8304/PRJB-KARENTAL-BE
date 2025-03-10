@@ -4,6 +4,8 @@ import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.BookingRequest;
 import com.mp.karental.dto.response.BookingResponse;
+import com.mp.karental.dto.response.BookingThumbnailResponse;
+import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Car;
@@ -47,6 +49,10 @@ public class BookingService {
     WalletRepository walletRepository;
     FileService fileService;
     CarService carService;
+
+    // Define constant field names to avoid repetition
+    private static final String FIELD_CREATED_AT = "createdAt";
+    private static final String FIELD_BASE_PRICE = "basePrice";
 
     /**
      * Creates a new booking for a car rental.
@@ -179,6 +185,83 @@ public class BookingService {
                 }
 
                 break; // stopped when a booking change to waiting confirm
+            }
+        }
+
+
+    /**
+     * Retrieves the list of bookings for the currently logged-in user, with pagination and sorting.
+     *
+     * @param page the page number to retrieve
+     * @param size the number of records per page
+     * @param sort sorting field and direction in the format "field,DIRECTION"
+     * @return a paginated list of `BookingThumbnailResponse`
+     */
+    public Page<BookingThumbnailResponse> getBookingsByUserId(int page, int size, String sort) {
+        // Get the currently authenticated user's account ID
+        String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Validate and limit size (maximum 100)
+        if (size <= 0 || size > 100) {
+            size = 10; // Default value if client provides an invalid input
+        }
+
+        // Ensure page number is non-negative (set to 0 if negative)
+        if (page < 0) {
+            page = 0;
+        }
+
+        // Define default sorting field and direction
+        String sortField = FIELD_CREATED_AT;
+        Sort.Direction sortDirection = Sort.Direction.DESC;
+
+        if (sort != null && !sort.isBlank()) {
+            String[] sortParams = sort.split(",");
+            if (sortParams.length == 2) {
+                String requestedField = sortParams[0].trim();
+                String requestedDirection = sortParams[1].trim().toUpperCase();
+
+                // Check if requestedField valid
+                if (List.of(FIELD_CREATED_AT, FIELD_BASE_PRICE).contains(requestedField)) {
+                    sortField = requestedField;
+                }
+
+                // Check if requestedDirection valid
+                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
+                    sortDirection = Sort.Direction.valueOf(requestedDirection);
+                }
+            }
+        }
+
+        // Create pageable object with sorting
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+
+        // Retrieve bookings from the repository
+        Page<Booking> bookings = bookingRepository.findByAccountId(accountId, pageable);
+
+        return bookings.map(booking -> {
+            // Map the Booking entity to a BookingThumbnailResponse DTO
+            BookingThumbnailResponse response = bookingMapper.toBookingThumbnailResponse(booking);
+
+            // Calculate the total rental period in days
+            long totalHours = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toHours();
+            long numberOfDay = (long) Math.ceil((double) totalHours / 24); // Round up to full days
+
+            // Calculate the total price based on the base price and rental period
+            long totalPrice = numberOfDay * booking.getBasePrice();
+
+            response.setNumberOfDay((int) numberOfDay);
+            response.setTotalPrice(totalPrice);
+            response.setCreatedAt(booking.getCreatedAt());
+
+            // Retrieve car images from the file storage service
+            response.setCarImageFrontUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
+            response.setCarImageBackUrl(fileService.getFileUrl(booking.getCar().getCarImageBack()));
+            response.setCarImageLeftUrl(fileService.getFileUrl(booking.getCar().getCarImageLeft()));
+            response.setCarImageRightUrl(fileService.getFileUrl(booking.getCar().getCarImageRight()));
+
+            return response;
+                });
             }
         }
     }
