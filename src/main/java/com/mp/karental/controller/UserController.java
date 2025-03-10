@@ -7,6 +7,10 @@ import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.mapper.UserMapper;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import lombok.AccessLevel;
@@ -30,7 +34,6 @@ import java.util.Optional;
  * </p>
  *
  * @author DieuTTH4
- *
  * @version 1.0
  */
 @RestController
@@ -39,6 +42,7 @@ import java.util.Optional;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Validated
 @Slf4j
+@Tag(name = "Car")
 public class UserController {
 
     UserService userService;
@@ -53,13 +57,27 @@ public class UserController {
      *
      * @param request the registration details for the new account
      * @return an {@code ApiResponse} containing the created user information
-     *
      * @author DieuTTH4
-     *
      * @version 1.0
      */
+    @Operation(
+            summary = "Register a new customer or car owner account ",
+            description = "This endpoint is used to send necessary information to register a user account. The role of new account is CUSTOMER or CAR_OWNER.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            description = "Success",
+                            responseCode = "200"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            description = "Bad request - Invalid input data",
+                            responseCode = "400",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = ApiResponse.class))
+                    ),
+            }
+    )
     @PostMapping("/register")
-    ApiResponse<UserResponse> registerAccount(@RequestBody @Valid AccountRegisterRequest request){
+    ApiResponse<UserResponse> registerAccount(@RequestBody @Valid AccountRegisterRequest request) {
         log.info("Registering account {}", request);
         return ApiResponse.<UserResponse>builder()
                 .message("Create account successfully. Please check your email inbox to verify your email address.")
@@ -69,11 +87,12 @@ public class UserController {
 
     /**
      * this method check whether the email exist in the db or not
+     *
      * @param request Object contain email
      * @return ApiResponse Object
      */
     @PostMapping("/check-unique-email")
-    ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueEmailRequest request){
+    ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueEmailRequest request) {
         return ApiResponse.<String>builder()
                 .message("Email is unique.")
                 .build();
@@ -82,7 +101,7 @@ public class UserController {
     @GetMapping("/resend-verify-email/{email}")
     ApiResponse<String> resendVerifyEmail(@PathVariable("email")
                                           @Email(message = "INVALID_EMAIL")
-                                          String email){
+                                          String email) {
         return ApiResponse.<String>builder()
                 .message(userService.resendVerifyEmail(email))
                 .build();
@@ -104,8 +123,7 @@ public class UserController {
      * @return an ApiResponse containing updated user information
      */
     @PutMapping(value = "/edit-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<EditProfileResponse> editProfile(@ModelAttribute @Valid EditProfileRequest request)
-    {
+    ApiResponse<EditProfileResponse> editProfile(@ModelAttribute @Valid EditProfileRequest request) {
         log.info("Editing profile for user: {}", request);
         return ApiResponse.<EditProfileResponse>builder()
                 .data(userService.editProfile(request))

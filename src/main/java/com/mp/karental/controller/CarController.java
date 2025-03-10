@@ -7,6 +7,9 @@ import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.service.CarService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +37,8 @@ import org.springframework.web.bind.annotation.*;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 @Validated
+//@SecurityRequirement(name = "bearerAuth")
+@Tag(name = "Car")
 public class CarController {
     CarService carService;
 
@@ -43,6 +48,20 @@ public class CarController {
      * @param request The request object containing car details.
      * @return ApiResponse containing the newly added car details.
      */
+    @Operation(
+            description = "add new carr",
+            summary = "This is summary for this endpoint",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            description = "Success",
+                            responseCode = "200"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            description = "bla bla",
+                            responseCode = "400"
+                    )
+            }
+    )
     @PostMapping(value = "/car-owner/addCar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<CarResponse> addNewCar(@ModelAttribute @Valid AddCarRequest request) {
         log.info("add new car {}", request);
