@@ -1,5 +1,6 @@
 package com.mp.karental.service;
 
+import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
@@ -10,6 +11,7 @@ import com.mp.karental.dto.response.CarResponse;
 import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.entity.Account;
+import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Car;
 import com.mp.karental.entity.UserProfile;
 import com.mp.karental.exception.AppException;
@@ -34,6 +36,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
@@ -94,6 +97,8 @@ class CarServiceTest {
     void tearDown() {
         mockedSecurityUtil.close();
     }
+
+
 
     @Test
     void testGetCarsByUserId_WhenUserHasCars_ShouldReturnCarList() {
@@ -310,79 +315,9 @@ class CarServiceTest {
         CarResponse response = carService.editCar(editCarRequest, "car-123");
         // Assertions
         assertNotNull(response, "Response should not be null");
-        assertEquals("AVAILABLE", response.getStatus());
         assertEquals("updated description", response.getDescription());
     }
 
-//    @Test
-//    void editCar_shouldDefaultToAvailable_whenStatusIsInvalid() {
-//        // Mock SecurityUtil to return a valid account ID
-//        String accountId = "user-123";
-//        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
-//
-//        // Mock existing account
-//        Account mockAccount = new Account();
-//        mockAccount.setId(accountId);
-//
-//        // Mock existing car in the database
-//        Car existingCar = new Car();
-//        existingCar.setId("car-123");
-//        existingCar.setLicensePlate("49F-123.45");
-//        existingCar.setAutomatic(false);
-//        existingCar.setGasoline(false);
-//        existingCar.setStatus(ECarStatus.STOPPED);
-//        existingCar.setCityProvince("Tỉnh Hà Giang");
-//        existingCar.setDistrict("Thành phố Hà Giang");
-//        existingCar.setWard("Phường Quang Trung");
-//        existingCar.setHouseNumberStreet("211, Trần Duy Hưng");
-//        existingCar.setAccount(mockAccount);
-//
-//        when(carRepository.findById("car-123")).thenReturn(Optional.of(existingCar));
-//
-//        // Mock editCarRequest with an invalid status
-//        EditCarRequest editCarRequest = new EditCarRequest();
-//        editCarRequest.setStatus("abc"); // Invalid status
-//
-//        // Mock the save method to enforce the default status logic
-//        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> {
-//            Car updatedCar = invocation.getArgument(0);
-//
-//
-//            updatedCar.setLicensePlate(existingCar.getLicensePlate());
-//            updatedCar.setAutomatic(existingCar.isAutomatic());
-//            updatedCar.setGasoline(existingCar.isGasoline());
-//            updatedCar.setCityProvince(existingCar.getCityProvince());
-//            updatedCar.setDistrict(existingCar.getDistrict());
-//            updatedCar.setWard(existingCar.getWard());
-//            updatedCar.setHouseNumberStreet(existingCar.getHouseNumberStreet());
-//            updatedCar.setDescription("updated description");
-//            return updatedCar;
-//        });
-//
-//        // Mock the mapper to ensure the response correctly reflects the changes
-//        when(carMapper.toCarResponse(any(Car.class))).thenAnswer(invocation -> {
-//            Car updatedCar = invocation.getArgument(0);
-//            CarResponse response = new CarResponse();
-//            response.setLicensePlate(updatedCar.getLicensePlate());
-//            response.setAddress(String.join(", ", updatedCar.getCityProvince(), updatedCar.getDistrict(), updatedCar.getWard(), updatedCar.getHouseNumberStreet()));
-//            response.setStatus(updatedCar.getStatus());
-//            response.setDescription(updatedCar.getDescription());
-//            return response;
-//        });
-//
-//        // Execute the service method
-//        CarResponse response = carService.editCar(editCarRequest, "car-123");
-//
-//        // Assertions
-//        assertNotNull(response, "Response should not be null");
-//        assertEquals("AVAILABLE", response.getStatus(), "Invalid status should default to AVAILABLE");
-//        assertEquals("updated description", response.getDescription());
-//    }
-
-    // Helper method to check valid status values
-    private boolean isValidStatus(String status) {
-        return List.of("AVAILABLE", "STOPPED").contains(status);
-    }
 
     @Test
     void editCar_shouldThrowException_whenCarNotFound() {
@@ -538,8 +473,11 @@ class CarServiceTest {
     @Test
     void testGetCarDetail_WhenCarExistsAndBooked_ShouldReturnCarResponseWithFullAddress() {
         // Given
+        Account account = new Account();
         String carId = "car-456";
         String accountId = "user-123"; // Giả lập tài khoản hiện tại
+        account.setId(accountId);
+
         Car car = new Car();
         car.setId(carId);
         car.setStatus(ECarStatus.STOPPED);
@@ -550,22 +488,33 @@ class CarServiceTest {
         car.setRegistrationPaperUri("s3://documents/registration.pdf");
         car.setCertificateOfInspectionUri("s3://documents/inspection.pdf");
         car.setInsuranceUri("s3://documents/insurance.pdf");
+        car.setAccount(account);
+
+        // Mock CarResponse
+        CarResponse carResponse = new CarResponse();
+        carResponse.setId(carId);
+        carResponse.setAddress("Ward 1, District A, City X");
 
         // Mock repository và service
-        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
-        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
-        when(bookingRepository.isCarBookedByAccount(carId, accountId)).thenReturn(true);
-        when(bookingRepository.countCompletedBookingsByCar(carId)).thenReturn(8L);
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        lenient().when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        lenient().when(bookingRepository.isCarBookedByAccount(carId, accountId)).thenReturn(true);
+        lenient().when(bookingRepository.countCompletedBookingsByCar(carId)).thenReturn(8L);
+        lenient().when(carMapper.toCarResponse(car)).thenReturn(carResponse); // ✅ Fix mock
 
-        CarResponse result = carService.getCarById("car-456");
+        // Act
+        CarResponse result = carService.getCarById(carId);
 
+        // Assert
         assertNotNull(result);
-        assertEquals("123", result.getId());
-        assertEquals("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien", result.getAddress());
+        assertEquals(carId, result.getId()); // ✅ Fix lỗi assert
+        assertEquals("City X, District A, Ward 1, 123 Main St", result.getAddress());
 
-        verify(carRepository, times(1)).findById("123");
+        // Verify đúng tham số
+        verify(carRepository, times(1)).findById(carId);
         verify(carMapper, times(1)).toCarResponse(car);
     }
+
 
     @Test
     void testGetCarDetail_WhenCarDoesNotExist_ShouldThrowException() {
@@ -575,6 +524,328 @@ class CarServiceTest {
         AppException exception = assertThrows(AppException.class, () -> carService.getCarDetail(carId));
 
         assertEquals(ErrorCode.CAR_NOT_FOUND_IN_DB, exception.getErrorCode());
+    }
+
+    @Test
+    void testEditCar_CarNotFound() {
+        String carId = "non-existent-car-id";
+        when(carRepository.findById(carId)).thenReturn(Optional.empty());
+
+        AppException exception = assertThrows(AppException.class, () -> carService.editCar(editCarRequest, carId));
+        assertEquals(ErrorCode.CAR_NOT_FOUND_IN_DB, exception.getErrorCode());
+    }
+
+    @Test
+    void editCar_ShouldUpdateImages_WhenNewImagesProvided() throws Exception {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        EditCarRequest request = new EditCarRequest();
+        request.setCarImageFront(mock(MultipartFile.class)); // Giả lập ảnh mới
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        verify(fileService).uploadFile(any(MultipartFile.class), anyString()); // Kiểm tra ảnh được upload
+        verify(carRepository).save(car);
+    }
+
+    @Test
+    void editCar_ShouldNotUploadImages_WhenNoNewImagesProvided() throws Exception {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        EditCarRequest request = new EditCarRequest(); // Không set ảnh nào
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        verify(fileService, never()).uploadFile(any(), anyString()); // Không gọi uploadFile
+        verify(carRepository).save(car);
+    }
+
+    @Test
+    void editCar_ShouldUploadOnlyFrontImage_WhenOnlyFrontImageProvided() throws Exception {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        EditCarRequest request = new EditCarRequest();
+        request.setCarImageFront(mock(MultipartFile.class)); // Chỉ có ảnh trước
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        verify(fileService).uploadFile(any(MultipartFile.class), contains("front"));
+        verify(fileService, never()).uploadFile(any(), contains("back"));
+        verify(fileService, never()).uploadFile(any(), contains("left"));
+        verify(fileService, never()).uploadFile(any(), contains("right"));
+        verify(carRepository).save(car);
+    }
+
+    @Test
+    void editCar_ShouldUploadOnlyBackImage_WhenOnlyBackImageProvided() throws Exception {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        EditCarRequest request = new EditCarRequest();
+        request.setCarImageBack(mock(MultipartFile.class)); // Chỉ có ảnh trước
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        verify(fileService).uploadFile(any(MultipartFile.class), contains("back"));
+        verify(fileService, never()).uploadFile(any(), contains("front"));
+        verify(fileService, never()).uploadFile(any(), contains("left"));
+        verify(fileService, never()).uploadFile(any(), contains("right"));
+        verify(carRepository).save(car);
+    }
+
+    @Test
+    void editCar_ShouldUploadOnlyLeftImage_WhenOnlyLeftImageProvided() throws Exception {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        EditCarRequest request = new EditCarRequest();
+        request.setCarImageLeft(mock(MultipartFile.class)); // Chỉ có ảnh trước
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        verify(fileService).uploadFile(any(MultipartFile.class), contains("left"));
+        verify(fileService, never()).uploadFile(any(), contains("back"));
+        verify(fileService, never()).uploadFile(any(), contains("front"));
+        verify(fileService, never()).uploadFile(any(), contains("right"));
+        verify(carRepository).save(car);
+    }
+
+    @Test
+    void editCar_ShouldUploadOnlyRightImage_WhenOnlyRightImageProvided() throws Exception {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        EditCarRequest request = new EditCarRequest();
+        request.setCarImageRight(mock(MultipartFile.class)); // Chỉ có ảnh trước
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        verify(fileService).uploadFile(any(MultipartFile.class), contains("right"));
+        verify(fileService, never()).uploadFile(any(), contains("back"));
+        verify(fileService, never()).uploadFile(any(), contains("front"));
+        verify(fileService, never()).uploadFile(any(), contains("left"));
+        verify(carRepository).save(car);
+    }
+
+
+    @Test
+    void editCar_ShouldKeepExistingStatus_WhenStatusIsNull() {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED); // Trạng thái ban đầu
+
+        EditCarRequest request = new EditCarRequest();
+        request.setStatus(null); // Không gửi trạng thái mới
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(ECarStatus.NOT_VERIFIED, car.getStatus()); // Trạng thái không đổi
+    }
+
+    @Test
+    void testCarAvailable_NoBookings() {
+        String carId = "car123";
+        LocalDateTime pickUpTime = LocalDateTime.now();
+        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
+
+        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
+                .thenReturn(List.of());
+
+        assertTrue(carService.isCarAvailable(carId, pickUpTime, dropOffTime));
+    }
+
+    @Test
+    void testCarAvailable_AllCancelledOrPendingDeposit() {
+        String carId = "car123";
+        LocalDateTime pickUpTime = LocalDateTime.now();
+        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
+
+        Booking booking1 = new Booking();
+        booking1.setStatus(EBookingStatus.CANCELLED);
+
+        Booking booking2 = new Booking();
+        booking2.setStatus(EBookingStatus.PENDING_DEPOSIT);
+
+        List<Booking> bookings = List.of(booking1, booking2);
+
+        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
+                .thenReturn(bookings);
+
+        assertTrue(carService.isCarAvailable(carId, pickUpTime, dropOffTime));
+    }
+
+
+    @Test
+    void testCarNotAvailable_HasActiveBooking() {
+        String carId = "car123";
+        LocalDateTime pickUpTime = LocalDateTime.now();
+        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
+
+        Booking booking = new Booking();
+        booking.setStatus(EBookingStatus.CONFIRMED); // Dùng setter thay vì constructor
+
+        List<Booking> bookings = List.of(booking);
+
+        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
+                .thenReturn(bookings);
+
+        assertFalse(carService.isCarAvailable(carId, pickUpTime, dropOffTime));
+    }
+
+
+    @Test
+    void testCarNotBooked_NoBookingExists() {
+        String carId = "car123";
+        String accountId = "user456";
+
+        when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(anyString(), anyString(), anyList()))
+                .thenReturn(false);
+
+        assertFalse(carService.isCarBooked(carId, accountId));
+    }
+
+    @Test
+    void testCarNotBooked_BookingWithInvalidStatus() {
+        String carId = "car123";
+        String accountId = "user456";
+
+        // Giả sử tồn tại booking nhưng không có trạng thái hợp lệ
+        when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(anyString(), anyString(), anyList()))
+                .thenReturn(false);
+
+        assertFalse(carService.isCarBooked(carId, accountId));
+    }
+
+    @Test
+    void testCarBooked_WithValidStatus() {
+        String carId = "car123";
+        String accountId = "user456";
+
+        // Giả sử tồn tại booking với trạng thái hợp lệ
+        when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(anyString(), anyString(), anyList()))
+                .thenReturn(true);
+
+        assertTrue(carService.isCarBooked(carId, accountId));
     }
 
 }

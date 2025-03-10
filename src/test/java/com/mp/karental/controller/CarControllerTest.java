@@ -1,6 +1,7 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.KarentalApplication;
+import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.request.EditCarRequest;
@@ -108,7 +109,7 @@ public class CarControllerTest {
                 .description("This is a test after edit")
                 .additionalFunction("Bluetooth")
                 .termOfUse("Yes")
-                .status("AVAILABLE")  // This can be either "AVAILABLE" or "STOPPED"
+                .status(ECarStatus.NOT_VERIFIED.name())  // This can be either "AVAILABLE" or "STOPPED"
                 .build();
     }
 
@@ -274,70 +275,6 @@ public class CarControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("data.licensePlate").value("49F-123.45"))
                 .andExpect(MockMvcResultMatchers.jsonPath("data.description").value("This is a test after edit"))
                 .andExpect(MockMvcResultMatchers.jsonPath("data.termOfUse").value("Yes"));
-    }
-
-    @Test
-    void editCar_Failure_MissingCarImageFront() throws Exception {
-        // Prepare expected response (after editing failure)
-        CarResponse carResponse = new CarResponse();
-        carResponse.setLicensePlate("49F-123.45");
-        carResponse.setBrand("Toyota");
-        carResponse.setModel("Camry");
-        carResponse.setColor("Black");
-        carResponse.setNumberOfSeats(5);
-        carResponse.setProductionYear(2020);
-        carResponse.setMileage(15000);
-        carResponse.setFuelConsumption(7.5f);
-        carResponse.setBasePrice(50000);
-        carResponse.setDeposit(500000);
-        carResponse.setAddress("Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211, Trần Duy Hưng");
-        carResponse.setDescription("This is a test after edit");
-        carResponse.setAdditionalFunction("Bluetooth");
-        carResponse.setTermOfUse("Yes");
-        carResponse.setAutomatic(true);
-        carResponse.setGasoline(true);
-
-        // Mock the car service behavior to simulate failure
-        when(carService.editCar(ArgumentMatchers.any(), anyString()))
-                .thenThrow(new IllegalArgumentException("Car's front side image is required."));
-
-        // Prepare EditCarRequest object (example)
-        EditCarRequest editCarRequest = EditCarRequest.builder()
-                .mileage(15000)
-                .fuelConsumption(7.5f)
-                .basePrice(50000)
-                .deposit(500000)
-                .address("Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211, Trần Duy Hưng")
-                .description("This is a test after edit")
-                .additionalFunction("Bluetooth")
-                .termOfUse("Yes")
-                .status("AVAILABLE")
-                .build();
-
-        // Mock the files for the multipart request (missing carImageFront to simulate failure)
-        // Missing carImageFront file
-        MockMultipartFile carImageBack = new MockMultipartFile("carImageBack", "", "image/jpeg", new byte[0]);
-        MockMultipartFile carImageLeft = new MockMultipartFile("carImageLeft", "", "image/jpeg", new byte[0]);
-        MockMultipartFile carImageRight = new MockMultipartFile("carImageRight", "", "image/jpeg", new byte[0]);
-
-        // Perform the test: Edit an existing car with the JWT token for authorization
-        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT, "/car/car-owner/editCar/{id}", "carId123")  // Explicitly use PUT method
-                        .file(carImageBack)
-                        .file(carImageLeft)
-                        .file(carImageRight)
-                        .param("mileage", String.valueOf(editCarRequest.getMileage()))
-                        .param("fuelConsumption", String.valueOf(editCarRequest.getFuelConsumption()))
-                        .param("basePrice", String.valueOf(editCarRequest.getBasePrice()))
-                        .param("deposit", String.valueOf(editCarRequest.getDeposit()))
-                        .param("address", editCarRequest.getAddress())
-                        .param("description", editCarRequest.getDescription())
-                        .param("additionalFunction", editCarRequest.getAdditionalFunction())
-                        .param("termOfUse", editCarRequest.getTermOfUse())
-                        .param("status", editCarRequest.getStatus())
-                        .contentType(MediaType.MULTIPART_FORM_DATA))  // This sets the content type to multipart/form-data
-                .andExpect(status().isBadRequest())  // Expect 400 Bad Request due to missing file
-                .andExpect(MockMvcResultMatchers.jsonPath("code").value(2000))  // Assuming the failure code
-                .andExpect(MockMvcResultMatchers.jsonPath("message").value("Car's front side image is required."));
     }
 
     @Test

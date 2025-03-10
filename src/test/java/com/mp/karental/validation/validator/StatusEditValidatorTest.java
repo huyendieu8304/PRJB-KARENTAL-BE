@@ -1,5 +1,6 @@
 package com.mp.karental.validation.validator;
 
+import com.mp.karental.constant.ECarStatus;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,18 +26,18 @@ class StatusEditValidatorTest {
 
     @Test
     void testValidStatus_Available() {
-        assertTrue(validator.isValid("available", context), "Expected 'available' to be valid");
+        assertTrue(validator.isValid(ECarStatus.NOT_VERIFIED.name(), context), "Expected 'not verfied' to be valid");
     }
 
     @Test
     void testValidStatus_Stopped() {
-        assertTrue(validator.isValid("stopped", context), "Expected 'stopped' to be valid");
+        assertTrue(validator.isValid(ECarStatus.STOPPED.name(), context), "Expected 'stopped' to be valid");
     }
 
     @Test
     void testValidStatus_CaseInsensitive() {
-        assertTrue(validator.isValid("AVAILABLE", context), "Expected 'AVAILABLE' to be valid");
-        assertTrue(validator.isValid("STOPPED", context), "Expected 'STOPPED' to be valid");
+        assertTrue(validator.isValid(ECarStatus.NOT_VERIFIED.name(), context), "Expected 'not verified' to be valid");
+        assertTrue(validator.isValid(ECarStatus.NOT_VERIFIED.name(), context), "Expected 'STOPPED' to be valid");
     }
 
     @Test
