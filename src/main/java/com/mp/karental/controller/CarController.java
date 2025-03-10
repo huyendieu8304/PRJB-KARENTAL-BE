@@ -120,6 +120,7 @@ public class CarController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "productionYear,DESC") String sort) {
+        log.info("controller - getCars");
         Page<CarThumbnailResponse> cars = carService.getCarsByUserId(page, size, sort);
         return ApiResponse.<Page<CarThumbnailResponse>>builder()
                 .data(cars)
@@ -159,7 +160,6 @@ public class CarController {
 
             // Return a successful API response
             return ApiResponse.<Page<CarThumbnailResponse>>builder()
-                    .code(ErrorCode.SUCCESS.getCode()) // Default success code
                     .data(cars)
                     .build();
         } catch (DateTimeParseException e) {
