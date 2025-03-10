@@ -2,16 +2,18 @@ package com.mp.karental.mapper;
 
 import com.mp.karental.dto.request.AddCarRequest;
 import com.mp.karental.dto.request.EditCarRequest;
+import com.mp.karental.dto.response.CarDetailResponse;
 import com.mp.karental.dto.response.CarResponse;
+import com.mp.karental.dto.response.CarThumbnailResponse;
 import com.mp.karental.entity.Car;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 /**
- * Mapper interface for converting between user-related DTOs and entities.
+ * Mapper interface for converting between car-related DTOs and entities.
  *
- * @author QuangPM20
+ * @author QuangPM20, AnhPH9
  *
  * @version 1.0
  */
@@ -67,4 +69,46 @@ public interface CarMapper {
     @Mapping(target = "isAutomatic", source = "automatic")
     @Mapping(target = "isGasoline", source = "gasoline")
     CarResponse toCarResponse(Car car);
+
+    /**
+     * Converts a Car entity to CarThumbnailResponse.
+     * Ignores the address field in the response.
+     *
+     * @param car The car entity to convert.
+     * @return CarThumbnailResponse containing car details.
+     */
+    @Mapping(target = "address", ignore = true)
+    CarThumbnailResponse toCarThumbnailResponse(Car car);
+
+    /**
+     * Converts a Car entity to CarDetailResponse.
+     * Ignores sensitive document URLs such as registration papers,
+     * certificate of inspection, and insurance details.
+     *
+     * @param car The car entity to convert.
+     * @param isAvailable The availability status of the car.
+     * @return CarDetailResponse containing detailed car information.
+     */
+    @Mapping(target = "address", ignore = true)
+    @Mapping(target = "registrationPaperUrl", ignore = true)
+    @Mapping(target = "certificateOfInspectionUrl", ignore = true)
+    @Mapping(target = "insuranceUrl", ignore = true)
+    CarDetailResponse toCarDetailResponse(Car car, boolean isAvailable);
+
+    /**
+     * Converts a Car entity to CarThumbnailResponse for search results.
+     * Ignores images and the number of completed rides.
+     *
+     * @param car The car entity to convert.
+     * @param noOfRides The number of completed rides for this car.
+     * @return CarThumbnailResponse with summarized car details.
+     */
+    @Mapping(target = "noOfRides", ignore = true)
+    @Mapping(target = "carImageFront", ignore = true)
+    @Mapping(target = "carImageBack", ignore = true)
+    @Mapping(target = "carImageLeft", ignore = true)
+    @Mapping(target = "carImageRight", ignore = true)
+    CarThumbnailResponse toSearchCar(Car car, long noOfRides);
+
+
 }

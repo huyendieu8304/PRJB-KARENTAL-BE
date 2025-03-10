@@ -2,6 +2,9 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.AccountRegisterRequest;
+import com.mp.karental.dto.request.EditPasswordRequest;
+import com.mp.karental.dto.request.EditProfileRequest;
+import com.mp.karental.dto.response.EditProfileResponse;
 import com.mp.karental.dto.response.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
@@ -14,6 +17,8 @@ import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.RoleRepository;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.repository.WalletRepository;
+import com.mp.karental.security.SecurityUtil;
+import com.mp.karental.repository.WalletRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,16 +26,18 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+
 /**
  * This is a class used to test UserService
  *
@@ -43,6 +50,9 @@ class UserServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private FileService fileService;
 
     @Mock
     private UserProfileRepository userProfileRepository;
@@ -62,12 +72,19 @@ class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
+    @Mock
+    private EditProfileRequest editProfileRequest;
+
+    @Mock
+    private S3Presigner s3Presigner;
 
     @ParameterizedTest(name = "[{index} isCustomer={0}]")
     @CsvSource({
             "true",
             "false"
     })
+
+
     void addNewAccount(String isCustomer) {
         AccountRegisterRequest request = new AccountRegisterRequest();
         request.setIsCustomer(isCustomer);
@@ -134,4 +151,255 @@ class UserServiceTest {
         verify(userMapper).toAccount(request);
         verify(roleRepository).findByName(ERole.CUSTOMER);
     }
+
+
+    @Test
+    void editProfile_UserNotFound() {
+        String accountId = "12345";
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+            when(userProfileRepository.findById(accountId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            AppException exception = assertThrows(AppException.class, () -> userService.editProfile(new EditProfileRequest()));
+            assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
+        }
+    }
+
+
+
+    @Test
+    void getUserProfile_UserNotFound() {
+        String userId = "12345";
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(userId);
+
+            when(userProfileRepository.findById(userId)).thenReturn(Optional.empty());
+
+            AppException exception = assertThrows(AppException.class, () -> userService.getUserProfile());
+            assertEquals(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB, exception.getErrorCode());
+
+            verify(userProfileRepository).findById(userId);
+        }
+    }
+
+
+    @Test
+    void getUserProfile_Success() {
+        String userId = "12345";
+        String email = "test@example.com";
+        UserProfile userProfile = mock(UserProfile.class);
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(userId);
+            mockedStatic.when(SecurityUtil::getCurrentEmail).thenReturn(email);
+
+            when(userProfileRepository.findById(userId)).thenReturn(Optional.of(userProfile));
+            EditProfileResponse expectedResponse = new EditProfileResponse();
+            when(userMapper.toEditProfileResponse(userProfile)).thenReturn(expectedResponse);
+
+            when(userProfile.getDrivingLicenseUri()).thenReturn("drivingLicenseUri");
+            when(fileService.getFileUrl("drivingLicenseUri")).thenReturn("fileUrl");
+
+            EditProfileResponse result = userService.getUserProfile();
+
+            assertNotNull(result);
+            verify(userProfileRepository).findById(userId);
+            verify(userMapper).toEditProfileResponse(userProfile);
+        }
+    }
+
+    @Test
+    void editProfile_Success_hasFile() {
+        String accountId = "12345";
+        String email = "test@example.com";
+
+        MultipartFile file = mock(MultipartFile.class);
+
+        EditProfileRequest request = new EditProfileRequest();
+        request.setPhoneNumber("0987654321");
+        request.setNationalId("123456789");
+        request.setDrivingLicense(file);
+
+        UserProfile userProfile = new UserProfile();
+        userProfile.setPhoneNumber("0987654320"); // Khác số cũ để kiểm tra cập nhật
+        userProfile.setNationalId("123456788"); // Khác ID cũ để kiểm tra cập nhật
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+            mockedStatic.when(SecurityUtil::getCurrentEmail).thenReturn(email);
+
+            when(userProfileRepository.findById(accountId)).thenReturn(Optional.of(userProfile));
+            when(userProfileRepository.existsByPhoneNumber(request.getPhoneNumber())).thenReturn(false);
+            when(userProfileRepository.existsByNationalId(request.getNationalId())).thenReturn(false);
+
+            EditProfileResponse expectedResponse = new EditProfileResponse();
+            when(userMapper.toEditProfileResponse(userProfile)).thenReturn(expectedResponse);
+
+            EditProfileResponse result = userService.editProfile(request);
+
+            assertNotNull(result);
+            verify(userProfileRepository).findById(accountId);
+            verify(userProfileRepository).save(userProfile);
+            verify(userMapper).toEditProfileResponse(userProfile);
+            assertEquals(email, result.getEmail());
+        }
+    }
+
+    @Test
+    void editProfile_Success_notHasFile() {
+        String accountId = "12345";
+        String email = "test@example.com";
+
+        EditProfileRequest request = new EditProfileRequest();
+        request.setPhoneNumber("0987654321");
+        request.setNationalId("123456789");
+
+        UserProfile userProfile = new UserProfile();
+        userProfile.setPhoneNumber("0987654320"); // Khác số cũ để kiểm tra cập nhật
+        userProfile.setNationalId("123456788"); // Khác ID cũ để kiểm tra cập nhật
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+            mockedStatic.when(SecurityUtil::getCurrentEmail).thenReturn(email);
+
+            when(userProfileRepository.findById(accountId)).thenReturn(Optional.of(userProfile));
+            when(userProfileRepository.existsByPhoneNumber(request.getPhoneNumber())).thenReturn(false);
+            when(userProfileRepository.existsByNationalId(request.getNationalId())).thenReturn(false);
+
+            EditProfileResponse expectedResponse = new EditProfileResponse();
+            when(userMapper.toEditProfileResponse(userProfile)).thenReturn(expectedResponse);
+
+            EditProfileResponse result = userService.editProfile(request);
+
+            assertNotNull(result);
+            verify(userProfileRepository).findById(accountId);
+            verify(userProfileRepository).save(userProfile);
+            verify(userMapper).toEditProfileResponse(userProfile);
+            assertEquals(email, result.getEmail());
+        }
+    }
+
+    @Test
+    void editProfile_PhoneNumberNotUnique() {
+        String accountId = "12345";
+
+        EditProfileRequest request = new EditProfileRequest();
+        request.setPhoneNumber("0987654321");
+
+        UserProfile userProfile = new UserProfile();
+        userProfile.setPhoneNumber("0123456789"); // Khác số cũ để kiểm tra cập nhật
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+            when(userProfileRepository.findById(accountId)).thenReturn(Optional.of(userProfile));
+            when(userProfileRepository.existsByPhoneNumber(request.getPhoneNumber())).thenReturn(true);
+
+            AppException exception = assertThrows(AppException.class, () -> userService.editProfile(request));
+
+            assertEquals(ErrorCode.NOT_UNIQUE_PHONE_NUMBER, exception.getErrorCode());
+            verify(userProfileRepository).findById(accountId);
+        }
+    }
+
+    @Test
+    void editProfile_NationalIdNotUnique() {
+        String accountId = "12345";
+
+        EditProfileRequest request = new EditProfileRequest();
+        request.setPhoneNumber("0987654321"); // ✅ Thêm phoneNumber để tránh NullPointerException
+        request.setNationalId("123456789");
+
+        UserProfile userProfile = new UserProfile();
+        userProfile.setPhoneNumber("0987654321");
+        userProfile.setNationalId("987654321"); // Khác ID cũ để kiểm tra cập nhật
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+            when(userProfileRepository.findById(accountId)).thenReturn(Optional.of(userProfile));
+            when(userProfileRepository.existsByNationalId(request.getNationalId())).thenReturn(true);
+
+            AppException exception = assertThrows(AppException.class, () -> userService.editProfile(request));
+
+            assertEquals(ErrorCode.NOT_UNIQUE_NATIONAL_ID, exception.getErrorCode());
+            verify(userProfileRepository).findById(accountId);
+        }
+    }
+
+
+    @Test
+    void editPassword_Success() {
+        String accountId = "12345";
+
+        EditPasswordRequest request = new EditPasswordRequest();
+        request.setCurrentPassword("oldPass");
+        request.setNewPassword("newPass");
+
+        Account account = new Account();
+        account.setPassword("encodedOldPass");
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+            mockedStatic.when(SecurityUtil::getCurrentAccount).thenReturn(account);
+
+            when(passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())).thenReturn(true);
+            when(passwordEncoder.encode(request.getNewPassword())).thenReturn("encodedNewPass");
+
+            userService.editPassword(request);
+
+            verify(accountRepository).save(account);
+            assertEquals("encodedNewPass", account.getPassword());
+        }
+    }
+
+
+    @Test
+    void editPassword_InvalidNewPassword() {
+        EditPasswordRequest request = new EditPasswordRequest();
+        request.setCurrentPassword("oldPass");
+        request.setNewPassword(" "); // Rỗng
+
+        Account account = new Account();
+        account.setPassword("encodedOldPass");
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccount).thenReturn(account);
+
+            when(passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())).thenReturn(true);
+
+            AppException exception = assertThrows(AppException.class, () -> userService.editPassword(request));
+
+            assertEquals(ErrorCode.INVALID_PASSWORD, exception.getErrorCode());
+        }
+    }
+
+
+    @Test
+    void editPassword_IncorrectCurrentPassword() {
+        String accountId = "12345";
+        EditPasswordRequest request = new EditPasswordRequest();
+        request.setCurrentPassword("wrongPassword");
+        request.setNewPassword("newSecurePassword");
+
+        Account account = new Account();
+        account.setPassword("encodedOldPassword");
+
+        try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedStatic.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+            mockedStatic.when(SecurityUtil::getCurrentAccount).thenReturn(account);
+
+            when(passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())).thenReturn(false);
+
+            AppException exception = assertThrows(AppException.class, () -> userService.editPassword(request));
+
+            assertEquals(ErrorCode.INCORRECT_PASSWORD, exception.getErrorCode());
+            verify(passwordEncoder).matches(request.getCurrentPassword(), account.getPassword());
+        }
+    }
+
 }

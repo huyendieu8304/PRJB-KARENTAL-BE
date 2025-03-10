@@ -9,11 +9,8 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.UUID;
 
 /**
  * Represents a booking in the database
@@ -22,7 +19,6 @@ import java.util.UUID;
  * </p>
  *
  * @author DieuTTH4
- *
  * @version 1.0
  */
 @Entity
@@ -33,36 +29,8 @@ import java.util.UUID;
 @Builder
 public class Booking {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    long id;
-
     @Column(name = "booking_number", unique = true, nullable = false)
     String bookingNumber;
-
-    @PrePersist
-    public void prePersist() {
-        if(this.bookingNumber == null){
-            this.bookingNumber = generateBookingNumber();
-        }
-    }
-
-    @Enumerated(EnumType.STRING)
-    EBookingStatus bookingStatus = EBookingStatus.PENDING_DEPOSIT;
-
-    @Column(nullable = false)
-    String pickUpLocation;
-
-    @Column(nullable = false)
-    LocalDateTime startDate;
-
-    @Column(nullable = false)
-    LocalDateTime endDate;
-
-    @CreationTimestamp
-    LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    LocalDateTime updatedAt;
 
     @ManyToOne
     @JoinColumn(name = "car_id")
@@ -72,32 +40,34 @@ public class Booking {
     @JoinColumn(name = "account_id")
     Account account;
 
+    @CreationTimestamp
+    LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    EBookingStatus status = EBookingStatus.PENDING_DEPOSIT;
+
+    @Column(nullable = false)
+    String pickUpLocation;
+
+    @Column(nullable = false)
+    LocalDateTime pickUpTime;
+
+    @Column(nullable = false)
+    LocalDateTime dropOffTime;
+
+    @Column(name = "base_price", nullable = false)
+    long basePrice;
+
+    @Column(nullable = false)
+    long deposit;
+
     @Enumerated(EnumType.STRING)
     EPaymentType paymentType;
 
-    //TODO: transaction_number cái này phải suy nghĩ thêm, túm lại là cái link từ booking đến việc thanh toán của user
-
-    @Column(nullable = false)
-    String renterFullName;
-
-    @Column(nullable = false, columnDefinition = "VARCHAR(10)")
-    String renterPhoneNumber;
-
-    @Column(nullable = false, columnDefinition = "VARCHAR(12)")
-    String renterNationalId;
-
-    @Column(nullable = false)
-    LocalDate renterDob;
-
-    @Column(nullable = false)
-    String renterEmail;
-
-    @Column(nullable = false)
-    String renterDrivingLicenseUri;
-
-    @Column(nullable = false)
-    String renterAddress;
-
+    //=============================================================
     @Column(nullable = false)
     String driverFullName;
 
@@ -117,13 +87,15 @@ public class Booking {
     String driverDrivingLicenseUri;
 
     @Column(nullable = false)
-    String driverAddress;
+    String driverCityProvince;
 
-    private String generateBookingNumber(){
-        //get current date in form yyyyMMdd
-        String date = new SimpleDateFormat("yyyyMMdd").format(new Date());
-        //TODO: hỏi laik cái chỗ sequence này
-        return date + "-" + UUID.randomUUID();
-    }
+    @Column(nullable = false)
+    String driverDistrict;
+
+    @Column(nullable = false)
+    String driverWard;
+
+    @Column(nullable = false)
+    String driverHouseNumberStreet;
 
 }

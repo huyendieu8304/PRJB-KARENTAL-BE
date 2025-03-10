@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -57,8 +58,8 @@ class UserDetailsServiceImplTest {
     void loadUserByUsername_emailNotExist() {
         String email = "test@email.com";
         when(accountRepository.findByEmail(email)).thenReturn(Optional.empty());
-        AppException exception = assertThrows(AppException.class, () -> userDetailsServiceImpl.loadUserByUsername(email));
-        assertEquals(ErrorCode.INVALID_LOGIN_INFORMATION, exception.getErrorCode());
+        assertThrows(UsernameNotFoundException.class, () -> userDetailsServiceImpl.loadUserByUsername(email));
+
     }
 
     @Test
@@ -74,10 +75,8 @@ class UserDetailsServiceImplTest {
 
         when(accountRepository.findByEmail(email)).thenReturn(Optional.of(dummyAccount));
 
-
         //asert
-        AppException exception = assertThrows(AppException.class, () -> userDetailsServiceImpl.loadUserByUsername(email));
-        assertEquals(ErrorCode.ACCOUNT_IS_INACTIVE, exception.getErrorCode());
+        assertThrows(InternalAuthenticationServiceException.class, () -> userDetailsServiceImpl.loadUserByUsername(email));
 
     }
 }

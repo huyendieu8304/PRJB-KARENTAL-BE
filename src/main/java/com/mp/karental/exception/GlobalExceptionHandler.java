@@ -24,7 +24,7 @@ import java.util.Objects;
  *
  * @author DieuTTH4
  *
- * @version 1.0
+ * @version 1.1
  */
 @Slf4j
 @ControllerAdvice
@@ -33,28 +33,6 @@ public class GlobalExceptionHandler {
     private final String[] VALIDATORS_ATTRIBUTES = {
             "fieldName"
     };
-
-    /**
-     * Handle RuntimeException
-     * @param e - the exception
-     * @return ResponseEntity in form of defined ApiResponse, containing code and message of the exception
-     *
-     * @author DieuTTH4
-     *
-     * @version 1.0
-     *
-     * TEMPORARY disable for development
-     */
-    @ExceptionHandler(Exception.class)
-    ResponseEntity<ApiResponse> exceptionHandler(Exception e) {
-        log.error(e.getMessage(), e);
-        log.error(e.getStackTrace().toString());
-        ApiResponse apiResponse = new ApiResponse();
-
-        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
-        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
-        return ResponseEntity.badRequest().body(apiResponse);
-    }
 
 
     /**
@@ -67,10 +45,10 @@ public class GlobalExceptionHandler {
      * @version 1.0
      */
     @ExceptionHandler(AppException.class)
-    ResponseEntity<ApiResponse> appExceptionHandler(AppException e) {
+    ResponseEntity<ApiResponse<String>> appExceptionHandler(AppException e) {
         log.info("Exception is catch by appExceptionHandler, exception: {}", e.getMessage());
         ErrorCode errorCode = e.getErrorCode();
-        ApiResponse apiResponse = new ApiResponse();
+        ApiResponse<String> apiResponse = new ApiResponse<>();
 
         apiResponse.setCode(errorCode.getCode());
         apiResponse.setMessage(errorCode.getMessage());
@@ -90,7 +68,7 @@ public class GlobalExceptionHandler {
      * @version 1.0
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ApiResponse> methodArgumentNotValidException(MethodArgumentNotValidException e) {
+    ResponseEntity<ApiResponse<String>> methodArgumentNotValidException(MethodArgumentNotValidException e) {
         //Get the key of error code in the validation's message attribute
         ObjectError objectError = e.getBindingResult().getAllErrors().get(0);
         String enumKey = objectError.getDefaultMessage();
@@ -115,7 +93,7 @@ public class GlobalExceptionHandler {
         }
 
         //Create the body for the response
-        ApiResponse apiResponse = new ApiResponse();
+        ApiResponse<String> apiResponse = new ApiResponse<>();
         apiResponse.setCode(errorCode.getCode());
         apiResponse.setMessage(Objects.nonNull(validationAttributes)
                 ? mapAttributeMessage(errorCode.getMessage(), validationAttributes)
@@ -142,9 +120,14 @@ public class GlobalExceptionHandler {
         return message;
     }
 
+    /**
+     * Handler exception related to size of upload file
+     * @param e
+     * @return
+     */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ApiResponse<?>> handleMaxSizeException(MaxUploadSizeExceededException e) {
-        ApiResponse apiResponse = new ApiResponse();
+    public ResponseEntity<ApiResponse<String>> handleMaxSizeException(MaxUploadSizeExceededException e) {
+        ApiResponse<String> apiResponse = new ApiResponse<>();
 
         apiResponse.setCode(ErrorCode.MAXIMUM_FILE_UPLOAD_EXCEED.getCode());
         apiResponse.setMessage(ErrorCode.MAXIMUM_FILE_UPLOAD_EXCEED.getMessage());
@@ -154,4 +137,26 @@ public class GlobalExceptionHandler {
                 .body(apiResponse);
     }
 
+    /**
+     * Handle RuntimeException
+     * @param e - the exception
+     * @return ResponseEntity in form of defined ApiResponse, containing code and message of the exception
+     *
+     * @author DieuTTH4
+     *
+     * @version 1.0
+     *
+     * TEMPORARY disable for development
+     */
+    @ExceptionHandler(RuntimeException.class)
+    ResponseEntity<ApiResponse<String>> runtimeExceptionHandler(RuntimeException e) {
+        log.info("Exception is catch by runtimeExceptionHandler, exception: {}", e.getClass().getName());
+        log.error(e.getMessage(), e);
+        log.error(e.getStackTrace().toString());
+        ApiResponse<String> apiResponse = new ApiResponse<>();
+
+        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
+        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
 }

@@ -9,7 +9,7 @@ import lombok.Getter;
  */
 @Getter
 public enum ECarStatus {
-    AVAILABLE,
-    BOOKED,
-    STOPPED,
+    NOT_VERIFIED,
+    VERIFIED, //customer could rent this car
+    STOPPED, //car owner no longer lend this car anymore, this can only change to NOT_VERIFIED
 }

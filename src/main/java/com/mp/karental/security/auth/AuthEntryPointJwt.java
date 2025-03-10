@@ -33,6 +33,9 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
             throws IOException, ServletException {
         log.info("go to AuthEntryPointJwt commence");
 
+        log.error(authException.getMessage(), authException);
+        log.error(authException.getStackTrace().toString());
+
         ErrorCode errorCode = ErrorCode.UNAUTHENTICATED; //by default, it would be ErrorCode.UNAUTHENTICATED
 
         //Iterate through cause to found AppException
