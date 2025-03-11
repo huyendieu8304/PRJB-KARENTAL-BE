@@ -4,6 +4,7 @@ import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.BookingRequest;
 import com.mp.karental.dto.response.BookingResponse;
 import com.mp.karental.dto.response.BookingThumbnailResponse;
+import com.mp.karental.dto.response.WalletResponse;
 import com.mp.karental.entity.*;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
@@ -721,6 +722,39 @@ class BookingServiceTest {
                 pageable.getSort().equals(Sort.by(Sort.Direction.ASC, "basePrice"))
         ));
     }
+    @Test
+    void getWallet_Success() {
+        // Giả lập accountId từ SecurityUtil
+        String mockAccountId = "user123";
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(mockAccountId);
 
+        // Giả lập wallet trong DB
+        Wallet mockWallet = new Wallet();
+        mockWallet.setId(mockAccountId);
+        mockWallet.setBalance(500000);
+
+        when(walletRepository.findById(mockAccountId)).thenReturn(Optional.of(mockWallet));
+
+        // Gọi hàm
+        WalletResponse response = bookingService.getWallet();
+
+        // Kiểm tra kết quả
+        assertNotNull(response);
+        assertEquals(mockAccountId, response.getId());
+        assertEquals(500000, response.getBalance());
+    }
+
+    @Test
+    void getWallet_AccountNotFound() {
+        // Giả lập accountId từ SecurityUtil
+        String mockAccountId = "user123";
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(mockAccountId);
+
+        // Giả lập trường hợp không tìm thấy Wallet
+        when(walletRepository.findById(mockAccountId)).thenReturn(Optional.empty());
+
+        // Kiểm tra xem có ném AppException không
+        assertThrows(AppException.class, () -> bookingService.getWallet());
+    }
 
 }

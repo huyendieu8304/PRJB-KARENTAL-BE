@@ -7,6 +7,9 @@ import com.mp.karental.dto.response.BookingThumbnailResponse;
 import com.mp.karental.dto.request.BookingRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.BookingResponse;
+import com.mp.karental.dto.response.WalletResponse;
+import com.mp.karental.exception.AppException;
+import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.BookingService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,7 +99,7 @@ class BookingControllerTest {
         when(bookingService.createBooking(any(BookingRequest.class))).thenReturn(bookingResponse);
 
         // Gửi request multipart
-        mockMvc.perform(multipart("/booking/customer/createBook")
+        mockMvc.perform(multipart("/booking/customer/create-book")
                         .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) // File giả lập
                         .param("carId", "123")
                         .param("driverFullName", "John Doe")
@@ -125,7 +128,7 @@ class BookingControllerTest {
 
         when(bookingService.createBooking(any(BookingRequest.class))).thenReturn(bookingResponse);
         // Gửi request với dữ liệu không hợp lệ (thiếu carId và email sai format)
-        mockMvc.perform(multipart("/booking/customer/createBook")
+        mockMvc.perform(multipart("/booking/customer/create-book")
                         .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) // File giả lập
                         .param("driverFullName", "John Doe")
                         .param("driverPhoneNumber", "0123456789")
@@ -195,5 +198,32 @@ class BookingControllerTest {
                 .andExpect(jsonPath("$.data.content").isArray());
 
         verify(bookingService, times(1)).getBookingsByUserId(0, 10, "createdAt,DESC");
+    }
+
+    @Test
+    void getWallet_Success() throws Exception {
+        // Mock response từ service
+        WalletResponse mockWalletResponse = new WalletResponse("user123", 500000);
+
+        when(bookingService.getWallet()).thenReturn(mockWalletResponse);
+
+        // Gửi request GET đến API
+        mockMvc.perform(get("/booking/get-wallet")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value("user123"))
+                .andExpect(jsonPath("$.data.balance").value(500000));
+    }
+
+    @Test
+    void getWallet_AccountNotFound() throws Exception {
+        // Giả lập lỗi khi không tìm thấy Wallet
+        when(bookingService.getWallet()).thenThrow(new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        // Gửi request GET đến API và kiểm tra phản hồi lỗi
+        mockMvc.perform(get("/booking/get-wallet")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB.getCode()));
     }
 }

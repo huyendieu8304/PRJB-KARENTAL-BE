@@ -148,7 +148,7 @@ public class CarControllerTest {
 
         MockMultipartFile emptyFile = new MockMultipartFile("file", "", "test.properties/octet-stream", new byte[0]);
 
-        mockMvc.perform(multipart("/car/car-owner/addCar")
+        mockMvc.perform(multipart("/car/car-owner/add-car")
                         .file("registrationPaper", emptyFile.getBytes())
                         .file("certificateOfInspection", emptyFile.getBytes())
                         .file("insurance", emptyFile.getBytes())
@@ -204,7 +204,7 @@ public class CarControllerTest {
 
         MockMultipartFile emptyFile = new MockMultipartFile("file", "", "test.properties/octet-stream", new byte[0]);
 
-        mockMvc.perform(multipart("/car/car-owner/addCar")
+        mockMvc.perform(multipart("/car/car-owner/add-car")
                         .file("registrationPaper", emptyFile.getBytes())
                         .file("certificateOfInspection", emptyFile.getBytes())
                         .file("insurance", emptyFile.getBytes())
@@ -265,7 +265,7 @@ public class CarControllerTest {
 
         // Convert the EditCarRequest to JSON
         // Perform the test: Edit an existing car with the JWT token for authorization
-        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/car/car-owner/editCar/{id}", "carId123")  // Use multipart to simulate file uploads
+        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/car/car-owner/edit-car/{id}", "carId123")  // Use multipart to simulate file uploads
                         .file(carImageFront)
                         .file(carImageBack)
                         .file(carImageLeft)
