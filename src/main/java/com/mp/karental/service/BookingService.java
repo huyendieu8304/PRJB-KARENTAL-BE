@@ -52,6 +52,7 @@ public class BookingService {
     WalletRepository walletRepository;
     FileService fileService;
     CarService carService;
+    TransactionService transactionService;
 
     // Define constant field names to avoid repetition
     private static final String FIELD_CREATED_AT = "createdAt";
@@ -119,9 +120,9 @@ public class BookingService {
         if (booking.getPaymentType().equals(EPaymentType.WALLET)) {
             // If the user has enough balance in the wallet, deduct the deposit and proceed.
             if (walletCustomer.getBalance() >= car.getDeposit()) {
-                walletCustomer.setBalance(walletCustomer.getBalance() - car.getDeposit());
-                walletRepository.save(walletCustomer);
+                transactionService.payDeposit(accountId, depositAtBookingTime, booking);
                 booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+                walletRepository.save(walletCustomer);
             } else {
                 booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
             }
@@ -170,7 +171,7 @@ public class BookingService {
 
             // check when customer top up wallet
             if (wallet.getBalance() >= booking.getDeposit()) {
-                wallet.setBalance(wallet.getBalance() - booking.getDeposit());
+                transactionService.payDeposit(booking.getAccount().getId(), booking.getDeposit(), booking);
                 booking.setStatus(EBookingStatus.WAITING_CONFIRM);
                 walletRepository.save(wallet);
                 bookingRepository.save(booking);

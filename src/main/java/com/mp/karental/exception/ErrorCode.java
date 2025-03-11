@@ -92,7 +92,7 @@ public enum ErrorCode {
 
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(4009, "Invalid refresh token. Please try again", HttpStatus.UNAUTHORIZED),
-    UNAUTHORIZED_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.UNAUTHORIZED),
+    FORBIDDEN_CAR_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.FORBIDDEN),
     EMAIL_NOT_USED_BY_ANY_ACCOUNT(4011, "The email address you’ve entered does not exist. Please try again", HttpStatus.BAD_REQUEST),
     INVALID_ONETIME_TOKEN(4012, "The token is invalid or this link has expired or has been used.", HttpStatus.BAD_REQUEST),
     INVALID_FORGOT_PASSWORD_TOKEN(4013, "This link has expired. Please go back to Homepage and try again.", HttpStatus.BAD_REQUEST),

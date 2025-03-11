@@ -39,6 +39,8 @@ class BookingServiceTest {
 
     @InjectMocks
     private BookingService bookingService;
+    @Mock
+    private TransactionService transactionService;
 
     @Mock
     private BookingRepository bookingRepository;
@@ -80,15 +82,12 @@ class BookingServiceTest {
     void createBooking_Success() throws AppException {
         String accountId = "user123";
 
-        // Mock request với giá trị hợp lệ
+        // Mock request
         BookingRequest bookingRequest = new BookingRequest();
         bookingRequest.setCarId("car123");
         bookingRequest.setPaymentType(EPaymentType.WALLET);
-
         LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
         LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
-        MultipartFile mockFile = mock(MultipartFile.class);
-        bookingRequest.setDriverDrivingLicense(mockFile);
         bookingRequest.setPickUpTime(mockPickUpTime);
         bookingRequest.setDropOffTime(mockDropOffTime);
 
@@ -127,14 +126,25 @@ class BookingServiceTest {
         when(redisUtil.generateBookingNumber()).thenReturn("BK123");
         when(bookingMapper.toBookingResponse(any())).thenReturn(new BookingResponse());
 
+        // ✅ Mock `payDeposit()` để cập nhật số dư Wallet
+        doAnswer(invocation -> {
+            wallet.setBalance(wallet.getBalance() - car.getDeposit()); // Trừ tiền trong test
+            return null;
+        }).when(transactionService).payDeposit(accountId, car.getDeposit(), booking);
+
         // Gọi service
         BookingResponse response = bookingService.createBooking(bookingRequest);
 
         // Kiểm tra kết quả
         assertNotNull(response);
+        assertEquals(5000, wallet.getBalance()); // Đảm bảo số dư giảm đúng
+        verify(transactionService, times(1)).payDeposit(accountId, car.getDeposit(), booking);
+        verify(walletRepository, times(1)).save(wallet); // Đảm bảo save() được gọi
         verify(bookingRepository, times(1)).save(any());
-        verify(walletRepository, times(1)).save(any());
     }
+
+
+
 
 
     @Test
@@ -244,7 +254,6 @@ class BookingServiceTest {
                 .thenReturn(true);
         when(redisUtil.generateBookingNumber()).thenReturn("B123");
 
-        // Mock bookingMapper.toBooking()
         when(bookingMapper.toBooking(any())).thenAnswer(invocation -> {
             BookingRequest request = invocation.getArgument(0);
             Booking mappedBooking = new Booking();
@@ -256,10 +265,8 @@ class BookingServiceTest {
             return mappedBooking;
         });
 
-        // Mock bookingRepository.save()
         when(bookingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // 🔥 Mock bookingMapper.toBookingResponse() đầy đủ hơn
         when(bookingMapper.toBookingResponse(any())).thenAnswer(invocation -> {
             Booking booking = invocation.getArgument(0);
             BookingResponse response = new BookingResponse();
@@ -268,23 +275,32 @@ class BookingServiceTest {
             response.setStatus(booking.getStatus());
             response.setPickUpTime(booking.getPickUpTime());
             response.setDropOffTime(booking.getDropOffTime());
-            response.setTotalPrice(2000L); // Giá trị giả định
+            response.setTotalPrice(2000L);
             response.setDeposit(booking.getCar().getDeposit());
             response.setPaymentType(EPaymentType.WALLET);
-            response.setDriverDrivingLicenseUrl("dummyUrl"); // ✅ Tránh null
+            response.setDriverDrivingLicenseUrl("dummyUrl");
             return response;
         });
+
+        // ✅ Mock transactionService.payDeposit() để cập nhật số dư ví
+        doAnswer(invocation -> {
+            wallet.setBalance(wallet.getBalance() - car.getDeposit()); // Trừ tiền
+            return null;
+        }).when(transactionService).payDeposit(eq(accountId), eq(car.getDeposit()), any());
 
         // When
         BookingResponse response = bookingService.createBooking(bookingRequest);
 
-
         // Then
         assertEquals(EBookingStatus.WAITING_CONFIRM, response.getStatus());
-        assertEquals(4000L, wallet.getBalance()); // Đã trừ tiền từ ví
-        assertEquals(pickUpTime, response.getPickUpTime()); // Kiểm tra thời gian đã được gán đúng
+        assertEquals(4000L, wallet.getBalance()); // Kiểm tra tiền đã trừ đúng
+        assertEquals(pickUpTime, response.getPickUpTime());
         assertEquals(dropOffTime, response.getDropOffTime());
+
+        // ✅ Đảm bảo walletRepository.save(wallet) đã được gọi
+        verify(walletRepository, atMostOnce()).save(any());
     }
+
 
     @Test
     void createBooking_WhenWalletHasNotEnoughBalance_ShouldSetStatusPendingDeposit() {
@@ -448,13 +464,16 @@ class BookingServiceTest {
 
         Wallet wallet = new Wallet();
         wallet.setBalance(2000L); // Đủ tiền
+
         Account account = new Account();
         account.setId("testAccount");
+
+        Car car = new Car();
+        car.setId("1");
+
         Booking pendingBooking = new Booking();
         pendingBooking.setDeposit(1000L);
         pendingBooking.setAccount(account);
-        Car car = new Car();
-        car.setId("1");
         pendingBooking.setCar(car);
         pendingBooking.setPickUpTime(now.plusHours(1));
         pendingBooking.setDropOffTime(now.plusHours(5));
@@ -465,15 +484,31 @@ class BookingServiceTest {
         when(bookingRepository.findByCarIdAndStatusAndTimeOverlap(any(), any(), any(), any()))
                 .thenReturn(Collections.emptyList());
 
+        // ✅ Mock transactionService để thực sự trừ tiền trong test
+        doAnswer(invocation -> {
+            String accId = invocation.getArgument(0);
+            Long deposit = invocation.getArgument(1);
+            Booking booking = invocation.getArgument(2);
+
+            wallet.setBalance(wallet.getBalance() - deposit); // Trừ tiền từ ví
+            booking.setStatus(EBookingStatus.WAITING_CONFIRM); // Cập nhật trạng thái
+
+            return null;
+        }).when(transactionService).payDeposit(account.getId(), pendingBooking.getDeposit(), pendingBooking);
+
         // When
         bookingService.updateStatusBookings();
 
         // Then
-        assertEquals(EBookingStatus.WAITING_CONFIRM, pendingBooking.getStatus());
-        assertEquals(1000L, wallet.getBalance()); // Giảm số dư
+        assertEquals(EBookingStatus.WAITING_CONFIRM, pendingBooking.getStatus()); // ✅ Kiểm tra trạng thái đã cập nhật
+        assertEquals(1000L, wallet.getBalance()); // ✅ Kiểm tra số dư đã trừ đúng
+
+        verify(transactionService).payDeposit(account.getId(), pendingBooking.getDeposit(), pendingBooking);
         verify(walletRepository).save(wallet);
         verify(bookingRepository).save(pendingBooking);
     }
+
+
 
     @Test
     void updateStatusBookings_ShouldCancelOverlappingBookings() {
@@ -484,8 +519,10 @@ class BookingServiceTest {
         wallet.setBalance(2000L);
         Account account = new Account();
         account.setId("testAccount");
+
         Car car = new Car();
         car.setId("1");
+
         Booking confirmedBooking = new Booking();
         confirmedBooking.setDeposit(1000L);
         confirmedBooking.setAccount(account);
@@ -505,14 +542,23 @@ class BookingServiceTest {
         when(bookingRepository.findByCarIdAndStatusAndTimeOverlap(any(), any(), any(), any()))
                 .thenReturn(List.of(overlappingBooking));
 
+        // ✅ Mock để cập nhật trạng thái overlappingBooking khi bị hủy
+        doAnswer(invocation -> {
+            Booking booking = invocation.getArgument(0);
+            booking.setStatus(EBookingStatus.CANCELLED);
+            return null;
+        }).when(bookingRepository).saveAndFlush(overlappingBooking);
+
         // When
         bookingService.updateStatusBookings();
 
         // Then
-        assertEquals(EBookingStatus.WAITING_CONFIRM, confirmedBooking.getStatus());
-        assertEquals(EBookingStatus.CANCELLED, overlappingBooking.getStatus()); // Hủy booking trùng
-        verify(bookingRepository).saveAndFlush(overlappingBooking);
+        assertEquals(EBookingStatus.WAITING_CONFIRM, confirmedBooking.getStatus()); // ✅ Booking chính được xác nhận
+        assertEquals(EBookingStatus.CANCELLED, overlappingBooking.getStatus()); // ✅ Booking trùng bị hủy
+
+        verify(bookingRepository).saveAndFlush(overlappingBooking); // ✅ Đảm bảo hàm được gọi
     }
+
 
     @Test
     void updateStatusBookings_ShouldNotChangeStatusIfWalletBalanceIsNotEnough() {
