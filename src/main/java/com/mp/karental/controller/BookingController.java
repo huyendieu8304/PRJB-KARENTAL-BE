@@ -30,7 +30,7 @@ public class BookingController {
      * @param bookingRequest The booking request payload, validated using @Valid
      * @return ApiResponse containing the created booking details
      */
-    @PostMapping(value = "/customer/createBook", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/customer/create-book", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid BookingRequest bookingRequest) throws Exception {
         log.info("create booking {}", bookingRequest);
         return ApiResponse.<BookingResponse>builder()
