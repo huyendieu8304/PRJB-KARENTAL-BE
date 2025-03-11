@@ -54,7 +54,7 @@ public class BookingRequest {
     String driverFullName;
 
     @NotBlank(message = "Driver's phone number is required")
-    @Pattern(regexp = "\\d{10,15}", message = "Invalid phone number format")
+    @Pattern(regexp = "\\d{10}", message = "Invalid phone number format")
     String driverPhoneNumber;
 
     @NotBlank(message = "Driver's national ID is required")

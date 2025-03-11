@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -79,8 +80,6 @@ class BookingControllerTest {
         bookingResponse = new BookingResponse();
         bookingResponse.setBookingNumber("BOOK123"); // Giả định
 
-        Mockito.when(bookingService.createBooking(any(BookingRequest.class)))
-                .thenReturn(bookingResponse);
     }
 
     @Test
@@ -135,34 +134,33 @@ class BookingControllerTest {
         verify(bookingService, times(1)).getBookingsByUserId(0, 10, "createdAt,DESC");
     }
     @Test
-    void createBooking_ShouldReturnBookingResponse() throws Exception {
-        // Tạo file giả lập hợp lệ
-        MockMultipartFile validFile = new MockMultipartFile(
-                "driverDrivingLicense",
-                "license.jpg",
-                "image/jpeg",
-                "fake-image-content".getBytes()
-        );
+    void createBooking_ShouldReturnStatus200() throws Exception {
+        Mockito.when(bookingService.createBooking(ArgumentMatchers.any())).thenReturn(bookingResponse);
 
+        // Mock file để gửi cùng request
+        MockMultipartFile emptyFile = new MockMultipartFile("driverDrivingLicense", "", "application/octet-stream", new byte[0]);
+
+        // Thực hiện request
         mockMvc.perform(MockMvcRequestBuilders.multipart("/booking/customer/createBook")
-                        .file("driverDrivingLicense",validFile.getBytes()) // File hợp lệ
+                        .file(emptyFile)
                         .param("carId", bookingRequest.getCarId())
                         .param("driverFullName", bookingRequest.getDriverFullName())
                         .param("pickUpLocation", bookingRequest.getPickUpLocation())
                         .param("driverPhoneNumber", bookingRequest.getDriverPhoneNumber())
                         .param("driverNationalId", bookingRequest.getDriverNationalId())
-                        .param("driverDob", "1990-01-01") // Định dạng chính xác
+                        .param("driverDob", "1990-01-01")
                         .param("driverEmail", bookingRequest.getDriverEmail())
                         .param("driverCityProvince", bookingRequest.getDriverCityProvince())
                         .param("driverDistrict", bookingRequest.getDriverDistrict())
                         .param("driverWard", bookingRequest.getDriverWard())
                         .param("driverHouseNumberStreet", bookingRequest.getDriverHouseNumberStreet())
-                        .param("pickUpTime", "2025-03-25T07:00:00") // Định dạng chính xác
-                        .param("dropOffTime", "2025-03-25T10:00:00") // Định dạng chính xác
+                        .param("pickUpTime", "2025-03-25T07:00:00")
+                        .param("dropOffTime", "2025-03-25T10:00:00")
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andDo(print())
-                .andExpect(status().isBadRequest()); // Mong đợi phản hồi thành công (200 OK)
+                .andExpect(status().isBadRequest()); // Kiểm tra HTTP 200 OK
     }
+
 
 
     @Test

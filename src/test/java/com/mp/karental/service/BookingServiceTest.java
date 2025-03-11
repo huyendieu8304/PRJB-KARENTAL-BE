@@ -3,6 +3,7 @@ import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.BookingRequest;
 import com.mp.karental.dto.response.BookingResponse;
+import com.mp.karental.dto.response.BookingThumbnailResponse;
 import com.mp.karental.entity.*;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
@@ -61,11 +62,13 @@ class BookingServiceTest {
     private CarService carService;
 
     private MockedStatic<SecurityUtil> mockedSecurityUtil;
+    private String accountId;
 
     @BeforeEach
     void setUp() {
+        accountId = "user123";
         mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class);
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn("user-123");
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn("user123");
     }
 
     @AfterEach
@@ -75,7 +78,7 @@ class BookingServiceTest {
 
     @Test
     void createBooking_Success() throws AppException {
-        String accountId = "user-123";
+        String accountId = "user123";
 
         // Mock request với giá trị hợp lệ
         BookingRequest bookingRequest = new BookingRequest();
@@ -540,7 +543,7 @@ class BookingServiceTest {
     @Test
     void getBookingsByUserId_Success() {
         // Arrange
-        securityUtilMock.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
 
         int page = 0;
         int size = 10;

@@ -31,11 +31,10 @@ public class BookingController {
      * @return ApiResponse containing the created booking details
      */
     @PostMapping(value = "/customer/createBook", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid BookingRequest bookingRequest,
-                                               @RequestParam("carId") String carId) throws Exception {
+    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid BookingRequest bookingRequest) throws Exception {
         log.info("create booking {}", bookingRequest);
         return ApiResponse.<BookingResponse>builder()
-                .data(bookingService.createBooking(bookingRequest, carId))
+                .data(bookingService.createBooking(bookingRequest))
                 .build();
     }
 
