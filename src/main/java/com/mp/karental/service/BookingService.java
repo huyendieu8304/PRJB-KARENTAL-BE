@@ -5,6 +5,7 @@ import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.BookingRequest;
 import com.mp.karental.dto.response.BookingResponse;
 import com.mp.karental.dto.response.BookingThumbnailResponse;
+import com.mp.karental.dto.response.WalletResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Car;
@@ -266,6 +267,21 @@ public class BookingService {
             return response;
         });
 
+    }
+
+    /**
+     * this method to get the wallet by account login
+     * @return wallet of that account
+     */
+    public WalletResponse getWallet() {
+        // Get the current logged-in user's account ID.
+        String accountId = SecurityUtil.getCurrentAccountId();
+        Wallet wallet = walletRepository.findById(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        return new WalletResponse(
+                wallet.getId(),
+                wallet.getBalance()
+        );
     }
 
 }
