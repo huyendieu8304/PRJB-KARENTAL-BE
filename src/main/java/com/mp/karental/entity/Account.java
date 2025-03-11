@@ -44,7 +44,7 @@ public class Account {
     Role role;
 
     @Column(nullable = false)
-    boolean isActive = true;
+    boolean isActive;
 
     @CreationTimestamp
     LocalDateTime createdAt;

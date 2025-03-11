@@ -18,6 +18,8 @@ import com.mp.karental.repository.RoleRepository;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.repository.WalletRepository;
+import com.mp.karental.util.RedisUtil;
+import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -41,6 +43,10 @@ import java.util.Optional;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class UserService {
+
+    //TODO: sửa lại khi deploy
+    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
+
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
     RoleRepository roleRepository;
@@ -49,7 +55,9 @@ public class UserService {
     UserMapper userMapper;
 
     PasswordEncoder passwordEncoder;
-    private final FileService fileService;
+    FileService fileService;
+    EmailService emailService;
+    RedisUtil redisUtil;
 
     /**
      * Creates a new user account along with the associated user profile.
@@ -58,10 +66,9 @@ public class UserService {
      * @return a {@code UserResponse} DTO containing the details of the newly created account and profile
      *
      * @author DieuTTH4
-     *
-     * @version 1.0
      */
-    public UserResponse addNewAccount(AccountRegisterRequest request) {
+    public UserResponse addNewAccount(AccountRegisterRequest request){
+        log.info("Create new account");
         Account account = userMapper.toAccount(request);
         //set role for the account
         Optional<Role> role = roleRepository
@@ -71,7 +78,7 @@ public class UserService {
         } else {
             throw new AppException(ErrorCode.ROLE_NOT_FOUND_IN_DB);
         }
-        account.setActive(true); //set status of the account
+        account.setActive(false); //set status of the account, this will change after the email is verified
         //encode password
         account.setPassword(passwordEncoder.encode(account.getPassword()));
         account = accountRepository.save(account);
@@ -88,7 +95,63 @@ public class UserService {
                 .build();
         walletRepository.save(wallet);
 
+        sendVerifyEmail(account);
+        log.info("Account created, email={}", account.getEmail());
         return userMapper.toUserResponse(account, userProfile);
+    }
+
+    public String resendVerifyEmail(String email){
+        log.info("User request sending verify email for {}", email);
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT));
+        //account already verify
+        if (account.isEmailVerified()){
+            //not send email any more
+            return "The email is already verified";
+        }
+        sendVerifyEmail(account);
+        return "The verify email is sent successfully. Please check your inbox again and follow instructions to verify your email.";
+    }
+
+
+    private void sendVerifyEmail(Account account) {
+        log.info("Send verify email to user.");
+        //send email to verified user email
+        String verifyEmailToken = redisUtil.generateVerifyEmailToken(account.getId());
+        String confirmUrl = DOMAIN_NAME + "/user/verify-email?t=" + verifyEmailToken;
+        log.info("Verify email url: {}", confirmUrl);
+        //sending email
+        try {
+            emailService.sendRegisterEmail(account.getEmail(), confirmUrl);
+        } catch (MessagingException e) {
+            throw new AppException(ErrorCode.SEND_VERIFY_EMAIL_TO_USER_FAIL);
+        }
+    }
+
+    public void verifyEmail(String verifyEmailToken){
+        log.info("Verify email");
+        String accountId = redisUtil.getValueOfVerifyEmailToken(verifyEmailToken);
+        //check if the token valid
+        if (accountId != null && !accountId.isEmpty()) {
+            //token valid: exist in redis and still not expired
+            Account account = accountRepository.findById(accountId)
+                    .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT));
+            //Email is not already verify
+            if (!account.isEmailVerified()){
+                //set the email verified status to true
+                account.setEmailVerified(true);
+                //activate the account, so that user could use this account to login
+                account.setActive(true);
+                accountRepository.save(account);
+                log.info("Email={} verified successfully", account.getEmail());
+            }
+        } else {
+            //The verify email token is not valid or
+            //has expired or
+            //has been used
+            log.info("Verify token invalid, can not verify email");
+            throw new AppException(ErrorCode.INVALID_ONETIME_TOKEN);
+        }
     }
 
     /**
