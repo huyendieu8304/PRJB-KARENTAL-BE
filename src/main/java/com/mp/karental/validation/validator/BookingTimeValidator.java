@@ -35,7 +35,7 @@ public class BookingTimeValidator implements ConstraintValidator<ValidBookingTim
         // Define boundaries
         LocalTime PICKUP_START_TIME = LocalTime.of(6, 0);
         LocalTime PICKUP_END_TIME = LocalTime.of(22, 0);
-        LocalTime DROPOFF_START_TIME = LocalTime.of(8, 0);
+        LocalTime DROPOFF_START_TIME = LocalTime.of(6, 0);
         LocalTime DROPOFF_END_TIME = LocalTime.of(22, 0);
 
         // Check if pick-up time is within allowed range (06:00 - 22:00)
@@ -53,7 +53,9 @@ public class BookingTimeValidator implements ConstraintValidator<ValidBookingTim
         if (dropOffDateTime.isBefore(now.plusHours(4)) || dropOffDateTime.toLocalDate().isAfter(today.plusDays(30))) {
             return false;
         }
-
+        if(pickUpDateTime.isAfter(dropOffDateTime.minusHours(2))){
+            return false;
+        }
         // Drop-off must be after 08:00 AM
         LocalTime dropOffTime = dropOffDateTime.toLocalTime();
         if (dropOffTime.isBefore(DROPOFF_START_TIME) || dropOffTime.isAfter(DROPOFF_END_TIME)) {
