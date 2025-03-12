@@ -58,11 +58,11 @@ public class AddCarRequest {
 
     @Min(value = 0, message = "INVALID_VALUE_MIN")
     @RequiredField(fieldName = "Car's base price")
-    int basePrice;
+    long basePrice;
 
     @Min(value = 0, message = "INVALID_VALUE_MIN")
     @RequiredField(fieldName = "Deposit value")
-    int deposit;
+    long deposit;
 
     @RequiredField(fieldName = "Address")
     @ValidAddress(message = "INVALID_ADDRESS")

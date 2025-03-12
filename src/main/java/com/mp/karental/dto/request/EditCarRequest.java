@@ -30,10 +30,10 @@ public class EditCarRequest {
     float fuelConsumption;
     @Min(value = 0, message = "INVALID_VALUE_MIN")
     @RequiredField(fieldName = "Car's base price")
-    int basePrice;
+    long basePrice;
     @Min(value = 0, message = "INVALID_VALUE_MIN")
     @RequiredField(fieldName = "Deposit value")
-    int deposit;
+    long deposit;
 
     @RequiredField(fieldName = "Address")
     @ValidAddress(message = "INVALID_ADDRESS")
@@ -50,19 +50,15 @@ public class EditCarRequest {
     String status;
 
     //  MultipartFile**
-    @RequiredField(fieldName = "Car's front side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
     MultipartFile carImageFront;
 
-    @RequiredField(fieldName = "Car's back side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
     MultipartFile carImageBack;
 
-    @RequiredField(fieldName = "Car's left side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
     MultipartFile carImageLeft;
 
-    @RequiredField(fieldName = "Car's right side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
     MultipartFile carImageRight;
 }

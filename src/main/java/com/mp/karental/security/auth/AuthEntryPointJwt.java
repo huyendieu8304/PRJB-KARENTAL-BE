@@ -36,6 +36,25 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 
         log.info("go to AuthEntryPointJwt commence");
         log.info(authException.getMessage());
+        log.info(authException.getLocalizedMessage());
+
+        // Is request response with 404
+        if (response.getStatus() == HttpStatus.NOT_FOUND.value()) {
+            ApiResponse<String> apiResponse = ApiResponse.<String>builder()
+                    .code(4999)
+                    .message("Resource not found")
+                    .build();
+
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            ObjectMapper objectMapper = new ObjectMapper();
+            response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+            response.getWriter().flush();
+            return;
+        }
+
+        log.error(authException.getMessage(), authException);
+        log.error(authException.getStackTrace().toString());
 
         // Kiểm tra xem request có trả về 404 hay không
         if (response.getStatus() == HttpStatus.NOT_FOUND.value()) {
