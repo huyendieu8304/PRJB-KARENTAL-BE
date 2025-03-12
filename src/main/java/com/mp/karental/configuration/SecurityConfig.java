@@ -51,6 +51,10 @@ public class SecurityConfig{
             "/user/resend-verify-email/**",
             "/user/verify-email/**",
             "/auth/**",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-config",
+            "/swagger-resources/**",
     };
     /**
      * Allow request from other origins below
