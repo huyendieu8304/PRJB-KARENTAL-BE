@@ -36,6 +36,7 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 
         log.info("go to AuthEntryPointJwt commence");
         log.info(authException.getMessage());
+        log.info(authException.getLocalizedMessage());
 
         // Is request response with 404
         if (response.getStatus() == HttpStatus.NOT_FOUND.value()) {
@@ -51,6 +52,9 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
             response.getWriter().flush();
             return;
         }
+
+        log.error(authException.getMessage(), authException);
+        log.error(authException.getStackTrace().toString());
 
         ErrorCode errorCode = ErrorCode.UNAUTHENTICATED; //by default, it would be ErrorCode.UNAUTHENTICATED
 

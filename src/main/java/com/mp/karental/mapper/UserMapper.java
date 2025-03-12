@@ -25,10 +25,6 @@ public interface UserMapper {
      *
      * @param request the account registration request containing user input data
      * @return an {@code Account} entity constructed from the provided request data
-     *
-     * @author DieuTTH4
-     *
-     * @version 1.0
      */
     Account toAccount(AccountRegisterRequest request);
 
@@ -37,10 +33,6 @@ public interface UserMapper {
      *
      * @param request the account registration request containing user input data
      * @return a {@code UserProfile} entity constructed from the provided request data
-     *
-     * @author DieuTTH4
-     *
-     * @version 1.0
      */
     UserProfile toUserProfile(AccountRegisterRequest request);
 
@@ -59,10 +51,6 @@ public interface UserMapper {
      * @param account the account entity containing authentication and role information
      * @param userProfile the user profile entity containing personal details
      * @return a {@code UserResponse} DTO combining information from both the account and profile
-     *
-     * @author DieuTTH4
-     *
-     * @version 1.0
      */
     @Mapping(target = "fullName", source = "userProfile.fullName")
     @Mapping(target = "email", source = "account.email")
