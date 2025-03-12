@@ -1,5 +1,6 @@
 package com.mp.karental.entity;
 
+import com.mp.karental.constant.ETransactionStatus;
 import com.mp.karental.constant.ETransactionType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,7 +26,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Immutable //can not edit after create
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -44,12 +44,14 @@ public class Transaction {
 
     @Column(nullable = false)
     long amount;
-
+    String bookingNo;
+    String carName;
     String message; //save the transaction message, could be remove
 
     //One booking would have different transaction type
     @ManyToOne
     @JoinColumn(name = "booking_number")
     Booking bookingNumber;
-
+    @Enumerated(EnumType.STRING)
+    ETransactionStatus status;
 }

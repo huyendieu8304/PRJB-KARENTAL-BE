@@ -60,22 +60,31 @@ public enum ErrorCode {
     INVALID_ADDRESS_COMPONENT(2028,"Invalid address component", HttpStatus.BAD_REQUEST),
     INVALID_DATE_FORMAT(2029, "Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST),
 
+    INVALID_TRANSACTION_TYPE(2025,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
     //range 3xxx
-    UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),
+    UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.SERVICE_UNAVAILABLE),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),
     ACCOUNT_NOT_FOUND_IN_DB(3003, "The account is not exist in the system", HttpStatus.NOT_FOUND),
     MAXIMUM_FILE_UPLOAD_EXCEED(3004, "Maximum file upload exceeded. Each file should not exceed 5Mb", HttpStatus.BAD_REQUEST),
-    PASSWORDS_DO_NOT_MATCH(3005, "New password and Confirm password don’t match.", HttpStatus.BAD_REQUEST),
+    SEND_VERIFY_EMAIL_TO_USER_FAIL(3005, "There was error during sending verify email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
     INCORRECT_PASSWORD(3006, "Current password is incorrect.", HttpStatus.BAD_REQUEST),
     CAR_NOT_FOUND_IN_DB(3007, "The car is not exist in the system", HttpStatus.NOT_FOUND),
     CAR_NOT_VERIFIED(3008, "This car has not been verified and cannot be viewed.", HttpStatus.FORBIDDEN),
     CAR_STOPPED(3009, "This car has stopped and cannot be viewed.", HttpStatus.FORBIDDEN),
     CAR_NOT_AVAILABLE(3010, "The car is not available", HttpStatus.BAD_REQUEST),
 
+    VNPAY_SIGNING_FAILED(3008,"Your information is wrong. ", HttpStatus.BAD_REQUEST),
+    VNPAY_CHECKSUM_FAILED(3009,"VNPAY Checksum sequence has error. ", HttpStatus.BAD_REQUEST),
+    VNPAY_PAYMENT_FAILED(3010,"Payment failed by some reasons.", HttpStatus.BAD_REQUEST),
+    PAYMENT_FAILED(3011,"Amount is exceeded wallet balance.", HttpStatus.BAD_REQUEST),
+    WALLET_NOT_FOUND_IN_DB(3012, "The wallet is not exist in the system", HttpStatus.NOT_FOUND),
+    SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3013, "There was error during sending forgot password email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
+    TRANSACTION_NOT_FOUND_IN_DB(3014, "The transaction is not exist in the system", HttpStatus.NOT_FOUND),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
-    INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.BAD_REQUEST),
+    INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_LOGIN_INFORMATION(4002, "Either email address or password is incorrect. Please try again", HttpStatus.UNAUTHORIZED),
+    //TODO: xem lại cái message và cái http status ở chỗ này cũng như cái tên của nó luôn
     UNAUTHENTICATED(4003, "Unauthenticated access. The access token is invalid", HttpStatus.UNAUTHORIZED), //401
     UNAUTHORIZED(4004, "User doesn't have permission to access the endpoint.", HttpStatus.FORBIDDEN), //403
     ACCESS_TOKEN_EXPIRED(4005, "The access token is expired. Please try again", HttpStatus.UNAUTHORIZED),
@@ -84,6 +93,9 @@ public enum ErrorCode {
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(4009, "Invalid refresh token. Please try again", HttpStatus.UNAUTHORIZED),
     FORBIDDEN_CAR_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.FORBIDDEN),
+    EMAIL_NOT_USED_BY_ANY_ACCOUNT(4011, "The email address you’ve entered does not exist. Please try again", HttpStatus.BAD_REQUEST),
+    INVALID_ONETIME_TOKEN(4012, "The token is invalid or this link has expired or has been used.", HttpStatus.BAD_REQUEST),
+    INVALID_FORGOT_PASSWORD_TOKEN(4013, "This link has expired. Please go back to Homepage and try again.", HttpStatus.BAD_REQUEST),
     ;
 
     /**

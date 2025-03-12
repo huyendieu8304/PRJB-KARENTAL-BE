@@ -2,10 +2,15 @@ package com.mp.karental.service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -18,12 +23,15 @@ import java.time.format.DateTimeFormatter;
  *
  */
 @Service
+@RequiredArgsConstructor
+@Slf4j
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    JavaMailSender mailSender;
 
-    private static final String FROM_EMAIL = "your_email@gmail.com"; // replace with your email
+//    @Value("${spring.mail.username}")
+    private static String fromEmail = "childrencaresystemse1874@gmail.com"; // replace with your email
 
     /**
      * Sends a registration confirmation email.
@@ -134,7 +142,7 @@ public class EmailService {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
         helper.setTo(to);
-        helper.setFrom(FROM_EMAIL);
+        helper.setFrom(fromEmail);
         helper.setSubject(subject);
         helper.setText(htmlContent, true);
         mailSender.send(mimeMessage);

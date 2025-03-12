@@ -122,9 +122,6 @@ public class CarService {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Fetch the account details from the database, or throw an error if the account is not found
-        Account account = SecurityUtil.getCurrentAccount();
-
         // Retrieve the car entity from the database using the provided car ID
         // If the car does not exist, throw an exception
         Car car = carRepository.findById(id)
@@ -377,7 +374,7 @@ public class CarService {
         boolean isBooked = isCarBooked(request.getCarId(), accountId);
 
         if (isBooked) {
-            // If the booking status is CONFIRMED, IN_PROGRESS, PENDING_PAYMENT, COMPLETED so display the full address
+            // If the booking_status is COMPLETE, display the full address
             response.setAddress(car.getHouseNumberStreet() + ", "
                     + car.getWard() + ", "
                     + car.getDistrict() + ", "
@@ -465,37 +462,40 @@ public class CarService {
         return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);
     }
 
-    /**
-     * Retrieves a car by its ID and ensures that the current logged-in user owns the car.
-     *
-     * @param id The ID of the car to retrieve.
-     * @return A CarResponse object containing the car details.
-     * @throws AppException If the account is not found, the car is not found, or the user is unauthorized.
-     */
-    public CarResponse getCarById(String id) {
-        // Retrieve the current user account ID to ensure the user is logged in
-        String accountId = SecurityUtil.getCurrentAccountId();
-
-        // Fetch the car details from the database, or throw an error if the car is not found
-        Car car = carRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
-
-        // Check if the car belongs to the current logged-in user
-        if (!car.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS); // Custom error for unauthorized access
+    private static Pageable getPageable(int page, int size, String sort) {
+        // Validate and limit size (maximum 100)
+        if (size <= 0 || size > 100) {
+            size = 10; // Default value if client provides an invalid input
         }
 
-        // Convert Car entity to CarResponse DTO
-        CarResponse carResponse = carMapper.toCarResponse(car);
+        // Ensure page number is non-negative (set to 0 if negative)
+        if (page < 0) {
+            page = 0;
+        }
 
-        // Concatenate address fields into a single string and set it in CarResponse
-        carResponse.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", "
-                + car.getWard() + ", " + car.getHouseNumberStreet());
+        // Define default sorting field and direction
+        String sortField = FIELD_PRODUCTION_YEAR;
+        Sort.Direction sortDirection = Sort.Direction.DESC;
 
-        // Set file URLs for car images and documents
-        setCarResponseUrls(carResponse, car);
+        if (sort != null && !sort.isBlank()) {
+            String[] sortParams = sort.split(",");
+            if (sortParams.length == 2) {
+                String requestedField = sortParams[0].trim();
+                String requestedDirection = sortParams[1].trim().toUpperCase();
 
-        return carResponse;
+                // Check if requestedField valid
+                if (List.of(FIELD_PRODUCTION_YEAR, FIELD_PRICE).contains(requestedField)) {
+                    sortField = requestedField;
+                }
+
+                // Check if requestedDirection valid
+                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
+                    sortDirection = Sort.Direction.valueOf(requestedDirection);
+                }
+            }
+        }
+
+        return PageRequest.of(page, size, Sort.by(sortDirection, sortField));
     }
 
     /**
@@ -545,40 +545,42 @@ public class CarService {
         return new PageImpl<>(availableCars, pageable, verifiedCars.getTotalElements());
     }
 
-    private static Pageable getPageable(int page, int size, String sort) {
-        // Validate and limit size (maximum 100)
-        if (size <= 0 || size > 100) {
-            size = 10; // Default value if client provides an invalid input
+
+
+
+    /**
+     * Retrieves a car by its ID and ensures that the current logged-in user owns the car.
+     *
+     * @param id The ID of the car to retrieve.
+     * @return A CarResponse object containing the car details.
+     * @throws AppException If the account is not found, the car is not found, or the user is unauthorized.
+     */
+    public CarResponse getCarById(String id) {
+        // Retrieve the current user account ID to ensure the user is logged in
+        String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Fetch the account details from the database, or throw an error if the account is not found
+        Account account = SecurityUtil.getCurrentAccount();
+
+        // Fetch the car details from the database, or throw an error if the car is not found
+        Car car = carRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        // Check if the car belongs to the current logged-in user
+        if (!car.getAccount().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS); // Custom error for unauthorized access
         }
 
-        // Ensure page number is non-negative (set to 0 if negative)
-        if (page < 0) {
-            page = 0;
-        }
+        // Convert Car entity to CarResponse DTO
+        CarResponse carResponse = carMapper.toCarResponse(car);
 
-        // Define default sorting field and direction
-        String sortField = FIELD_PRODUCTION_YEAR;
-        Sort.Direction sortDirection = Sort.Direction.DESC;
+        // Concatenate address fields into a single string and set it in CarResponse
+        carResponse.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", "
+                + car.getWard() + ", " + car.getHouseNumberStreet());
 
-        if (sort != null && !sort.isBlank()) {
-            String[] sortParams = sort.split(",");
-            if (sortParams.length == 2) {
-                String requestedField = sortParams[0].trim();
-                String requestedDirection = sortParams[1].trim().toUpperCase();
+        // Set file URLs for car images and documents
+        setCarResponseUrls(carResponse, car);
 
-                // Check if requestedField valid
-                if (List.of(FIELD_PRODUCTION_YEAR, FIELD_PRICE).contains(requestedField)) {
-                    sortField = requestedField;
-                }
-
-                // Check if requestedDirection valid
-                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
-                    sortDirection = Sort.Direction.valueOf(requestedDirection);
-                }
-            }
-        }
-
-        return PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+        return carResponse;
     }
-
 }

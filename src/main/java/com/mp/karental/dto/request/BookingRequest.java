@@ -2,16 +2,14 @@ package com.mp.karental.dto.request;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
-import com.mp.karental.validation.ValidAddressComponent;
-import com.mp.karental.validation.ValidBookingTime;
-import com.mp.karental.validation.ValidDocument;
-import com.mp.karental.validation.ValidPaymentType;
+import com.mp.karental.validation.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -35,6 +33,12 @@ import java.time.LocalDateTime;
 @ValidBookingTime(message = "INVALID_BOOKING_TIME")
 @ValidAddressComponent(message = "INVALID_ADDRESS_COMPONENT")
 public class BookingRequest {
+    String carId;
+
+    @CreationTimestamp
+    LocalDateTime createdAt;
+
+    @ValidAddress(message = "INVALID_ADDRESS")
     String pickUpLocation;
 
     LocalDateTime pickUpTime;
@@ -50,7 +54,7 @@ public class BookingRequest {
     String driverFullName;
 
     @NotBlank(message = "Driver's phone number is required")
-    @Pattern(regexp = "\\d{10,15}", message = "Invalid phone number format")
+    @Pattern(regexp = "\\d{10}", message = "Invalid phone number format")
     String driverPhoneNumber;
 
     @NotBlank(message = "Driver's national ID is required")

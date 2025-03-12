@@ -17,7 +17,7 @@ import java.util.List;
  * such as saving, deleting, and finding entities.
  * </p>
  *
- * @author ANHHP9
+ * @author DieuTTH4
  *
  * @version 1.0
  * @see JpaRepository
@@ -75,6 +75,22 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "AND b.createdAt <= :expiredTime " +
             "ORDER BY b.createdAt")
     List<Booking> findExpiredBookings(@Param("expiredTime") LocalDateTime expiredTime);
+
+    @Query("SELECT b FROM Booking b WHERE b.car.id = :carId AND b.status = :status " +
+            "AND ((b.pickUpTime BETWEEN :pickUpTime AND :dropOffTime) OR " +
+            "(b.dropOffTime BETWEEN :pickUpTime AND :dropOffTime) OR " +
+            "(:pickUpTime BETWEEN b.pickUpTime AND b.dropOffTime) OR " +
+            "(:dropOffTime BETWEEN b.pickUpTime AND b.dropOffTime))")
+    List<Booking> findByCarIdAndStatusAndTimeOverlap(
+            @Param("carId") String carId,
+            @Param("status") EBookingStatus status,
+            @Param("pickUpTime") LocalDateTime pickUpTime,
+            @Param("dropOffTime") LocalDateTime dropOffTime
+    );
+
+    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' AND b.createdAt > :threshold")
+    List<Booking> findPendingDepositBookings(@Param("threshold") LocalDateTime threshold);
+
 
     @Query("""
     SELECT b FROM Booking b

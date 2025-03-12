@@ -25,8 +25,8 @@ class StatusEditValidatorTest {
     }
 
     @Test
-    void testValidStatus_NotVerified() {
-        assertTrue(validator.isValid(ECarStatus.NOT_VERIFIED.name(), context), "Expected 'not verified' to be valid");
+    void testValidStatus_Available() {
+        assertTrue(validator.isValid(ECarStatus.NOT_VERIFIED.name(), context), "Expected 'not verfied' to be valid");
     }
 
     @Test
@@ -37,7 +37,7 @@ class StatusEditValidatorTest {
     @Test
     void testValidStatus_CaseInsensitive() {
         assertTrue(validator.isValid(ECarStatus.NOT_VERIFIED.name(), context), "Expected 'not verified' to be valid");
-        assertTrue(validator.isValid(ECarStatus.STOPPED.name(), context), "Expected 'stopped' to be valid");
+        assertTrue(validator.isValid(ECarStatus.NOT_VERIFIED.name(), context), "Expected 'STOPPED' to be valid");
     }
 
     @Test

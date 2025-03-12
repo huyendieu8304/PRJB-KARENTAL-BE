@@ -19,6 +19,8 @@ import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.repository.WalletRepository;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.repository.WalletRepository;
+import com.mp.karental.util.RedisUtil;
+import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,8 +71,6 @@ class UserServiceTest {
     @Mock
     private WalletRepository walletRepository;
 
-    @InjectMocks
-    private UserService userService;
 
     @Mock
     private EditProfileRequest editProfileRequest;
@@ -78,14 +78,28 @@ class UserServiceTest {
     @Mock
     private S3Presigner s3Presigner;
 
+    @Mock
+    private RedisUtil redisUtil;
+
+    @Mock
+    private EmailService emailService;
+
+    @InjectMocks
+    private UserService userService;
+
+    //TODO: suwar lai khi deploy front ent
+    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
+
+    private final String VALID_TOKEN = "valid_token";
+    private final String INVALID_TOKEN = "invalid_token";
+    private final String ACCOUNT_ID = "12345";
+
     @ParameterizedTest(name = "[{index} isCustomer={0}]")
     @CsvSource({
             "true",
             "false"
     })
-
-
-    void addNewAccount(String isCustomer) {
+    void addNewAccount(String isCustomer) throws MessagingException {
         AccountRegisterRequest request = new AccountRegisterRequest();
         request.setIsCustomer(isCustomer);
         request.setPassword("password");
@@ -110,6 +124,8 @@ class UserServiceTest {
         when(userProfileRepository.save(userProfile)).thenReturn(userProfile);
         when(userMapper.toUserResponse(account, userProfile)).thenReturn(userResponse);
 
+        when(redisUtil.generateVerifyEmailToken(account.getId())).thenReturn("verifyEmailToken");
+
         UserResponse result = userService.addNewAccount(request);
 
         assertNotNull(result);
@@ -121,7 +137,11 @@ class UserServiceTest {
         verify(userMapper).toUserResponse(account, userProfile);
         verify(walletRepository).save(any(Wallet.class));
 
-        assertTrue(account.isActive(), "Account must be active");
+        //TODO: vieets laij choox nay khi noi voi front end
+        String expectedUrl = DOMAIN_NAME + "/user/verify-email?t=verifyEmailToken";
+        verify(emailService).sendRegisterEmail(account.getEmail(), expectedUrl);
+
+        assertFalse(account.isActive(), "Account must be inactive");
         assertEquals("encodedPassword", account.getPassword(), "Password must be encoded");
     }
 
@@ -150,6 +170,169 @@ class UserServiceTest {
         // Verify methods befor exception thrown
         verify(userMapper).toAccount(request);
         verify(roleRepository).findByName(ERole.CUSTOMER);
+
+        //these method below should not be called
+        verify(accountRepository, times(0)).save(account);
+    }
+
+    @Test
+    void resendVerifyEmail_ShouldSendEmail_WhenEmailNotVerified() throws MessagingException {
+        // Given
+        String email = "test@example.com";
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmail(email);
+        account.setEmailVerified(false);
+
+        when(accountRepository.findByEmail(email)).thenReturn(Optional.of(account));
+        when(redisUtil.generateVerifyEmailToken(account.getId())).thenReturn("mock-token");
+
+        // When
+        String result = userService.resendVerifyEmail(email);
+
+        // Then
+        String expectedUrl = DOMAIN_NAME + "/user/verify-email?t=mock-token";
+        assertEquals("The verify email is sent successfully. Please check your inbox again and follow instructions to verify your email.", result);
+        verify(emailService).sendRegisterEmail(email, expectedUrl);
+    }
+
+    @Test
+    void resendVerifyEmail_ShouldNotSendEmail_WhenEmailAlreadyVerified() throws MessagingException {
+        // Given
+        String email = "test@example.com";
+        Account account = new Account();
+        account.setEmail(email);
+        account.setEmailVerified(true);
+
+        when(accountRepository.findByEmail(email)).thenReturn(Optional.of(account));
+
+        // When
+        String result = userService.resendVerifyEmail(email);
+
+        // Then
+        assertEquals("The email is already verified", result);
+        verify(emailService, never()).sendRegisterEmail(any(), any());
+    }
+
+    @Test
+    void resendVerifyEmail_ShouldThrowException_WhenEmailNotFound() throws MessagingException {
+        // Given
+        String email = "notfound@example.com";
+        when(accountRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // When + Then
+        AppException exception = assertThrows(AppException.class,
+                () -> userService.resendVerifyEmail(email));
+
+        assertEquals(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT, exception.getErrorCode());
+        verify(emailService, never()).sendRegisterEmail(any(), any());
+    }
+
+    @Test
+    void resendVerifyEmail_ShouldThrowException_WhenSendEmailFails() throws MessagingException {
+        // Given
+        String email = "test@example.com";
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmail(email);
+        account.setEmailVerified(false);
+
+        when(accountRepository.findByEmail(email)).thenReturn(Optional.of(account));
+        when(redisUtil.generateVerifyEmailToken(account.getId())).thenReturn("mock-token");
+
+        // Giả lập lỗi khi gửi email
+        doThrow(new MessagingException("Email sending failed"))
+                .when(emailService).sendRegisterEmail(eq(email), anyString());
+
+        // When + Then
+        AppException exception = assertThrows(AppException.class,
+                () -> userService.resendVerifyEmail(email));
+
+        assertEquals(ErrorCode.SEND_VERIFY_EMAIL_TO_USER_FAIL, exception.getErrorCode());
+
+        // Đảm bảo đã gọi hàm tạo token và gửi email
+        verify(redisUtil).generateVerifyEmailToken(account.getId());
+        verify(emailService).sendRegisterEmail(eq(email), anyString());
+    }
+
+    @Test
+    void verifyEmail_WhenTokenIsValid_ShouldVerifyEmailSuccessfully() {
+        // Arrange
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmail("test@example.com");
+        account.setEmailVerified(false);
+        account.setActive(false);
+
+        when(redisUtil.getValueOfVerifyEmailToken(VALID_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        // Act
+        userService.verifyEmail(VALID_TOKEN);
+
+        // Assert
+        assertTrue(account.isEmailVerified());
+        assertTrue(account.isActive());
+        verify(accountRepository, times(1)).save(account);
+    }
+
+    @Test
+    void verifyEmail_WhenTokenIsValidButAccountNotFound_ShouldThrowException() {
+        // Arrange
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmail("test@example.com");
+        account.setEmailVerified(false);
+        account.setActive(false);
+
+        when(redisUtil.getValueOfVerifyEmailToken(VALID_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> {
+            userService.verifyEmail(VALID_TOKEN);
+        });
+        assertEquals(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT, exception.getErrorCode());
+    }
+
+    @Test
+    void verifyEmail_WhenEmailAlreadyVerified_ShouldNotChangeAnything() {
+        // Arrange
+        Account account = new Account();
+        account.setId(ACCOUNT_ID);
+        account.setEmail("test@example.com");
+        account.setEmailVerified(false);
+        account.setActive(false);
+        account.setEmailVerified(true);
+        account.setActive(true);
+
+        when(redisUtil.getValueOfVerifyEmailToken(VALID_TOKEN)).thenReturn(ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        // Act
+        userService.verifyEmail(VALID_TOKEN);
+
+        // Assert
+        assertTrue(account.isEmailVerified());
+        assertTrue(account.isActive());
+        // Không lưu lại vì không có gì thay đổi
+        verify(accountRepository, never()).save(account);
+    }
+
+    @Test
+    void verifyEmail_WhenTokenIsInvalid_ShouldThrowInvalidTokenException() {
+        // Arrange
+        when(redisUtil.getValueOfVerifyEmailToken(INVALID_TOKEN)).thenReturn(null);
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> {
+            userService.verifyEmail(INVALID_TOKEN);
+        });
+        assertEquals(ErrorCode.INVALID_ONETIME_TOKEN, exception.getErrorCode());
+
+        // Không có hành động nào trên repository
+        verify(accountRepository, never()).findById(any());
+        verify(accountRepository, never()).save(any());
     }
 
 

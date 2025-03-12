@@ -5,7 +5,7 @@ import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.BookingRequest;
 import com.mp.karental.dto.response.BookingResponse;
 import com.mp.karental.dto.response.BookingThumbnailResponse;
-import com.mp.karental.dto.response.CarThumbnailResponse;
+import com.mp.karental.dto.response.WalletResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Car;
@@ -31,13 +31,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.awt.print.Book;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
+/**
+ * Service class for handling booking operations.
+ *
+ * @author QuangPM20
+ * @version 1.0
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -51,6 +54,7 @@ public class BookingService {
     WalletRepository walletRepository;
     FileService fileService;
     CarService carService;
+    TransactionService transactionService;
 
     // Define constant field names to avoid repetition
     private static final String FIELD_CREATED_AT = "createdAt";
@@ -60,14 +64,12 @@ public class BookingService {
      * Creates a new booking for a car rental.
      *
      * @param bookingRequest The booking request details.
-     * @param carId The ID of the car being booked.
      * @return BookingResponse containing booking details.
      * @throws AppException if there are validation issues or car availability problems.
-     * @throws Exception for unexpected errors.
      */
-    public BookingResponse createBooking(BookingRequest bookingRequest, String carId) throws AppException, Exception {
-        // Update expired bookings before creating a new one.
-        updateExpiredBookings();
+    public BookingResponse createBooking(BookingRequest bookingRequest) throws AppException {
+        // Update status bookings before creating a new one.
+        updateStatusBookings();
 
         // Get the current logged-in user's account ID.
         String accountId = SecurityUtil.getCurrentAccountId();
@@ -76,7 +78,7 @@ public class BookingService {
         Account accountCustomer = SecurityUtil.getCurrentAccount();
 
         // Retrieve car details from the database, throw an exception if not found.
-        Car car = carRepository.findById(carId)
+        Car car = carRepository.findById(bookingRequest.getCarId())
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
 
         // Retrieve the user's wallet, throw an exception if not found.
@@ -94,7 +96,7 @@ public class BookingService {
 
         // Upload the driver's license to S3 storage.
         MultipartFile drivingLicense = bookingRequest.getDriverDrivingLicense();
-        String s3Key = "user/" + accountId + "/driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
+        String s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
         fileService.uploadFile(drivingLicense, s3Key);
         booking.setDriverDrivingLicenseUri(s3Key);
 
@@ -103,42 +105,33 @@ public class BookingService {
         booking.setCar(car);
 
         // Store car deposit and base price at the time of booking.
-        long depositAtBookingTime = car.getDeposit();
-        long basePriceAtBookingTime = car.getBasePrice();
-
-        booking.setDeposit(depositAtBookingTime);
+        booking.setDeposit(car.getDeposit());
+        booking.setBasePrice(car.getBasePrice());
 
         // Calculate rental duration in minutes.
         long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
         long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
 
-        // Set the total base price based on the rental duration.
-        booking.setBasePrice(basePriceAtBookingTime * days);
-
-        // Set timestamps for booking creation and update.
-        booking.setCreatedAt(LocalDateTime.now());
-        booking.setUpdatedAt(booking.getCreatedAt());
-
         // Handle different payment types.
-        if (booking.getPaymentType().equals(EPaymentType.WALLET)) {
+        if (booking.getPaymentType().equals(EPaymentType.WALLET)
+                && walletCustomer.getBalance() >= car.getDeposit()) {
             // If the user has enough balance in the wallet, deduct the deposit and proceed.
-            if (walletCustomer.getBalance() >= car.getDeposit()) {
-                walletCustomer.setBalance(walletCustomer.getBalance() - car.getDeposit());
-                booking.setStatus(EBookingStatus.WAITING_CONFIRM);
-            } else {
-                booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
-            }
-        } else if (booking.getPaymentType().equals(EPaymentType.CASH) || booking.getPaymentType().equals(EPaymentType.BANK_TRANSFER)) {
+            transactionService.payDeposit(accountId, booking.getDeposit(), booking);
+            booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+            walletRepository.save(walletCustomer);
+        } else {
             booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
         }
+
+
+        // Save the booking to the database.
+        bookingRepository.save(booking);
 
         // Convert the booking entity to a response DTO.
         BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
         bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(s3Key));
         bookingResponse.setCarId(booking.getCar().getId());
-
-        // Save the booking to the database.
-        bookingRepository.save(booking);
+        bookingResponse.setTotalPrice(booking.getBasePrice() * days);
 
         return bookingResponse;
     }
@@ -148,17 +141,47 @@ public class BookingService {
      * Runs every 10 seconds to check and cancel bookings that are not confirmed within 2 minutes.
      */
     @Scheduled(fixedRate = 10000)
-    public void updateExpiredBookings() {
+    public void updateStatusBookings() {
         LocalDateTime now = LocalDateTime.now();
 
-        // Find bookings that have expired (not confirmed within 2 minutes).
-        List<Booking> expiredBookings = bookingRepository.findExpiredBookings(now.minusHours(1));
+        // Find bookings that have expired (not confirmed within 1 hour).
+        List<Booking> expiredBookings = bookingRepository.findExpiredBookings(now.minusMinutes(2));
 
         // Cancel expired bookings.
         for (Booking booking : expiredBookings) {
-            if (booking.getCreatedAt().plusMinutes(2).isBefore(now)) {
+            if (booking.getCreatedAt().plusHours(1).isBefore(now)) {
                 booking.setStatus(EBookingStatus.CANCELLED);
+                booking.setUpdatedAt(now);
                 bookingRepository.saveAndFlush(booking);
+            }
+        }
+
+        // find all booking not expired
+        List<Booking> pendingBookings = bookingRepository.findPendingDepositBookings(now.minusHours(1));
+        for (Booking booking : pendingBookings) {
+            Wallet wallet = walletRepository.findById(booking.getAccount().getId())
+                    .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+            // check when customer top up wallet
+            if (wallet.getBalance() >= booking.getDeposit()) {
+                transactionService.payDeposit(booking.getAccount().getId(), booking.getDeposit(), booking);
+                booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+                walletRepository.save(wallet);
+                bookingRepository.save(booking);
+                // cancel booking overlap
+                List<Booking> overlappingBookings = bookingRepository.findByCarIdAndStatusAndTimeOverlap(
+                        booking.getCar().getId(),
+                        EBookingStatus.PENDING_DEPOSIT,
+                        booking.getPickUpTime(),
+                        booking.getDropOffTime()
+                );
+
+                for (Booking pendingBooking : overlappingBookings) {
+                    pendingBooking.setStatus(EBookingStatus.CANCELLED);
+                    bookingRepository.saveAndFlush(pendingBooking);
+                }
+
+                break; // stopped when a booking change to waiting confirm
             }
         }
     }
@@ -237,5 +260,23 @@ public class BookingService {
 
             return response;
         });
+
     }
+
+    /**
+     * this method to get the wallet by account login
+     * @return wallet of that account
+     */
+    public WalletResponse getWallet() {
+        // Get the current logged-in user's account ID.
+        String accountId = SecurityUtil.getCurrentAccountId();
+        Wallet wallet = walletRepository.findById(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        return new WalletResponse(
+                wallet.getId(),
+                wallet.getBalance()
+        );
+    }
+
 }
+

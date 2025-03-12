@@ -28,10 +28,6 @@ public class BookingResponse {
 
     String carId;
 
-    LocalDateTime createdAt;
-
-    LocalDateTime updatedAt;
-
     EBookingStatus status;
 
     String pickUpLocation;
@@ -39,6 +35,8 @@ public class BookingResponse {
     LocalDateTime pickUpTime;
 
     LocalDateTime dropOffTime;
+
+    long totalPrice;
 
     long basePrice;
 

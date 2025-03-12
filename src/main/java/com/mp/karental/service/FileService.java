@@ -83,11 +83,17 @@ public class FileService {
         return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
+    /**
+     * Get the file extension (.png, .jpg .pdf ...)
+     * @param file the file
+     * @return the file extension
+     */
     public String getFileExtension(MultipartFile file) {
         String fileName = file.getOriginalFilename();
+        //File name exist
         if (fileName != null && fileName.contains(".")) {
             return fileName.substring(fileName.lastIndexOf(".")).toLowerCase();
         }
-        return ""; // return emty string if the file doesn't has the extension
+        return ""; // return empty string if the file doesn't has the extension
     }
 }
