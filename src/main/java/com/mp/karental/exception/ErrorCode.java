@@ -27,15 +27,11 @@ public enum ErrorCode {
     //range 2xxx
     REQUIRED_FIELD(2000, "{fieldName} is required.", HttpStatus.BAD_REQUEST),
     INVALID_NAME(2001, "The full name can only contain alphabet characters.", HttpStatus.BAD_REQUEST),
-
     INVALID_EMAIL(2002, "Please enter a valid email address", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_EMAIL(2003, "Email already existed. Please try another email.", HttpStatus.BAD_REQUEST),
-
     INVALID_PHONE_NUMBER(2004, "Invalid phone number.", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_PHONE_NUMBER(2005, "The phone number already existed. Please try another phone number", HttpStatus.BAD_REQUEST),
-
     INVALID_PASSWORD(2006, "Password must contain at least one number, one numeral, and seven characters.", HttpStatus.BAD_REQUEST),
-
     INVALID_LICENSE(2007, "Invalid license plate format! Expected format: (11-99)(A-Z)-(000-999).(00-99).", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_LICENSE(2008, "License plate already existed. Please try another license plate", HttpStatus.BAD_REQUEST),
     INVALID_COLOR(2009, "Your color were not predefined. Please try another color", HttpStatus.BAD_REQUEST),
@@ -60,7 +56,7 @@ public enum ErrorCode {
     INVALID_ADDRESS_COMPONENT(2028,"Invalid address component", HttpStatus.BAD_REQUEST),
     INVALID_DATE_FORMAT(2029, "Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST),
 
-    INVALID_TRANSACTION_TYPE(2025,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_TRANSACTION_TYPE(2030,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.SERVICE_UNAVAILABLE),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),
@@ -73,29 +69,28 @@ public enum ErrorCode {
     CAR_STOPPED(3009, "This car has stopped and cannot be viewed.", HttpStatus.FORBIDDEN),
     CAR_NOT_AVAILABLE(3010, "The car is not available", HttpStatus.BAD_REQUEST),
 
-    VNPAY_SIGNING_FAILED(3008,"Your information is wrong. ", HttpStatus.BAD_REQUEST),
-    VNPAY_CHECKSUM_FAILED(3009,"VNPAY Checksum sequence has error. ", HttpStatus.BAD_REQUEST),
-    VNPAY_PAYMENT_FAILED(3010,"Payment failed by some reasons.", HttpStatus.BAD_REQUEST),
-    PAYMENT_FAILED(3011,"Amount is exceeded wallet balance.", HttpStatus.BAD_REQUEST),
-    WALLET_NOT_FOUND_IN_DB(3012, "The wallet is not exist in the system", HttpStatus.NOT_FOUND),
-    SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3013, "There was error during sending forgot password email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
-    TRANSACTION_NOT_FOUND_IN_DB(3014, "The transaction is not exist in the system", HttpStatus.NOT_FOUND),
+    VNPAY_SIGNING_FAILED(3011,"Your information is wrong. ", HttpStatus.BAD_REQUEST),
+    VNPAY_CHECKSUM_FAILED(3012,"VNPAY Checksum sequence has error. ", HttpStatus.BAD_REQUEST),
+    VNPAY_PAYMENT_FAILED(3013,"Payment failed by some reasons.", HttpStatus.BAD_REQUEST),
+    PAYMENT_FAILED(3014,"Amount is exceeded wallet balance.", HttpStatus.BAD_REQUEST),
+    WALLET_NOT_FOUND_IN_DB(3015, "The wallet is not exist in the system", HttpStatus.NOT_FOUND),
+    SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3016, "There was error during sending forgot password email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
+    TRANSACTION_NOT_FOUND_IN_DB(3017, "The transaction is not exist in the system", HttpStatus.NOT_FOUND),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_LOGIN_INFORMATION(4002, "Either email address or password is incorrect. Please try again", HttpStatus.UNAUTHORIZED),
-    //TODO: xem lại cái message và cái http status ở chỗ này cũng như cái tên của nó luôn
     UNAUTHENTICATED(4003, "Unauthenticated access. The access token is invalid", HttpStatus.UNAUTHORIZED), //401
     UNAUTHORIZED(4004, "User doesn't have permission to access the endpoint.", HttpStatus.FORBIDDEN), //403
     ACCESS_TOKEN_EXPIRED(4005, "The access token is expired. Please try again", HttpStatus.UNAUTHORIZED),
     ACCOUNT_IS_INACTIVE(4006, "Your account is inactive.", HttpStatus.FORBIDDEN),
-
+    EMAIL_NOT_USED_BY_ANY_ACCOUNT(4007, "The email address you’ve entered does not exist. Please try again", HttpStatus.BAD_REQUEST),
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(4009, "Invalid refresh token. Please try again", HttpStatus.UNAUTHORIZED),
     FORBIDDEN_CAR_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.FORBIDDEN),
-    EMAIL_NOT_USED_BY_ANY_ACCOUNT(4011, "The email address you’ve entered does not exist. Please try again", HttpStatus.BAD_REQUEST),
-    INVALID_ONETIME_TOKEN(4012, "The token is invalid or this link has expired or has been used.", HttpStatus.BAD_REQUEST),
-    INVALID_FORGOT_PASSWORD_TOKEN(4013, "This link has expired. Please go back to Homepage and try again.", HttpStatus.BAD_REQUEST),
+    INVALID_ONETIME_TOKEN(4011, "The token is invalid or this link has expired or has been used.", HttpStatus.BAD_REQUEST),
+    INVALID_FORGOT_PASSWORD_TOKEN(4012, "This link has expired. Please go back to Homepage and try again.", HttpStatus.BAD_REQUEST),
+    FORBIDDEN_PROFILE_INCOMPLETE(4013, "Please complete your individual profile to booking", HttpStatus.FORBIDDEN),
     ;
 
     /**
