@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -25,7 +26,7 @@ public class RedisUtil {
 
     public String generateBookingNumber() {
         Long sequence = redisTemplate.opsForValue().increment(BOOKING_SEQUENCE_KEY, 1);
-        if(sequence!= null && sequence == 1){ //the first booking is placed
+        if(Objects.equals(sequence, 1L)){ //the first booking is placed
             //reset sequence every day
             redisTemplate.expireAt(BOOKING_SEQUENCE_KEY, new Date(System.currentTimeMillis() + 86400000));
             //TODO: FOR TEST ONLY
