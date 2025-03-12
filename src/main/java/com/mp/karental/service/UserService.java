@@ -23,7 +23,9 @@ import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +47,9 @@ import java.util.Optional;
 public class UserService {
 
     //TODO: sửa lại khi deploy
-    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
+    @Value("${front-end.domain-name}")
+    @NonFinal
+    private String frontEndDomainName;
 
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
@@ -118,7 +122,7 @@ public class UserService {
         log.info("Send verify email to user.");
         //send email to verified user email
         String verifyEmailToken = redisUtil.generateVerifyEmailToken(account.getId());
-        String confirmUrl = DOMAIN_NAME + "/user/verify-email?t=" + verifyEmailToken;
+        String confirmUrl = frontEndDomainName + "/user/verify-email?t=" + verifyEmailToken;
         log.info("Verify email url: {}", confirmUrl);
         //sending email
         try {

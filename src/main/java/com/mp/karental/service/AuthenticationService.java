@@ -50,8 +50,10 @@ import org.springframework.web.util.WebUtils;
 public class AuthenticationService {
 
     //TODO: sửa lại khi deploy
-    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
-
+//    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
+    @Value("${front-end.domain-name}")
+    @NonFinal
+    private String frontEndDomainName;
 
     @Value("${application.security.jwt.access-token-cookie-name}")
     @NonFinal
@@ -270,7 +272,7 @@ public class AuthenticationService {
 
         //send email
         String changePasswordToken = redisUtil.generateForgotPasswordToken(account.getId());
-        String forgotPasswordUrl = DOMAIN_NAME + "/auth/forgot-password/verify?t=" + changePasswordToken;
+        String forgotPasswordUrl = frontEndDomainName + "/auth/forgot-password/verify?t=" + changePasswordToken;
         log.info("Verify email url: {}", forgotPasswordUrl);
         try {
             emailService.sendForgotPasswordEmail(email, forgotPasswordUrl);

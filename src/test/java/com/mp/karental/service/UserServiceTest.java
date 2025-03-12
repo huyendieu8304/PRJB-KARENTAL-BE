@@ -21,6 +21,7 @@ import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.repository.WalletRepository;
 import com.mp.karental.util.RedisUtil;
 import jakarta.mail.MessagingException;
+import lombok.experimental.NonFinal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +32,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -88,7 +90,9 @@ class UserServiceTest {
     private UserService userService;
 
     //TODO: suwar lai khi deploy front ent
-    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
+    @Value("${front-end.domain-name}")
+    @NonFinal
+    private String frontEndDomainName;
 
     private final String VALID_TOKEN = "valid_token";
     private final String INVALID_TOKEN = "invalid_token";
@@ -138,7 +142,7 @@ class UserServiceTest {
         verify(walletRepository).save(any(Wallet.class));
 
         //TODO: vieets laij choox nay khi noi voi front end
-        String expectedUrl = DOMAIN_NAME + "/user/verify-email?t=verifyEmailToken";
+        String expectedUrl = frontEndDomainName + "/user/verify-email?t=verifyEmailToken";
         verify(emailService).sendRegisterEmail(account.getEmail(), expectedUrl);
 
         assertFalse(account.isActive(), "Account must be inactive");
@@ -191,7 +195,7 @@ class UserServiceTest {
         String result = userService.resendVerifyEmail(email);
 
         // Then
-        String expectedUrl = DOMAIN_NAME + "/user/verify-email?t=mock-token";
+        String expectedUrl = frontEndDomainName + "/user/verify-email?t=mock-token";
         assertEquals("The verify email is sent successfully. Please check your inbox again and follow instructions to verify your email.", result);
         verify(emailService).sendRegisterEmail(email, expectedUrl);
     }

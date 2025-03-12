@@ -76,6 +76,8 @@ cloud:
     s3:
       buckets:
         name: karental
+front-end:
+  domain-name: http://localhost:3000
 
 payment:
   vnpay:
