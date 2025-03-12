@@ -105,30 +105,24 @@ public class BookingService {
         booking.setCar(car);
 
         // Store car deposit and base price at the time of booking.
-        long depositAtBookingTime = car.getDeposit();
-        long basePriceAtBookingTime = car.getBasePrice();
-
-        booking.setDeposit(depositAtBookingTime);
-        booking.setBasePrice(basePriceAtBookingTime);
+        booking.setDeposit(car.getDeposit());
+        booking.setBasePrice(car.getBasePrice());
 
         // Calculate rental duration in minutes.
         long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
         long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
 
-
         // Handle different payment types.
-        if (booking.getPaymentType().equals(EPaymentType.WALLET)) {
+        if (booking.getPaymentType().equals(EPaymentType.WALLET)
+                && walletCustomer.getBalance() >= car.getDeposit()) {
             // If the user has enough balance in the wallet, deduct the deposit and proceed.
-            if (walletCustomer.getBalance() >= car.getDeposit()) {
-                transactionService.payDeposit(accountId, depositAtBookingTime, booking);
-                booking.setStatus(EBookingStatus.WAITING_CONFIRM);
-                walletRepository.save(walletCustomer);
-            } else {
-                booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
-            }
+            transactionService.payDeposit(accountId, booking.getDeposit(), booking);
+            booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+            walletRepository.save(walletCustomer);
         } else {
             booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
         }
+
 
         // Save the booking to the database.
         bookingRepository.save(booking);
@@ -137,7 +131,7 @@ public class BookingService {
         BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
         bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(s3Key));
         bookingResponse.setCarId(booking.getCar().getId());
-        bookingResponse.setTotalPrice(basePriceAtBookingTime * days);
+        bookingResponse.setTotalPrice(booking.getBasePrice() * days);
 
         return bookingResponse;
     }
