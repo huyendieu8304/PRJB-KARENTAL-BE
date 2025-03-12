@@ -2,10 +2,10 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
-import com.mp.karental.dto.request.BookingRequest;
-import com.mp.karental.dto.response.BookingResponse;
-import com.mp.karental.dto.response.BookingThumbnailResponse;
-import com.mp.karental.dto.response.WalletResponse;
+import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.response.booking.BookingResponse;
+import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
+import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Car;

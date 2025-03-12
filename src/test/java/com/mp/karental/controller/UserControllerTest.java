@@ -1,13 +1,13 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.constant.ERole;
-import com.mp.karental.dto.request.AccountRegisterRequest;
-import com.mp.karental.dto.request.EditPasswordRequest;
-import com.mp.karental.dto.request.EditProfileRequest;
-import com.mp.karental.dto.request.CheckUniqueEmailRequest;
+import com.mp.karental.dto.request.user.AccountRegisterRequest;
+import com.mp.karental.dto.request.user.EditPasswordRequest;
+import com.mp.karental.dto.request.user.EditProfileRequest;
+import com.mp.karental.dto.request.user.CheckUniqueEmailRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.EditProfileResponse;
-import com.mp.karental.dto.response.UserResponse;
+import com.mp.karental.dto.response.user.EditProfileResponse;
+import com.mp.karental.dto.response.user.UserResponse;
 import com.mp.karental.entity.Role;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
@@ -24,7 +24,6 @@ import org.springframework.http.ResponseEntity;
 
 
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

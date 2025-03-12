@@ -1,10 +1,10 @@
 package com.mp.karental.mapper;
 
-import com.mp.karental.dto.request.AddCarRequest;
-import com.mp.karental.dto.request.EditCarRequest;
-import com.mp.karental.dto.response.CarDetailResponse;
-import com.mp.karental.dto.response.CarResponse;
-import com.mp.karental.dto.response.CarThumbnailResponse;
+import com.mp.karental.dto.request.car.AddCarRequest;
+import com.mp.karental.dto.request.car.EditCarRequest;
+import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.response.car.CarResponse;
+import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.entity.Car;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

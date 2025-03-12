@@ -1,13 +1,12 @@
 package com.mp.karental.validation.validator;
 
-import com.mp.karental.dto.request.BookingRequest;
+import com.mp.karental.dto.request.booking.BookingRequest;
 import com.mp.karental.service.ExcelService;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;

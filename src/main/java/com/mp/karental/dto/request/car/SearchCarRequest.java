@@ -1,4 +1,4 @@
-package com.mp.karental.dto.request;
+package com.mp.karental.dto.request.car;
 
 import com.mp.karental.validation.RequiredField;
 import com.mp.karental.validation.ValidAddress;

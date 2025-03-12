@@ -1,4 +1,4 @@
-package com.mp.karental.dto.response;
+package com.mp.karental.dto.response.booking;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;

@@ -1,4 +1,4 @@
-package com.mp.karental.dto.request;
+package com.mp.karental.dto.request.car;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.*;

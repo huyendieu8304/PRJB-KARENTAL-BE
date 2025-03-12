@@ -1,11 +1,12 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.*;
+import com.mp.karental.dto.request.user.AccountRegisterRequest;
+import com.mp.karental.dto.request.user.CheckUniqueEmailRequest;
+import com.mp.karental.dto.request.user.EditPasswordRequest;
+import com.mp.karental.dto.request.user.EditProfileRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.EditProfileResponse;
-import com.mp.karental.dto.response.UserResponse;
-import com.mp.karental.mapper.UserMapper;
-import com.mp.karental.repository.UserProfileRepository;
+import com.mp.karental.dto.response.user.EditProfileResponse;
+import com.mp.karental.dto.response.user.UserResponse;
 import com.mp.karental.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -18,9 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Optional;
 
 /**
  * REST controller for handling user-related operations.

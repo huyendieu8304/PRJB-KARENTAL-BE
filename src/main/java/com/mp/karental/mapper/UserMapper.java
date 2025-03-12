@@ -1,13 +1,10 @@
 package com.mp.karental.mapper;
 
-import com.mp.karental.dto.request.AccountRegisterRequest;
-import com.mp.karental.dto.request.AddCarRequest;
-import com.mp.karental.dto.request.EditProfileRequest;
-import com.mp.karental.dto.response.CarResponse;
-import com.mp.karental.dto.response.EditProfileResponse;
-import com.mp.karental.dto.response.UserResponse;
+import com.mp.karental.dto.request.user.AccountRegisterRequest;
+import com.mp.karental.dto.request.user.EditProfileRequest;
+import com.mp.karental.dto.response.user.EditProfileResponse;
+import com.mp.karental.dto.response.user.UserResponse;
 import com.mp.karental.entity.Account;
-import com.mp.karental.entity.Car;
 import com.mp.karental.entity.UserProfile;
 import org.mapstruct.*;
 

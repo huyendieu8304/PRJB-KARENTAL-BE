@@ -1,4 +1,4 @@
-package com.mp.karental.dto.response;
+package com.mp.karental.dto.response.car;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;

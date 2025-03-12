@@ -1,8 +1,8 @@
 package com.mp.karental.mapper;
 
-import com.mp.karental.dto.request.BookingRequest;
-import com.mp.karental.dto.response.BookingResponse;
-import com.mp.karental.dto.response.BookingThumbnailResponse;
+import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.response.booking.BookingResponse;
+import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.entity.Booking;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

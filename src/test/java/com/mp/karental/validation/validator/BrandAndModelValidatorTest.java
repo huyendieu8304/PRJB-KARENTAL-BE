@@ -1,6 +1,6 @@
 package com.mp.karental.validation.validator;
 
-import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.request.car.AddCarRequest;
 import com.mp.karental.service.ExcelService;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;

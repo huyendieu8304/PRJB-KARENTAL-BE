@@ -1,11 +1,11 @@
 package com.mp.karental.service;
 
 import com.mp.karental.constant.ERole;
-import com.mp.karental.dto.request.AccountRegisterRequest;
-import com.mp.karental.dto.request.EditPasswordRequest;
-import com.mp.karental.dto.request.EditProfileRequest;
-import com.mp.karental.dto.response.EditProfileResponse;
-import com.mp.karental.dto.response.UserResponse;
+import com.mp.karental.dto.request.user.AccountRegisterRequest;
+import com.mp.karental.dto.request.user.EditPasswordRequest;
+import com.mp.karental.dto.request.user.EditProfileRequest;
+import com.mp.karental.dto.response.user.EditProfileResponse;
+import com.mp.karental.dto.response.user.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
 import com.mp.karental.entity.UserProfile;

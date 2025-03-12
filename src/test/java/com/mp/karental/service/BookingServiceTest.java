@@ -1,23 +1,21 @@
 package com.mp.karental.service;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
-import com.mp.karental.dto.request.BookingRequest;
-import com.mp.karental.dto.response.BookingResponse;
-import com.mp.karental.dto.response.BookingThumbnailResponse;
-import com.mp.karental.dto.response.WalletResponse;
+import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.response.booking.BookingResponse;
+import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
+import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.entity.*;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.BookingMapper;
 import com.mp.karental.repository.*;
 import com.mp.karental.security.SecurityUtil;
-import com.mp.karental.service.*;
 import com.mp.karental.util.RedisUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

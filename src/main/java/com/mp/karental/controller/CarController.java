@@ -1,13 +1,13 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.AddCarRequest;
-import com.mp.karental.dto.request.CarDetailRequest;
-import com.mp.karental.dto.request.EditCarRequest;
-import com.mp.karental.dto.request.SearchCarRequest;
+import com.mp.karental.dto.request.car.AddCarRequest;
+import com.mp.karental.dto.request.car.CarDetailRequest;
+import com.mp.karental.dto.request.car.EditCarRequest;
+import com.mp.karental.dto.request.car.SearchCarRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.CarDetailResponse;
-import com.mp.karental.dto.response.CarResponse;
-import com.mp.karental.dto.response.CarThumbnailResponse;
+import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.response.car.CarResponse;
+import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.CarService;
@@ -19,13 +19,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.List;
 
 /**
  * REST controller for handling car-related operations.

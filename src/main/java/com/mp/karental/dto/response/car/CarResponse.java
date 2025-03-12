@@ -1,23 +1,27 @@
-package com.mp.karental.dto.response;
+package com.mp.karental.dto.response.car;
+
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.sql.Time;
-
 /**
- * DTO representing the detailed information of a car.
- * Used to provide full car details in the car rental system.
- *
- * @author AnhHP9
+ * Represents the response payload for a car.
+ * <p>
+ * This class encapsulates car information that is returned to the client,
+ * including car details.
+ * </p>
+ * @author QuangPM20
  *
  * @version 1.0
  */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class CarDetailResponse {
+public class CarResponse {
+    String id;
     String licensePlate;
     String brand;
     String model;
@@ -38,20 +42,17 @@ public class CarDetailResponse {
 
     //documents
     String registrationPaperUrl;
-    boolean registrationPaperIsVerified;
+    boolean registrationPaperUriIsVerified;
     String certificateOfInspectionUrl;
-    boolean certificateOfInspectionIsVerified;
+    boolean certificateOfInspectionUriIsVerified;
     String insuranceUrl;
-    boolean insuranceIsVerified;
+    boolean insuranceUriIsVerified;
 
     //car image
-    String carImageFront;
-    String carImageBack;
-    String carImageLeft;
-    String carImageRight;
+    String carImageFrontUrl;
+    String carImageBackUrl;
+    String carImageLeftUrl;
+    String carImageRightUrl;
 
-    long noOfRides;
-    boolean isBooked;
-    boolean isAvailable;
 
 }

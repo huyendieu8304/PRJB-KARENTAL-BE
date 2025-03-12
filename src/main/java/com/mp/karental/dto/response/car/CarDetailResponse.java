@@ -1,27 +1,21 @@
-package com.mp.karental.dto.response;
-
-
+package com.mp.karental.dto.response.car;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 /**
- * Represents the response payload for a car.
- * <p>
- * This class encapsulates car information that is returned to the client,
- * including car details.
- * </p>
- * @author QuangPM20
+ * DTO representing the detailed information of a car.
+ * Used to provide full car details in the car rental system.
+ *
+ * @author AnhHP9
  *
  * @version 1.0
  */
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class CarResponse {
-    String id;
+public class CarDetailResponse {
     String licensePlate;
     String brand;
     String model;
@@ -42,17 +36,20 @@ public class CarResponse {
 
     //documents
     String registrationPaperUrl;
-    boolean registrationPaperUriIsVerified;
+    boolean registrationPaperIsVerified;
     String certificateOfInspectionUrl;
-    boolean certificateOfInspectionUriIsVerified;
+    boolean certificateOfInspectionIsVerified;
     String insuranceUrl;
-    boolean insuranceUriIsVerified;
+    boolean insuranceIsVerified;
 
     //car image
-    String carImageFrontUrl;
-    String carImageBackUrl;
-    String carImageLeftUrl;
-    String carImageRightUrl;
+    String carImageFront;
+    String carImageBack;
+    String carImageLeft;
+    String carImageRight;
 
+    long noOfRides;
+    boolean isBooked;
+    boolean isAvailable;
 
 }

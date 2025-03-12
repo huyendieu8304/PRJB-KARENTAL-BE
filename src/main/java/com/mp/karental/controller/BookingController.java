@@ -1,8 +1,10 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.BookingRequest;
+import com.mp.karental.dto.request.booking.BookingRequest;
 import com.mp.karental.dto.response.*;
-import com.mp.karental.entity.Wallet;
+import com.mp.karental.dto.response.booking.BookingResponse;
+import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
+import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -11,7 +13,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 

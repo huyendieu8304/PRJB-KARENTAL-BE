@@ -1,6 +1,6 @@
 package com.mp.karental.validation.validator;
 
-import com.mp.karental.dto.request.BookingRequest;
+import com.mp.karental.dto.request.booking.BookingRequest;
 import com.mp.karental.service.ExcelService;
 import com.mp.karental.validation.ValidAddressComponent;
 import jakarta.validation.ConstraintValidator;

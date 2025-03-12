@@ -1,12 +1,12 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.KarentalApplication;
-import com.mp.karental.dto.request.AddCarRequest;
-import com.mp.karental.dto.request.CarDetailRequest;
-import com.mp.karental.dto.response.CarDetailResponse;
-import com.mp.karental.dto.request.EditCarRequest;
-import com.mp.karental.dto.response.CarResponse;
-import com.mp.karental.dto.response.CarThumbnailResponse;
+import com.mp.karental.dto.request.car.AddCarRequest;
+import com.mp.karental.dto.request.car.CarDetailRequest;
+import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.request.car.EditCarRequest;
+import com.mp.karental.dto.response.car.CarResponse;
+import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.service.CarService;

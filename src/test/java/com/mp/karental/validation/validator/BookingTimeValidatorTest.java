@@ -1,6 +1,5 @@
 package com.mp.karental.validation.validator;
-import com.mp.karental.dto.request.BookingRequest;
-import com.mp.karental.validation.validator.BookingTimeValidator;
+import com.mp.karental.dto.request.booking.BookingRequest;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,7 +9,6 @@ import org.mockito.Mockito;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

@@ -1,12 +1,11 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.constant.ETransactionType;
-import com.mp.karental.dto.request.TransactionRequest;
+import com.mp.karental.dto.request.transaction.TransactionRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.ListTransactionResponse;
-import com.mp.karental.dto.response.TransactionPaymentURLResponse;
-import com.mp.karental.dto.response.TransactionResponse;
-import com.mp.karental.entity.Transaction;
+import com.mp.karental.dto.response.transaction.ListTransactionResponse;
+import com.mp.karental.dto.response.transaction.TransactionPaymentURLResponse;
+import com.mp.karental.dto.response.transaction.TransactionResponse;
 import com.mp.karental.service.TransactionService;
 import com.mp.karental.util.RequestUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,13 +15,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @RestController

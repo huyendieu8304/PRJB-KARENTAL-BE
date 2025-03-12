@@ -1,6 +1,5 @@
-package com.mp.karental.dto.request;
+package com.mp.karental.dto.request.booking;
 
-import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.validation.*;
 import jakarta.validation.constraints.Email;
