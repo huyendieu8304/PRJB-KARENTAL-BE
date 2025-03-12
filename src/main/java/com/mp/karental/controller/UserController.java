@@ -8,6 +8,10 @@ import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.user.EditProfileResponse;
 import com.mp.karental.dto.response.user.UserResponse;
 import com.mp.karental.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import lombok.AccessLevel;
@@ -37,6 +41,7 @@ import org.springframework.web.bind.annotation.*;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Validated
 @Slf4j
+@Tag(name = "User", description = "Operations about user")
 public class UserController {
 
     UserService userService;
@@ -53,11 +58,31 @@ public class UserController {
      * @return an {@code ApiResponse} containing the created user information
      *
      * @author DieuTTH4
-     *
-     * @version 1.0
      */
     @PostMapping("/register")
-    ApiResponse<UserResponse> registerAccount(@RequestBody @Valid AccountRegisterRequest request){
+    @Operation(
+            summary = "Create a new account",
+            description = "User create a new Customer or Car Owner account",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                        description = "Success",
+                            responseCode = "200"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                        description = "Bad request",
+                            responseCode = "400",
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
+    ApiResponse<UserResponse> registerAccount(
+            @RequestBody
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    description = "Information of new user",
+                    content = @Content(schema = @Schema(implementation = AccountRegisterRequest.class))
+            )
+            @Valid AccountRegisterRequest request){
         log.info("Registering account {}", request);
         return ApiResponse.<UserResponse>builder()
                 .message("Create account successfully. Please check your email inbox to verify your email address.")
