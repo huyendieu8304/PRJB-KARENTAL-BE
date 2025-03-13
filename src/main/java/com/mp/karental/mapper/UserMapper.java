@@ -55,7 +55,7 @@ public interface UserMapper {
     @Mapping(target = "fullName", source = "userProfile.fullName")
     @Mapping(target = "email", source = "account.email")
     @Mapping(target = "phoneNumber", source = "userProfile.phoneNumber")
-    @Mapping(target = "role", source = "account.role")
+    @Mapping(target = "role", source = "account.role.name")
     UserResponse toUserResponse(Account account, UserProfile userProfile);
 
     // Mapping for feature edit-profile

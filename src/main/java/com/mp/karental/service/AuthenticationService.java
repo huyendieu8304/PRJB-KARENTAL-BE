@@ -1,8 +1,9 @@
 package com.mp.karental.service;
 
-import com.mp.karental.dto.request.LoginRequest;
+import com.mp.karental.dto.request.auth.ChangePasswordRequest;
+import com.mp.karental.dto.request.auth.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.LoginResponse;
+import com.mp.karental.dto.response.auth.LoginResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.exception.AppException;
@@ -11,6 +12,8 @@ import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.security.JwtUtils;
 import com.mp.karental.security.entity.UserDetailsImpl;
 import com.mp.karental.security.service.TokenService;
+import com.mp.karental.util.RedisUtil;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
@@ -28,7 +31,7 @@ import org.springframework.security.authentication.InternalAuthenticationService
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.WebUtils;
@@ -37,7 +40,6 @@ import org.springframework.web.util.WebUtils;
  * Service class for handling authentication operations.
  *
  * @author DieuTTH4
- *
  * @version 1.0
  */
 @Service
@@ -46,6 +48,9 @@ import org.springframework.web.util.WebUtils;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class AuthenticationService {
+
+    //TODO: sửa lại khi deploy
+    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
 
 
     @Value("${application.security.jwt.access-token-cookie-name}")
@@ -77,14 +82,19 @@ public class AuthenticationService {
 
 
     AuthenticationManager authenticationManager;
+
     JwtUtils jwtUtils;
+    RedisUtil redisUtil;
+    PasswordEncoder passwordEncoder;
 
     TokenService tokenService;
+    EmailService emailService;
 
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
 
     public ResponseEntity<ApiResponse<?>> login(LoginRequest request) {
+        log.info("Processing login request, email={}", request.getEmail());
         //authenticate user's login information
         Authentication authentication = null;
 
@@ -115,7 +125,7 @@ public class AuthenticationService {
         ApiResponse<LoginResponse> apiResponse = ApiResponse.<LoginResponse>builder()
                 .data(new LoginResponse(role, fullName))
                 .build();
-
+        log.info("Account with email={} logged in successfully", request.getEmail());
         return sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);
     }
 
@@ -133,6 +143,7 @@ public class AuthenticationService {
     }
 
     public ResponseEntity<ApiResponse<?>> refreshToken(HttpServletRequest request) {
+        log.info("Processing refresh token request");
         //get the refresh token out from cookies
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
 
@@ -142,7 +153,7 @@ public class AuthenticationService {
         }
 
         //validate jwt refresh token
-        if(jwtUtils.validateJwtRefreshToken(refreshToken)){
+        if (jwtUtils.validateJwtRefreshToken(refreshToken)) {
             //the refresh token still not expire but found invalidated
             if (tokenService.isRefreshTokenInvalidated(refreshToken)) {
                 throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
@@ -167,12 +178,12 @@ public class AuthenticationService {
         ApiResponse<String> apiResponse = ApiResponse.<String>builder()
                 .data("Successfully refresh token")
                 .build();
-
+        log.info("New refresh token is generated for account with email={}", account.getEmail());
         return sendApiResponseResponseEntity(newAccessToken, newRefreshToken, apiResponse);
     }
 
     public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request) {
-
+        log.info("Processing refresh token request");
         //get tokens out from cookies
         String accessToken = getCookieValueByName(request, accessTokenCookieName);
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
@@ -204,6 +215,7 @@ public class AuthenticationService {
         ApiResponse<String> apiResponse = ApiResponse.<String>builder()
                 .data("Successfully logged out")
                 .build();
+        log.info("Logged out successfully");
         return sendApiResponseResponseEntity(null, null, apiResponse);
     }
 
@@ -240,6 +252,75 @@ public class AuthenticationService {
         } else {
             return null;
         }
+    }
+
+    //=====================================================
+    //FORGOT PASSWORD
+
+    public void sendForgotPasswordEmail(String email) {
+        log.info("user with email={} request to change password.", email);
+        //is the email used by one account in the system
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_USED_BY_ANY_ACCOUNT));
+
+        //The email in the account is not verified or the account is inactivated
+        if (!account.isEmailVerified() || !account.isActive()) {
+            throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
+        }
+
+        //send email
+        String changePasswordToken = redisUtil.generateForgotPasswordToken(account.getId());
+        String forgotPasswordUrl = DOMAIN_NAME + "/auth/forgot-password/verify?t=" + changePasswordToken;
+        log.info("Verify email url: {}", forgotPasswordUrl);
+        try {
+            emailService.sendForgotPasswordEmail(email, forgotPasswordUrl);
+        } catch (MessagingException e) {
+            throw new AppException(ErrorCode.SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL);
+        }
+    }
+
+    /**
+     * verify that the user really forgot the password
+     *
+     * @param forgotPasswordToken
+     * @return  change password token if the token is valid
+     */
+    public String verifyForgotPassword(String forgotPasswordToken) {
+        log.info("user with token={} request to change password.", forgotPasswordToken);
+        //verify forgot password token
+        verifyForgotPasswordToken(forgotPasswordToken);
+
+        //generate  change password token
+        return forgotPasswordToken;
+    }
+
+    private Account verifyForgotPasswordToken(String forgotPasswordToken) {
+        String accountId = redisUtil.getValueOfForgotPasswordToken(forgotPasswordToken);
+        //token exist and not expired
+        if (accountId != null && !accountId.isEmpty()) {
+            Account account = accountRepository.findById(accountId)
+                    .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+            //The email in the account is not verified or the account is inactivated
+            if (!account.isEmailVerified() || !account.isActive()) {
+                throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
+            }
+            return account;
+        } else {
+            log.info("Forgot password token is invalid!");
+            throw new AppException(ErrorCode.INVALID_FORGOT_PASSWORD_TOKEN);
+        }
+    }
+
+    public void changePassword(ChangePasswordRequest request) {
+        log.info("change password ");
+        //Verify the forgot password token
+        Account account = verifyForgotPasswordToken(request.getForgotPasswordToken());
+        //update password
+        account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        accountRepository.save(account);
+        log.info("Changed password successfully");
+        //delete the forgot password token
+        redisUtil.deleteForgotPasswordToken(request.getForgotPasswordToken());
     }
 
 }

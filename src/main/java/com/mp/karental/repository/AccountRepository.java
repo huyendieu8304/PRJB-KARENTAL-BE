@@ -21,4 +21,6 @@ import java.util.Optional;
 @Repository
 public interface AccountRepository extends JpaRepository<Account, String> {
     Optional<Account> findByEmail(String email);
+
+    Account findByRoleId(int i);
 }

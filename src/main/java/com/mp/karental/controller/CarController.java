@@ -53,7 +53,7 @@ public class CarController {
      * @param request The request object containing car details.
      * @return ApiResponse containing the newly added car details.
      */
-    @PostMapping(value = "/car-owner/addCar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/car-owner/add-car", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<CarResponse> addNewCar(@ModelAttribute @Valid AddCarRequest request) {
         log.info("add new car {}", request);
         return ApiResponse.<CarResponse>builder()
@@ -69,7 +69,7 @@ public class CarController {
      * @param carId The unique identifier of the car to be updated.
      * @return ApiResponse containing the updated car details.
      */
-    @PutMapping(value = "/car-owner/editCar/{carId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/car-owner/edit-car/{carId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<CarResponse> editCar(@ModelAttribute @Valid EditCarRequest request, @PathVariable String carId) {
         log.info("edit car {}", request);
         return ApiResponse.<CarResponse>builder()

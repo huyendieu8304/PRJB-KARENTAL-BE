@@ -2,6 +2,7 @@ package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.BookingRequest;
 import com.mp.karental.dto.response.*;
+import com.mp.karental.entity.Wallet;
 import com.mp.karental.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -10,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,14 +22,21 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Validated
 public class BookingController {
-    BookingService bookingService;
 
-    @PostMapping(value = "/customer/createBook", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid BookingRequest bookingRequest,
-                                               @RequestParam("carId") String carId) throws Exception {
+    BookingService bookingService;  // Service layer dependency for handling business logic
+
+    /**
+     * Handles the customer booking request.
+     * This endpoint allows customers to create a new booking request with car details.
+     *
+     * @param bookingRequest The booking request payload, validated using @Valid
+     * @return ApiResponse containing the created booking details
+     */
+    @PostMapping(value = "/customer/create-book", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid BookingRequest bookingRequest) throws Exception {
         log.info("create booking {}", bookingRequest);
         return ApiResponse.<BookingResponse>builder()
-                .data(bookingService.createBooking(bookingRequest, carId))
+                .data(bookingService.createBooking(bookingRequest))
                 .build();
     }
 
@@ -51,4 +60,16 @@ public class BookingController {
                 .build();
     }
 
+    /**
+     * API endpoint to retrieve the wallet of account user login.
+     *
+     * @return a wallet in `ApiResponse<WalletResponse>`
+     */
+    @GetMapping("/get-wallet")
+    public ApiResponse<WalletResponse> getWallet() {
+        WalletResponse wallet = bookingService.getWallet();
+        return ApiResponse.<WalletResponse>builder()
+                .data(wallet)
+                .build();
+    }
 }

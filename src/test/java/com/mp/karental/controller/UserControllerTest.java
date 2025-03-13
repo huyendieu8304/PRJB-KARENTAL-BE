@@ -24,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 
 
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -182,10 +183,6 @@ class UserControllerTest {
         verify(userService, times(1)).getUserProfile();
     }
 
-
-
-
-
     @Test
     void shouldPassValidationWhenEmailIsUnique() {
         // Given: Email not existed
@@ -201,5 +198,52 @@ class UserControllerTest {
 
         assertTrue(isValid);
         assertNotNull(result);
+    }
+
+    @Test
+    void testResendVerifyEmail_Success() {
+        // Arrange
+        String email = "test@example.com";
+        String expectedMessage = "The verify email is sent successfully. Please check your inbox again and follow instructions to verify your email.";
+        when(userService.resendVerifyEmail(email)).thenReturn(expectedMessage);
+
+        // Act
+        ApiResponse<String> response = userController.resendVerifyEmail(email);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(expectedMessage, response.getMessage());
+        verify(userService).resendVerifyEmail(email);
+    }
+
+    @Test
+    void testVerifyEmail_Success() {
+        // Arrange
+        String token = "valid-token";
+        doNothing().when(userService).verifyEmail(token);
+
+        // Act
+        ApiResponse<String> response = userController.verifyEmail(token);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals("Verify email successfully! Now you can use your account to login.", response.getMessage());
+        verify(userService).verifyEmail(token); // Kiểm tra userService.verifyEmail() đã được gọi đúng cách
+    }
+
+    @Test
+    void testVerifyEmail_InvalidToken() {
+        // Arrange
+        String invalidToken = "invalid-token";
+        doThrow(new AppException(ErrorCode.INVALID_ONETIME_TOKEN))
+                .when(userService).verifyEmail(invalidToken);
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> {
+            userController.verifyEmail(invalidToken);
+        });
+
+        assertEquals(ErrorCode.INVALID_ONETIME_TOKEN, exception.getErrorCode());
+        verify(userService).verifyEmail(invalidToken); // Kiểm tra userService.verifyEmail() đã được gọi đúng cách
     }
 }

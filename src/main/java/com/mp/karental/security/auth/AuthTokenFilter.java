@@ -8,6 +8,7 @@ import com.mp.karental.security.service.UserDetailsServiceImpl;
 import com.mp.karental.security.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
@@ -16,6 +17,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.server.PathContainer;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,8 +25,11 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.WebUtils;
+import org.springframework.web.util.pattern.PathPatternParser;
 
 import java.io.IOException;
+import java.util.Arrays;
+
 
 /**
  * Authentication filter
@@ -51,24 +56,29 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws
             ServletException, IOException {
+
         String uri = request.getRequestURI();
+        log.info("{} go to AuthTokenFilter", uri);
+
         String contextPath = request.getContextPath();
         String path = uri.substring(contextPath.length());
-        String[] publicEndpoints = SecurityConfig.PUBLIC_ENDPOINTS;
-        //Skip authentication with public endpoints
-        for (String publicEndpoint : publicEndpoints) {
-            if (path.equals(publicEndpoint)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+
+        //skip authentication with public endpoints
+        PathPatternParser pathPatternParser = new PathPatternParser();
+        if (Arrays.stream(SecurityConfig.PUBLIC_ENDPOINTS)
+                .anyMatch(endpoint -> pathPatternParser.parse(endpoint)
+                        .matches(PathContainer.parsePath(path)))) {
+            log.info("Public endpoint: {}, skipping authentication", path);
+            filterChain.doFilter(request, response);
+            return;
         }
 
         String jwt = null;
-        try {
-            //get jwt from the HTTP Cookies
-            jwt = WebUtils.getCookie(request, accessTokenCookieName).getValue();
-
-        } catch (NullPointerException e) {
+        Cookie cookie = WebUtils.getCookie(request, accessTokenCookieName);
+        if (cookie != null) {
+            jwt = cookie.getValue();
+        } else {
+            log.info("Missing access token cookie");
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 

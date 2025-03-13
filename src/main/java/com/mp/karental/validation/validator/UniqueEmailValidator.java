@@ -33,9 +33,6 @@ public class UniqueEmailValidator implements ConstraintValidator<UniqueEmail, St
 
     private final AccountRepository accountRepository;
 
-    public UniqueEmailValidator() {
-        this.accountRepository = null; // Khi chạy thật, Spring sẽ inject repository
-    }
 
     /**
      * Validates that the provided email is unique.
