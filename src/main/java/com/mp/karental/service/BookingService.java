@@ -225,8 +225,12 @@ public class BookingService {
             // Calculate the total price based on the base price and rental period
             long totalPrice = numberOfDay * booking.getBasePrice();
 
+            // Calculate the total booking is not COMPLETED or CANCELLED
+            int totalOnGoingBookings = bookingRepository.countOngoingBookingsByCar(accountId, EBookingStatus.COMPLETED, EBookingStatus.CANCELLED);
+
             response.setNumberOfDay((int) numberOfDay);
             response.setTotalPrice(totalPrice);
+            response.setTotalOnGoingBookings(totalOnGoingBookings);
             response.setCreatedAt(booking.getCreatedAt());
 
             // Retrieve car images from the file storage service

@@ -59,5 +59,8 @@ public class BookingThumbnailResponse {
     String carImageLeftUrl;
     String carImageRightUrl;
 
+    //count all booking isn't COMPLETED or CANCELLED
+    int totalOnGoingBookings;
+
 
 }
