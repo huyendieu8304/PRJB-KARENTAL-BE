@@ -77,22 +77,22 @@ class BookingControllerTest {
         bookingRequest.setPickUpLocation("Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma");
 
         bookingResponse = new BookingResponse();
-        bookingResponse.setBookingNumber("BK123456"); // Giả định
+        bookingResponse.setBookingNumber("BK123456"); 
 
     }
 
     @Test
     void testCreateBooking_MultipartFormData() throws Exception {
-        // Mock dữ liệu response
+        
         BookingResponse bookingResponse = new BookingResponse();
         bookingResponse.setBookingNumber("BK123456");
         bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRM);
 
         when(bookingService.createBooking(any(BookingRequest.class))).thenReturn(bookingResponse);
 
-        // Gửi request multipart
+        
         mockMvc.perform(multipart("/booking/customer/create-book")
-                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) // File giả lập
+                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) 
                         .param("carId", "123")
                         .param("driverFullName", "John Doe")
                         .param("driverPhoneNumber", "0123456789")
@@ -113,20 +113,20 @@ class BookingControllerTest {
 
     @Test
     void testCreateBooking_BadRequest() throws Exception {
-        // Mock dữ liệu response
+        
         BookingResponse bookingResponse = new BookingResponse();
         bookingResponse.setBookingNumber("BK123456");
         bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRM);
 
         when(bookingService.createBooking(any(BookingRequest.class))).thenReturn(bookingResponse);
-        // Gửi request với dữ liệu không hợp lệ (thiếu carId và email sai format)
+        
         mockMvc.perform(multipart("/booking/customer/create-book")
-                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) // File giả lập
+                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) 
                         .param("driverFullName", "John Doe")
                         .param("driverPhoneNumber", "0123456789")
                         .param("driverNationalId", "123456789000")
                         .param("driverDob", "1990-01-01")
-                        .param("driverEmail", "invalid-email") // Email không hợp lệ
+                        .param("driverEmail", "invalid-email") 
                         .param("driverCityProvince", "Thành phố Hà Nội")
                         .param("driverDistrict", "Quận Ba Đình")
                         .param("driverWard", "Phường Phúc Xá")
@@ -136,7 +136,7 @@ class BookingControllerTest {
                         .param("dropOffTime", "2025-03-25T10:00:00")
                         .param("paymentType", EPaymentType.WALLET.name())
                         .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().is5xxServerError());// Kiểm tra HTTP 400
+                .andExpect(status().is5xxServerError());
     }
 
 
@@ -147,7 +147,7 @@ class BookingControllerTest {
         when(bookingService.getBookingsByUserId(0, 10, "createdAt,DESC")).thenReturn(mockPage);
 
         // Act & Assert
-        mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")  // ✅ Giữ nguyên đường dẫn đúng
+        mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")  
                         .param("page", "0")
                         .param("size", "10")
                         .param("sort", "createdAt,DESC")
@@ -194,12 +194,12 @@ class BookingControllerTest {
 
     @Test
     void getWallet_Success() throws Exception {
-        // Mock response từ service
+        
         WalletResponse mockWalletResponse = new WalletResponse("user123", 500000);
 
         when(bookingService.getWallet()).thenReturn(mockWalletResponse);
 
-        // Gửi request GET đến API
+        
         mockMvc.perform(get("/booking/get-wallet")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -209,10 +209,10 @@ class BookingControllerTest {
 
     @Test
     void getWallet_AccountNotFound() throws Exception {
-        // Giả lập lỗi khi không tìm thấy Wallet
+        
         when(bookingService.getWallet()).thenThrow(new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
-        // Gửi request GET đến API và kiểm tra phản hồi lỗi
+        
         mockMvc.perform(get("/booking/get-wallet")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())

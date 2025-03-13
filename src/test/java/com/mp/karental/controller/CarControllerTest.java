@@ -1,6 +1,7 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.KarentalApplication;
+import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.car.AddCarRequest;
 import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.response.car.CarDetailResponse;
@@ -113,7 +114,7 @@ public class CarControllerTest {
                 .description("This is a test after edit")
                 .additionalFunction("Bluetooth")
                 .termOfUse("Yes")
-                .status("STOPPED")  // This can be either "AVAILABLE" or "STOPPED"
+                .status(ECarStatus.STOPPED)  // This can be either "AVAILABLE" or "STOPPED"
                 .build();
 
         carDetailRequest = CarDetailRequest.builder()
@@ -278,7 +279,7 @@ public class CarControllerTest {
                         .param("description", editCarRequest.getDescription())
                         .param("additionalFunction", editCarRequest.getAdditionalFunction())
                         .param("termOfUse", editCarRequest.getTermOfUse())
-                        .param("status", editCarRequest.getStatus())
+                        .param("status", String.valueOf(editCarRequest.getStatus()))
                         .contentType(MediaType.MULTIPART_FORM_DATA))  // Set content type to multipart/form-data
                 .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(1000))
@@ -496,13 +497,13 @@ public class CarControllerTest {
         // Act & Assert
         mockMvc.perform(get("/car/customer/search-car")
                         .param("address", "Hà Nội")
-                        .param("pickUpTime", "invalid-date-format")  // ❌ Sai định dạng
+                        .param("pickUpTime", "invalid-date-format")  
                         .param("dropOffTime", "2025-03-15T22:00:00")
                         .param("page", "0")
                         .param("size", "10")
                         .param("sort", "productionYear,desc")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()) // ⬅️ Kỳ vọng HTTP 400
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()) 
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(2029));
     }
 

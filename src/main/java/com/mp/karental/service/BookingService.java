@@ -27,6 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,10 +102,22 @@ public class BookingService {
         Booking booking = bookingMapper.toBooking(bookingRequest);
         booking.setBookingNumber(redisUtil.generateBookingNumber());
 
+        boolean isSameDriver = accountCustomer.getProfile().getFullName().equals(bookingRequest.getDriverFullName())
+                && accountCustomer.getProfile().getNationalId().equals(bookingRequest.getDriverNationalId())
+                && accountCustomer.getProfile().getPhoneNumber().equals(bookingRequest.getDriverPhoneNumber());
         // Upload the driver's license to S3 storage.
         MultipartFile drivingLicense = bookingRequest.getDriverDrivingLicense();
-        String s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
-        fileService.uploadFile(drivingLicense, s3Key);
+        String s3Key;
+        if(drivingLicense != null && !drivingLicense.isEmpty()) {
+            s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
+            fileService.uploadFile(drivingLicense, s3Key);
+        }
+        else if(isSameDriver) {
+            s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
+        }
+        else{
+            throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
+        }
         booking.setDriverDrivingLicenseUri(s3Key);
 
         // Assign account and car to the booking.
@@ -200,15 +213,15 @@ public class BookingService {
      */
     private boolean isProfileComplete(UserProfile profile) {
         return profile != null
-                && profile.getFullName() != null
+                && profile.getFullName() != null && !profile.getFullName().isEmpty()
                 && profile.getDob() != null
-                && profile.getNationalId() != null
-                && profile.getPhoneNumber() != null
-                && profile.getCityProvince() != null
-                && profile.getDistrict() != null
-                && profile.getWard() != null
-                && profile.getHouseNumberStreet() != null
-                && profile.getDrivingLicenseUri() != null;
+                && profile.getNationalId() != null && !profile.getNationalId().isEmpty()
+                && profile.getPhoneNumber() != null && !profile.getPhoneNumber().isEmpty()
+                && profile.getCityProvince() != null && !profile.getCityProvince().isEmpty()
+                && profile.getDistrict() != null && !profile.getDistrict().isEmpty()
+                && profile.getWard() != null && !profile.getWard().isEmpty()
+                && profile.getHouseNumberStreet() != null && !profile.getHouseNumberStreet().isEmpty()
+                && profile.getDrivingLicenseUri() != null && !profile.getDrivingLicenseUri().isEmpty();
     }
 
 

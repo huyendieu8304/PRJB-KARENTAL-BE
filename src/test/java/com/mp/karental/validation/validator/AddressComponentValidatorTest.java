@@ -25,7 +25,7 @@ class AddressComponentValidatorTest {
 
     @BeforeEach
     void setUp() {
-        // Sử dụng List thay vì Set
+        
         lenient().when(excelService.getAllCities()).thenReturn(List.of("Thành phố Hà Nội", "Thành phố Hồ Chí Minh"));
         lenient().when(excelService.getAllDistricts()).thenReturn(List.of("Quận Ba Đình", "Quận 1"));
         lenient().when(excelService.getAllWards()).thenReturn(List.of(
@@ -64,7 +64,7 @@ class AddressComponentValidatorTest {
     @Test
     void testInvalidAddressComponent_MissingCity() {
         BookingRequest request = new BookingRequest();
-        request.setDriverCityProvince("");  // City bị thiếu
+        request.setDriverCityProvince("");  
         request.setDriverDistrict("Quận Ba Đình");
         request.setDriverWard("Phường Phúc Xá");
 
@@ -76,7 +76,7 @@ class AddressComponentValidatorTest {
     void testInvalidAddressComponent_InvalidDistrict() {
         BookingRequest request = new BookingRequest();
         request.setDriverCityProvince("Thành phố Hà Nội");
-        request.setDriverDistrict("Invalid District");  // Quận không hợp lệ
+        request.setDriverDistrict("Invalid District");  
         request.setDriverWard("Phường Phúc Xá");
 
         assertFalse(addressComponentValidator.isValid(request, context));
@@ -88,20 +88,20 @@ class AddressComponentValidatorTest {
         BookingRequest request = new BookingRequest();
         request.setDriverCityProvince("Thành phố Hà Nội");
         request.setDriverDistrict("Quận Ba Đình");
-        request.setDriverWard("Invalid Ward");  // Phường không hợp lệ
+        request.setDriverWard("Invalid Ward");  
 
         assertFalse(addressComponentValidator.isValid(request, context));
     }
 
     @Test
     void testInvalidAddressComponent_NullRequest() {
-        assertTrue(addressComponentValidator.isValid(null, context)); // Nếu null thì không kiểm tra
+        assertTrue(addressComponentValidator.isValid(null, context)); 
     }
 
     @Test
     void testInvalidAddressComponent_EmptyFields() {
         BookingRequest request = new BookingRequest();
-        request.setDriverCityProvince("");  // Tất cả rỗng
+        request.setDriverCityProvince("");  
         request.setDriverDistrict("");
         request.setDriverWard("");
 
@@ -111,7 +111,7 @@ class AddressComponentValidatorTest {
     void testInvalidAddressComponent_DistrictNotInCity() {
         BookingRequest request = new BookingRequest();
         request.setDriverCityProvince("Thành phố Hà Nội");
-        request.setDriverDistrict("Quận 1"); // Không thuộc Hà Nội
+        request.setDriverDistrict("Quận 1"); 
         request.setDriverWard("Phường Phúc Xá");
 
         assertFalse(addressComponentValidator.isValid(request, context));

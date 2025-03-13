@@ -49,12 +49,13 @@ public enum ErrorCode {
     INVALID_IMAGE_FILE(2021, "Invalid image file type. Accepted formats are .jpg, .jpeg, .png", HttpStatus.BAD_REQUEST),
     INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_NATIONAL_ID(2023, "The national id already existed. Please try another national id", HttpStatus.BAD_REQUEST),
-    INVALID_STATUS_EDIT(2024,"Status can edit only NOT_VERIFIED or STOPPED", HttpStatus.BAD_REQUEST),
+    INVALID_CAR_STATUS_CHANGE(2024,"Allowed transitions: NOT_VERIFIED → STOPPED, STOPPED → NOT_VERIFIED, VERIFIED → STOPPED", HttpStatus.BAD_REQUEST),
     INVALID_DATE_RANGE(2025, "Invalid date range. Pick-up date must be before drop-off date.", HttpStatus.BAD_REQUEST),
     INVALID_BOOKING_TIME(2026,"Invalid booking time", HttpStatus.BAD_REQUEST),
     INVALID_PAYMENT_TYPE(2027,"Payment can only WALLET/CASH/BANK_TRANSFER", HttpStatus.BAD_REQUEST),
     INVALID_ADDRESS_COMPONENT(2028,"Invalid address component", HttpStatus.BAD_REQUEST),
     INVALID_DATE_FORMAT(2029, "Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST),
+    INVALID_DRIVER_INFO(2031,"Driver's information is different from account holder, but no license provided.",HttpStatus.BAD_REQUEST),
 
     INVALID_TRANSACTION_TYPE(2030,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
     //range 3xxx
