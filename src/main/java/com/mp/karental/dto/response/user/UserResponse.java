@@ -24,6 +24,6 @@ public class UserResponse {
     String fullName;
     String email;
     String phoneNumber;
-    Role role;
+    String role;
 
 }

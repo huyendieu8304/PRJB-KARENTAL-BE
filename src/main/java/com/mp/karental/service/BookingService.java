@@ -10,6 +10,7 @@ import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Car;
 import com.mp.karental.entity.Wallet;
+import com.mp.karental.entity.UserProfile;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.BookingMapper;
@@ -76,6 +77,12 @@ public class BookingService {
 
         // Retrieve the account details of the logged-in user.
         Account accountCustomer = SecurityUtil.getCurrentAccount();
+
+        // account must have completed the individual profile to booking
+        // Validate profile completion
+        if (!isProfileComplete(accountCustomer.getProfile())) {
+            throw new AppException(ErrorCode.FORBIDDEN_PROFILE_INCOMPLETE);
+        }
 
         // Retrieve car details from the database, throw an exception if not found.
         Car car = carRepository.findById(bookingRequest.getCarId())
@@ -185,6 +192,25 @@ public class BookingService {
             }
         }
     }
+
+    /**
+     * to check the account must complete the profile before booking
+     * @param profile the profile of the current account
+     * @return the profile with full information
+     */
+    private boolean isProfileComplete(UserProfile profile) {
+        return profile != null
+                && profile.getFullName() != null
+                && profile.getDob() != null
+                && profile.getNationalId() != null
+                && profile.getPhoneNumber() != null
+                && profile.getCityProvince() != null
+                && profile.getDistrict() != null
+                && profile.getWard() != null
+                && profile.getHouseNumberStreet() != null
+                && profile.getDrivingLicenseUri() != null;
+    }
+
 
 
     /**
