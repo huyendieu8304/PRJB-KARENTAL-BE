@@ -33,6 +33,10 @@
 		<mapstruct.version>1.5.5.Final</mapstruct.version>
 		<lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
 		<amazon-sdk-s3.version>2.30.20</amazon-sdk-s3.version>
+		<junit.jupiter.version>5.10.2</junit.jupiter.version>
+		<selenium.version>4.22.0</selenium.version>
+		<webdrivermanager.version>5.9.1</webdrivermanager.version>
+		<maven.surefire.plugin.version>3.1.2</maven.surefire.plugin.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -153,6 +157,40 @@
 			<artifactId>spring-boot-devtools</artifactId>
 			<optional>true</optional>
 		</dependency>
+
+		<!-- Configure test database for AutomationTest-->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- JUnit 5 -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>${junit.jupiter.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
+			<version>1.10.2</version>  <!-- Match JUnit Jupiter version -->
+			<scope>test</scope>
+		</dependency>
+		<!-- Selenium WebDriver -->
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-java</artifactId>
+			<version>${selenium.version}</version>
+		</dependency>
+
+		<!-- WebDriverManager -->
+		<dependency>
+			<groupId>io.github.bonigarcia</groupId>
+			<artifactId>webdrivermanager</artifactId>
+			<version>${webdrivermanager.version}</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -195,7 +233,12 @@
 					</excludes>
 				</configuration>
 			</plugin>
-		</plugins>
-	</build>
 
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>${maven.surefire.plugin.version}</version>
+					</plugin>
+				</plugins>
+			</build>
 </project>

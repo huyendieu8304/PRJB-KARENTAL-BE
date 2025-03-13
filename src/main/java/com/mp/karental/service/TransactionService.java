@@ -93,6 +93,7 @@ public class TransactionService {
                 transactionRepository.save(transaction);
             }
         }
+        walletRepository.save(wallet);
         transactionResponse =  transactionMapper.toTransactionResponse(transaction);
         log.info("Transaction withdraw response: {}", transactionResponse);
         // return response for Withdraw transaction

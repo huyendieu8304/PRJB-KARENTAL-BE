@@ -37,6 +37,8 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 50MB
+  profiles:
+    active: test
 #  mail:
 #    host: smtp.gmail.com
 #    port: 587
@@ -84,3 +86,8 @@ payment:
     init-payment-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
     return-url: http://localhost:3000/my-wallet
     timeout: 2 # in minutes
+
+front-end:
+  domain-name: http://localhost:3000
+
+
