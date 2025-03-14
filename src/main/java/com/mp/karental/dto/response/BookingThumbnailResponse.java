@@ -1,11 +1,9 @@
 package com.mp.karental.dto.response;
 
 import com.mp.karental.constant.EBookingStatus;
-import com.mp.karental.constant.EPaymentType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -14,7 +12,7 @@ import java.time.LocalDateTime;
  * This class encapsulates booking information that is returned to the client,
  * including car details.
  * </p>
- * @author QuangPM20
+ * @author AnhHP9
  *
  * @version 1.0
  */
@@ -25,7 +23,7 @@ import java.time.LocalDateTime;
 @Builder
 public class BookingThumbnailResponse {
 
-    LocalDateTime createdAt;
+    LocalDateTime updatedAt;
 
     String bookingNumber;
 
@@ -58,9 +56,6 @@ public class BookingThumbnailResponse {
     String carImageBackUrl;
     String carImageLeftUrl;
     String carImageRightUrl;
-
-    //count all booking isn't COMPLETED or CANCELLED
-    int totalOnGoingBookings;
 
 
 }

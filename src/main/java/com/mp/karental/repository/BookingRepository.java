@@ -74,7 +74,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                         @Param("cancelledStatus") EBookingStatus cancelledStatus);
 
 
-
     @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' " +
             "AND b.paymentType = 'WALLET' " +
             "AND b.createdAt <= :expiredTime " +
@@ -104,5 +103,51 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 """)
     Page<Booking> findByAccountId(@Param("accountId") String accountId, Pageable pageable);
 
+    @Query("""
+    SELECT b FROM Booking b
+    JOIN FETCH b.car c
+    WHERE b.account.id = :accountId
+    AND (:status = 'ALL' OR b.status = :status)
+""")
+    Page<Booking> findByAccountIdAndStatus(@Param("accountId") String accountId,
+                                           @Param("status") EBookingStatus status,
+                                           Pageable pageable);
+
+    @Query("""
+    SELECT COUNT(b) FROM Booking b 
+    WHERE b.account.id = :accountId 
+    AND (:statuses IS NULL OR b.status IN :statuses)
+""")
+    int countOngoingBookingsByCar(
+            @Param("accountId") String accountId,
+            @Param("statuses") List<EBookingStatus> statuses
+    );
+
+    @Query("""
+    SELECT COUNT(b) FROM Booking b 
+    WHERE b.account.id = :accountId 
+    AND b.status = :status
+""")
+    int countBookingsByStatus(@Param("accountId") String accountId,
+                              @Param("status") EBookingStatus status);
+
+    @Query("""
+    SELECT b FROM Booking b
+    JOIN b.car c
+    WHERE c.account.id = :ownerId
+""")
+    Page<Booking> findBookingsByCarOwnerId(@Param("ownerId") String ownerId, Pageable pageable);
+
+    @Query("""
+    SELECT b FROM Booking b
+    JOIN b.car c
+    WHERE c.account.id = :ownerId
+    AND (:status IS NULL OR b.status = :status)
+""")
+    Page<Booking> findBookingsByCarOwnerIdAndStatus(
+            @Param("ownerId") String ownerId,
+            @Param("status") EBookingStatus status,
+            Pageable pageable
+    );
 
 }
