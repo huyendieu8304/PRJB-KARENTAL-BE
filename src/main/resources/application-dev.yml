@@ -1,0 +1,14 @@
+application:
+  security:
+    public-endpoints:
+      "/user/register,
+      /user/check-unique-email,
+      /user/resend-verify-email/**,
+      /user/verify-email/**,
+      /auth/**,
+      /h2-console/**,
+      /swagger-ui/**,
+      /v3/api-docs/**,
+      /swagger-config,
+      /swagger-resources/**
+      "
