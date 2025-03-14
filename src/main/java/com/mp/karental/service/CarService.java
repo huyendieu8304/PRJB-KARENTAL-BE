@@ -578,9 +578,6 @@ public class CarService {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Fetch the account details from the database, or throw an error if the account is not found
-        Account account = SecurityUtil.getCurrentAccount();
-
         // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));

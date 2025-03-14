@@ -103,4 +103,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Booking findBookingByBookingNumber(String bookingNumber);
 
     Booking getBookingsByBookingNumber(String bookingNumber);
+
+
 }

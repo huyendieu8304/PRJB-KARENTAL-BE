@@ -6,6 +6,7 @@ import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
+import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -80,6 +81,18 @@ public class BookingController {
         WalletResponse wallet = bookingService.getWallet();
         return ApiResponse.<WalletResponse>builder()
                 .data(wallet)
+                .build();
+    }
+    /**
+     * Handles get an existing booking by booking number.
+     *
+     * @param bookingNumber The unique identifier of the booking to be updated.
+     * @return ApiResponse containing the get booking details.
+     */
+    @GetMapping("/customer/{bookingNumber}")
+    public ApiResponse<BookingResponse> getCarById(@PathVariable String bookingNumber) {
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.getBookingDetailsByBookingNumber(bookingNumber))
                 .build();
     }
 }

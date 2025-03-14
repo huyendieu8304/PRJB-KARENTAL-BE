@@ -106,6 +106,9 @@ public class BookingService {
         MultipartFile drivingLicense = bookingRequest.getDriverDrivingLicense();
         String s3Key;
         if(bookingRequest.isDriver()) {
+            if (drivingLicense == null || drivingLicense.isEmpty()) {
+                throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
+            }
             s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
         }
         else{
@@ -381,6 +384,24 @@ public class BookingService {
                 wallet.getId(),
                 wallet.getBalance()
         );
+    }
+
+    public BookingResponse getBookingDetailsByBookingNumber(String bookingNumber) {
+        // Retrieve the current user account ID to ensure the user is logged in
+        String accountId = SecurityUtil.getCurrentAccountId();
+        // Fetch the booking details from the database, or throw an error if the booking is not found
+        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+        if(booking == null) {
+            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+        }
+        if (!booking.getAccount().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
+        }
+        BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
+
+        bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
+
+        return bookingResponse;
     }
 
 }
