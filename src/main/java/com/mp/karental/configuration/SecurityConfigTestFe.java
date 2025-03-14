@@ -28,7 +28,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * This class is responsible for security configuration in the application
@@ -41,8 +42,8 @@ import java.util.*;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Profile("!testfe")
-public class SecurityConfig{
+@Profile("testfe")
+public class SecurityConfigTestFe {
 
 
     /**
@@ -100,6 +101,10 @@ public class SecurityConfig{
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) //unauthorized access
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //make each request independently
+                .headers(headers -> headers
+                        .frameOptions(frameOptions -> frameOptions.sameOrigin())
+                        .cacheControl(cache -> cache.disable())
+                )
                 .authorizeHttpRequests( //authorization in http url
                         request -> request
                                 //open public endpoints
@@ -111,6 +116,8 @@ public class SecurityConfig{
                 );
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
+
+       
 
         return http.build();
     }
