@@ -105,13 +105,12 @@ public class BookingService {
         // Upload the driver's license to S3 storage.
         MultipartFile drivingLicense = bookingRequest.getDriverDrivingLicense();
         String s3Key;
-        if(bookingRequest.isDriver()) {
+        if (bookingRequest.isDriver()) {
             if (drivingLicense == null || drivingLicense.isEmpty()) {
                 throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
             }
             s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
-        }
-        else{
+        } else {
             s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
         }
         fileService.uploadFile(drivingLicense, s3Key);
@@ -172,7 +171,7 @@ public class BookingService {
 
         // Retrieve booking details from the database
         Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if(booking == null) {
+        if (booking == null) {
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
         }
         if (!booking.getAccount().getId().equals(accountId)) {
@@ -187,7 +186,7 @@ public class BookingService {
         if (existingUri == null) {
             existingUri = "";
         }
-        if(editBookingRequest.isDriver()) {
+        if (editBookingRequest.isDriver()) {
             if ((drivingLicense == null || drivingLicense.isEmpty()) && existingUri.startsWith("user/")) {
                 throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
             }
@@ -197,8 +196,7 @@ public class BookingService {
             } else {
                 s3Key = existingUri; // Keep existing URI
             }
-        }
-        else{
+        } else {
             s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
         }
         // Only upload if there is a file to avoid NullPointerException
@@ -277,6 +275,7 @@ public class BookingService {
 
     /**
      * to check the account must complete the profile before booking
+     *
      * @param profile the profile of the current account
      * @return the profile with full information
      */
@@ -292,7 +291,6 @@ public class BookingService {
                 && profile.getHouseNumberStreet() != null && !profile.getHouseNumberStreet().isEmpty()
                 && profile.getDrivingLicenseUri() != null && !profile.getDrivingLicenseUri().isEmpty();
     }
-
 
 
     /**
@@ -373,6 +371,7 @@ public class BookingService {
 
     /**
      * this method to get the wallet by account login
+     *
      * @return wallet of that account
      */
     public WalletResponse getWallet() {
@@ -391,15 +390,20 @@ public class BookingService {
         String accountId = SecurityUtil.getCurrentAccountId();
         // Fetch the booking details from the database, or throw an error if the booking is not found
         Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if(booking == null) {
+        if (booking == null) {
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
         }
         if (!booking.getAccount().getId().equals(accountId)) {
             throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
         }
+        // Calculate rental duration in minutes.
+        long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
+        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
         BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
 
-        bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
+        bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(booking.getDriverDrivingLicenseUri()));
+        bookingResponse.setCarId(booking.getCar().getId());
+        bookingResponse.setTotalPrice(booking.getBasePrice() * days);
 
         return bookingResponse;
     }
