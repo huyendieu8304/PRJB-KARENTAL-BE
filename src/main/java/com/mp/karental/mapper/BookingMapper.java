@@ -1,16 +1,21 @@
 package com.mp.karental.mapper;
 
 import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.entity.Booking;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface BookingMapper {
     @Mapping(target = "driverDrivingLicenseUri", ignore = true)
     Booking toBooking(BookingRequest request);
+
+    @Mapping(target = "driverDrivingLicenseUri", ignore = true)
+    void editBooking(@MappingTarget Booking target, EditBookingRequest request);
 
     BookingResponse toBookingResponse(Booking booking);
 

@@ -100,4 +100,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Page<Booking> findByAccountId(@Param("accountId") String accountId, Pageable pageable);
 
 
+    Booking findBookingByBookingNumber(String bookingNumber);
+
+    Booking getBookingsByBookingNumber(String bookingNumber);
 }

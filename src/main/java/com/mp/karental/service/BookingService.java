@@ -3,6 +3,7 @@ package com.mp.karental.service;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
@@ -27,7 +28,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,22 +102,17 @@ public class BookingService {
         Booking booking = bookingMapper.toBooking(bookingRequest);
         booking.setBookingNumber(redisUtil.generateBookingNumber());
 
-        boolean isSameDriver = accountCustomer.getProfile().getFullName().equals(bookingRequest.getDriverFullName())
-                && accountCustomer.getProfile().getNationalId().equals(bookingRequest.getDriverNationalId())
-                && accountCustomer.getProfile().getPhoneNumber().equals(bookingRequest.getDriverPhoneNumber());
         // Upload the driver's license to S3 storage.
         MultipartFile drivingLicense = bookingRequest.getDriverDrivingLicense();
         String s3Key;
-        if(drivingLicense != null && !drivingLicense.isEmpty()) {
+        if(bookingRequest.isDriver()) {
             s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
-            fileService.uploadFile(drivingLicense, s3Key);
-        }
-        else if(isSameDriver) {
-            s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
         }
         else{
-            throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
+            s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
         }
+        fileService.uploadFile(drivingLicense, s3Key);
+
         booking.setDriverDrivingLicenseUri(s3Key);
 
         // Assign account and car to the booking.
@@ -154,6 +149,77 @@ public class BookingService {
         bookingResponse.setTotalPrice(booking.getBasePrice() * days);
 
         return bookingResponse;
+    }
+
+
+    public BookingResponse editBooking(EditBookingRequest editBookingRequest, String bookingNumber) throws AppException {
+        // Update status bookings before creating a new one.
+        updateStatusBookings();
+
+        // Get the current logged-in user's account ID.
+        String accountId = SecurityUtil.getCurrentAccountId();
+        // Retrieve the account details of the logged-in user.
+        Account accountCustomer = SecurityUtil.getCurrentAccount();
+
+        // account must have completed the individual profile to booking
+        // Validate profile completion
+        if (!isProfileComplete(accountCustomer.getProfile())) {
+            throw new AppException(ErrorCode.FORBIDDEN_PROFILE_INCOMPLETE);
+        }
+
+        // Retrieve booking details from the database
+        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+        if(booking == null) {
+            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+        }
+        if (!booking.getAccount().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
+        }
+
+        // Update the car details using the request data
+        bookingMapper.editBooking(booking, editBookingRequest);
+        MultipartFile drivingLicense = editBookingRequest.getDriverDrivingLicense();
+        String s3Key;
+        String existingUri = booking.getDriverDrivingLicenseUri();
+        if (existingUri == null) {
+            existingUri = "";
+        }
+        if(editBookingRequest.isDriver()) {
+            if ((drivingLicense == null || drivingLicense.isEmpty()) && existingUri.startsWith("user/")) {
+                throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
+            }
+            if (drivingLicense != null && !drivingLicense.isEmpty()) {
+                s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(drivingLicense);
+                fileService.uploadFile(drivingLicense, s3Key);  // Only upload when there is a file
+            } else {
+                s3Key = existingUri; // Keep existing URI
+            }
+        }
+        else{
+            s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
+        }
+        // Only upload if there is a file to avoid NullPointerException
+        if (drivingLicense != null && !drivingLicense.isEmpty()) {
+            fileService.uploadFile(drivingLicense, s3Key);
+        }
+
+        booking.setDriverDrivingLicenseUri(s3Key);
+
+        // Save the booking to the database.
+        bookingRepository.saveAndFlush(booking);
+
+        // Calculate rental duration in minutes.
+        long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
+        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
+
+        // Convert the booking entity to a response DTO.
+        BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
+        bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(s3Key));
+        bookingResponse.setCarId(booking.getCar().getId());
+        bookingResponse.setTotalPrice(booking.getBasePrice() * days);
+
+        return bookingResponse;
+
     }
 
     /**

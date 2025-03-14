@@ -1,6 +1,7 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
@@ -34,10 +35,18 @@ public class BookingController {
      * @return ApiResponse containing the created booking details
      */
     @PostMapping(value = "/customer/create-book", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid BookingRequest bookingRequest) throws Exception {
+    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid BookingRequest bookingRequest) {
         log.info("create booking {}", bookingRequest);
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.createBooking(bookingRequest))
+                .build();
+    }
+
+    @PutMapping(value = "/customer/edit-book/{bookingNumber}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ApiResponse<BookingResponse> editBooking(@ModelAttribute @Valid EditBookingRequest editBookingRequest, @PathVariable String bookingNumber) {
+        log.info("edit booking {}", editBookingRequest);
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.editBooking(editBookingRequest, bookingNumber))
                 .build();
     }
 

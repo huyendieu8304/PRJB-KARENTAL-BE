@@ -1,23 +1,21 @@
 package com.mp.karental.dto.request.booking;
 
-import com.mp.karental.constant.EPaymentType;
-import com.mp.karental.validation.*;
+import com.mp.karental.validation.RequiredField;
+import com.mp.karental.validation.ValidDocument;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
  * Represents the request payload for booking.
  * <p>
- * This class encapsulates the necessary data required to create a booking,
+ * This class encapsulates the necessary data required to edit a booking,
  * including booking information.
  * </p>
  * @author QuangPM20
@@ -29,61 +27,44 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@ValidBookingTime(message = "INVALID_BOOKING_TIME")
-@ValidAddressComponent(message = "INVALID_ADDRESS_COMPONENT")
-public class BookingRequest {
+public class EditBookingRequest {
     @RequiredField(fieldName = "car id")
     String carId;
 
-    @CreationTimestamp
-    LocalDateTime createdAt;
-
-    @ValidAddress(message = "INVALID_ADDRESS")
-    String pickUpLocation;
-
-    LocalDateTime pickUpTime;
-
-    LocalDateTime dropOffTime;
-
-    @ValidPaymentType
-    EPaymentType paymentType;
-
     //driver
     //=============================================================
-    @RequiredField(fieldName = "driver full name")
+    @NotBlank(message = "Driver's full name is required")
     String driverFullName;
 
-    @RequiredField(fieldName = "driver phone number")
+    @NotBlank(message = "Driver's phone number is required")
     @Pattern(regexp = "\\d{10}", message = "Invalid phone number format")
     String driverPhoneNumber;
 
-    @RequiredField(fieldName = " driver national id")
+    @NotBlank(message = "Driver's national ID is required")
     @Pattern(regexp = "\\d{9,12}", message = "Invalid national ID format")
     String driverNationalId;
 
     @Past(message = "Driver's date of birth must be in the past")
-    @RequiredField(fieldName = "driver date of birth")
     LocalDate driverDob;
 
-    @RequiredField(fieldName = "driver email")
+    @NotBlank(message = "Driver's email is required")
     @Email(message = "Invalid email format")
     String driverEmail;
 
     @ValidDocument(message = "INVALID_DOCUMENT_FILE")
-    @RequiredField(fieldName = "driver driving license")
     MultipartFile driverDrivingLicense;
 
 
-    @RequiredField(fieldName = "driver city/province")
+    @NotBlank(message = "City/Province is required")
     String driverCityProvince;
 
-    @RequiredField(fieldName = "driver district")
+    @NotBlank(message = "District is required")
     String driverDistrict;
 
-    @RequiredField(fieldName = "driver ward")
+    @NotBlank(message = "Ward is required")
     String driverWard;
 
-    @RequiredField(fieldName = "driver house number street")
+    @NotBlank(message = "House number and street are required")
     String driverHouseNumberStreet;
 
     boolean isDriver;
