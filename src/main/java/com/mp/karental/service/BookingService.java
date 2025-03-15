@@ -70,6 +70,7 @@ public class BookingService {
      * @throws AppException if there are validation issues or car availability problems.
      */
     public BookingResponse createBooking(BookingRequest bookingRequest) throws AppException {
+        // Get the current logged-in user's account ID and account details
         Account accountCustomer = prepareBooking();
         String accountId = accountCustomer.getId();
 
@@ -120,7 +121,16 @@ public class BookingService {
     }
 
 
+    /**
+     * Edits an existing booking based on the provided booking number and update request.
+     *
+     * @param editBookingRequest The request details for updating the booking, including new car information and driver’s license.
+     * @param bookingNumber The booking number of the booking to be edited.
+     * @return BookingResponse containing the updated booking details.
+     * @throws AppException If there are any validation issues, the booking is not found, or the user doesn’t have access to edit the booking.
+     */
     public BookingResponse editBooking(EditBookingRequest editBookingRequest, String bookingNumber) throws AppException {
+        // Get the current logged-in user's account ID and account details
         Account accountCustomer = prepareBooking();
         String accountId = accountCustomer.getId();
 
@@ -135,7 +145,7 @@ public class BookingService {
         if(!editBookingRequest.getCarId().equals(booking.getCar().getId())) {
             throw new AppException(ErrorCode.CAR_NOT_AVAILABLE);
         }
-
+        //do not allow edit
         if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
                 booking.getStatus() == EBookingStatus.PENDING_PAYMENT ||
                 booking.getStatus() == EBookingStatus.COMPLETED ||
@@ -155,51 +165,74 @@ public class BookingService {
         return buildBookingResponse(booking, s3Key);
     }
 
+    /**
+     * Handles the upload of the driver's license and updates the booking with the license URI.
+     *
+     * @param request The request object containing the driver's license details (BookingRequest or EditBookingRequest).
+     * @param booking The booking to be updated with the driver's license URI.
+     * @param accountCustomer The account of the customer making the booking.
+     * @return The S3 key where the driver's license is stored.
+     * @throws AppException If the driver's license is invalid or any other error occurs during file upload.
+     */
     private String handleDriverLicense(Object request, Booking booking, Account accountCustomer) throws AppException {
-        MultipartFile drivingLicense ;
+        MultipartFile drivingLicense;
         String s3Key = "";
-        if(request instanceof BookingRequest bookingRequest){
+
+        // Handle the case when the request is a BookingRequest
+        if (request instanceof BookingRequest bookingRequest) {
             drivingLicense = bookingRequest.getDriverDrivingLicense();
-            // Upload the driver's license to S3 storage.
+
+            // Upload the driver's license to S3 storage if the driver information is provided.
             if (bookingRequest.isDriver()) {
                 if (drivingLicense == null || drivingLicense.isEmpty()) {
-                    throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
+                    throw new AppException(ErrorCode.INVALID_DRIVER_INFO); // Validate driver's license is provided.
                 }
-                checkNullPointerDriver(bookingRequest);
-                s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
-                fileService.uploadFile(drivingLicense, s3Key);
+                checkNullPointerDriver(bookingRequest); // Ensure that the required driver fields are not null.
+                s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license"
+                        + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
+                fileService.uploadFile(drivingLicense, s3Key); // Upload the file to S3.
             } else {
+                // Use existing license URI from account profile if the driver is not provided.
                 s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
-
-                booking.setDriverFullName(accountCustomer.getProfile().getFullName());
-                setAccountProfileToDriver(booking, accountCustomer);
+                booking.setDriverFullName(accountCustomer.getProfile().getFullName()); // Set full name of the driver.
+                setAccountProfileToDriver(booking, accountCustomer); // Set the profile information to the booking.
             }
         }
-        else if(request instanceof EditBookingRequest editBookingRequest){
+        // Handle the case when the request is an EditBookingRequest
+        else if (request instanceof EditBookingRequest editBookingRequest) {
             drivingLicense = editBookingRequest.getDriverDrivingLicense();
-            String existingUri = booking.getDriverDrivingLicenseUri();
-            if (existingUri == null) {
-                existingUri = "";
-            }
+            String existingUri = booking.getDriverDrivingLicenseUri() == null ? "" : booking.getDriverDrivingLicenseUri();
+
+            // If the driver is provided, validate and possibly upload a new driver's license.
             if (editBookingRequest.isDriver()) {
                 if ((drivingLicense == null || drivingLicense.isEmpty()) && existingUri.startsWith("user/")) {
-                    throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
+                    throw new AppException(ErrorCode.INVALID_DRIVER_INFO); // Validate driver information.
                 }
-                checkNullPointerDriver(editBookingRequest);
+                checkNullPointerDriver(editBookingRequest); // Ensure that the required driver fields are not null.
                 if (drivingLicense != null && !drivingLicense.isEmpty()) {
-                    s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(drivingLicense);
-                    fileService.uploadFile(drivingLicense, s3Key);  // Only upload when there is a file
+                    s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license"
+                            + fileService.getFileExtension(drivingLicense);
+                    fileService.uploadFile(drivingLicense, s3Key); // Upload the file to S3.
                 } else {
-                    s3Key = existingUri; // Keep existing URI
+                    s3Key = existingUri; // If no new file, retain the existing URI.
                 }
             } else {
+                // Use existing license URI from account profile if the driver is not provided.
                 s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
-                setAccountProfileToDriver(booking, accountCustomer);
+                setAccountProfileToDriver(booking, accountCustomer); // Set the profile information to the booking.
             }
         }
-        return s3Key;
+        return s3Key; // Return the S3 key for the driver's license.
     }
 
+    /**
+     * Prepares the booking by ensuring the account is valid and the profile is complete.
+     * This method updates the status of existing bookings and retrieves the current logged-in user's account details.
+     * It also checks if the account's profile is complete before allowing further booking actions.
+     *
+     * @return The account of the currently logged-in user.
+     * @throws AppException If the account's profile is incomplete or any error occurs during the booking preparation.
+     */
     private Account prepareBooking() throws AppException {
         // Update status bookings before creating or editing a booking
         updateStatusBookings();
@@ -216,6 +249,16 @@ public class BookingService {
     }
 
 
+    /**
+     * Builds a BookingResponse object containing the booking details and additional calculated data.
+     * This method calculates the rental duration in days, converts the booking entity to a response DTO,
+     * and sets the relevant fields such as the driver's license URL, car ID, and total price.
+     * It also determines if the booking is for a driver or not based on the URI of the driver's license.
+     *
+     * @param booking The booking entity containing the booking details.
+     * @param s3Key The S3 key for the driver's license file.
+     * @return A BookingResponse object containing the booking details and calculated values.
+     */
     private BookingResponse buildBookingResponse(Booking booking, String s3Key) {
         // Calculate rental duration in minutes.
         long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
@@ -226,15 +269,18 @@ public class BookingService {
         bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(s3Key));
         bookingResponse.setCarId(booking.getCar().getId());
         bookingResponse.setTotalPrice(booking.getBasePrice() * days);
-        if(booking.getDriverDrivingLicenseUri().startsWith("user/")){
-            bookingResponse.setDriver(false);
-        }
-        else{
-            bookingResponse.setDriver(true);
-        }
+        bookingResponse.setDriver(!booking.getDriverDrivingLicenseUri().startsWith("user/"));
         return bookingResponse;
     }
 
+    /**
+     * Checks if a given string is null or empty.
+     * This method returns true if the string is either null or contains only whitespace characters;
+     * otherwise, it returns false.
+     *
+     * @param str The string to check.
+     * @return True if the string is null or empty (after trimming); otherwise, false.
+     */
     private boolean isNullOrEmpty(String str) {
         return str == null || str.trim().isEmpty();
     }
@@ -291,6 +337,16 @@ public class BookingService {
         }
     }
 
+    /**
+     * Sets the driver's profile information to the booking object.
+     * This method takes an Account object, which contains the user's profile details, and updates the corresponding
+     * driver information in the Booking object. The driver's personal details, such as full name, phone number,
+     * national ID, date of birth, email, and address (city, district, ward, house number/street) are set to the
+     * booking entity.
+     *
+     * @param booking The booking object that will be updated with the driver's information.
+     * @param account The account object that contains the current logged-in user's profile details.
+     */
     private void setAccountProfileToDriver(Booking booking,Account account) {
         booking.setDriverFullName(account.getProfile().getFullName());
         booking.setDriverPhoneNumber(account.getProfile().getPhoneNumber());
@@ -303,8 +359,18 @@ public class BookingService {
         booking.setDriverHouseNumberStreet(account.getProfile().getHouseNumberStreet());
     }
 
-    private void checkNullPointerDriver(Object request){
-        if(request instanceof BookingRequest bookingRequest){
+    /**
+     * Checks whether the driver information in the request is complete.
+     * This method checks that all the required driver details are present in the request (either a BookingRequest
+     * or EditBookingRequest). If any of the required fields (such as full name, phone number, national ID, etc.)
+     * are missing or empty, an AppException with the error code INVALID_DRIVER_INFO is thrown.
+     *
+     * @param request The request object (either BookingRequest or EditBookingRequest) that contains the driver's information to be validated.
+     * @throws AppException If any required driver field is missing or empty, throws an AppException with the error code INVALID_DRIVER_INFO.
+     */
+    private void checkNullPointerDriver(Object request) {
+        if (request instanceof BookingRequest bookingRequest) {
+            // Check if any required driver fields are missing or empty for the BookingRequest.
             if (isNullOrEmpty(bookingRequest.getDriverFullName()) ||
                     isNullOrEmpty(bookingRequest.getDriverPhoneNumber()) ||
                     isNullOrEmpty(bookingRequest.getDriverNationalId()) ||
@@ -314,10 +380,11 @@ public class BookingService {
                     isNullOrEmpty(bookingRequest.getDriverDistrict()) ||
                     isNullOrEmpty(bookingRequest.getDriverWard()) ||
                     isNullOrEmpty(bookingRequest.getDriverHouseNumberStreet())) {
+                // If any required field is missing or empty, throw an exception with an appropriate error code.
                 throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
             }
-        }
-        else if(request instanceof EditBookingRequest editBookingRequest){
+        } else if (request instanceof EditBookingRequest editBookingRequest) {
+            // Check if any required driver fields are missing or empty for the EditBookingRequest.
             if (isNullOrEmpty(editBookingRequest.getDriverFullName()) ||
                     isNullOrEmpty(editBookingRequest.getDriverPhoneNumber()) ||
                     isNullOrEmpty(editBookingRequest.getDriverNationalId()) ||
@@ -327,10 +394,12 @@ public class BookingService {
                     isNullOrEmpty(editBookingRequest.getDriverDistrict()) ||
                     isNullOrEmpty(editBookingRequest.getDriverWard()) ||
                     isNullOrEmpty(editBookingRequest.getDriverHouseNumberStreet())) {
+                // If any required field is missing or empty, throw an exception with an appropriate error code.
                 throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
             }
         }
     }
+
 
     /**
      * to check the account must complete the profile before booking
@@ -444,6 +513,16 @@ public class BookingService {
         );
     }
 
+    /**
+     * Retrieves booking details by booking number and ensures the user has access to the booking.
+     * This method checks the current logged-in user's account ID and compares it with the booking's account ID
+     * to ensure the user has access to the booking details. If the booking is not found or the user does not have
+     * permission, an exception is thrown.
+     *
+     * @param bookingNumber The booking number to fetch the booking details.
+     * @return A BookingResponse object containing the booking details.
+     * @throws AppException If the booking is not found or the user does not have permission to access the booking.
+     */
     public BookingResponse getBookingDetailsByBookingNumber(String bookingNumber) {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
