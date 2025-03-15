@@ -139,4 +139,17 @@ public class BookingController {
                 .data(bookingService.getBookingDetailsByBookingNumber(bookingNumber))
                 .build();
     }
+
+    /**
+     * API endpoint for car owners to confirm a booking.
+     *
+     * @param bookingNumber The unique booking number to be confirmed.
+     * @return BookingResponse containing updated booking details.
+     */
+    @PutMapping("/car-owner/{bookingNumber}/confirm")
+    public BookingResponse confirmBooking(@PathVariable String bookingNumber) {
+        return bookingService.confirmBooking(bookingNumber);
+    }
+
+
 }
