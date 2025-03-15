@@ -2,6 +2,7 @@ package com.mp.karental.dto.response;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
+import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;

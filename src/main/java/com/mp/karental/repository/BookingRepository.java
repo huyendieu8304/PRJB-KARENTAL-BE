@@ -154,5 +154,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Booking getBookingsByBookingNumber(String bookingNumber);
 
-
+    @Query("""
+    SELECT b FROM Booking b
+    JOIN b.car c
+    WHERE b.bookingNumber = :bookingNumber
+    AND c.account.id = :ownerId
+""")
+    Booking findBookingByBookingNumberAndOwnerId(
+            @Param("bookingNumber") String bookingNumber,
+            @Param("ownerId") String ownerId
+    );
 }

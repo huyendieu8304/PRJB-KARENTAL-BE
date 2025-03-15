@@ -3,13 +3,14 @@ package com.mp.karental.controller;
 import com.mp.karental.dto.request.booking.BookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.constant.EBookingStatus;
-import com.mp.karental.dto.request.BookingRequest;
+import com.mp.karental.dto.request.booking.BookingRequest;
 import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.dto.response.car.CarResponse;
-import com.mp.karental.service.booking.BookingService;
+import com.mp.karental.service.BookingService;
+import com.mp.karental.dto.response.booking.BookingListResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -120,6 +121,20 @@ public class BookingController {
      */
     @GetMapping("/customer/{bookingNumber}")
     public ApiResponse<BookingResponse> getCarById(@PathVariable String bookingNumber) {
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.getBookingDetailsByBookingNumber(bookingNumber))
+                .build();
+    }
+
+
+    /**
+     * Handles get an existing booking by booking number.
+     *
+     * @param bookingNumber The unique identifier of the booking to be updated.
+     * @return ApiResponse containing the get booking details.
+     */
+    @GetMapping("/car-owner/{bookingNumber}")
+    public ApiResponse<BookingResponse> getCustomerBookingDetails(@PathVariable String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.getBookingDetailsByBookingNumber(bookingNumber))
                 .build();

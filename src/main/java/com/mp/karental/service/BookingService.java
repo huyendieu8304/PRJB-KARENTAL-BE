@@ -2,16 +2,14 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
+import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.booking.BookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
+import com.mp.karental.dto.response.booking.BookingListResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
-import com.mp.karental.entity.Account;
-import com.mp.karental.entity.Booking;
-import com.mp.karental.entity.Car;
-import com.mp.karental.entity.Wallet;
-import com.mp.karental.entity.UserProfile;
+import com.mp.karental.entity.*;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.BookingMapper;
@@ -24,6 +22,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.xmlbeans.impl.xb.ltgfmt.FileDesc;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -478,17 +477,47 @@ public class BookingService {
         );
     }
 
+    /**
+     * Retrieve the booking details based on the given booking number.
+     *
+     * - If the user is a **CAR_OWNER**, they can only view booking details of customers
+     *   who have rented their car.
+     * - If the user is a **CUSTOMER**, they can only view their own booking details.
+     * - If the user has an invalid role, an **unauthorized error** is thrown.
+     *
+     * @param bookingNumber The unique identifier of the booking.
+     * @return BookingResponse containing booking details.
+     * @throws AppException If the booking is not found or access is forbidden.
+     */
     public BookingResponse getBookingDetailsByBookingNumber(String bookingNumber) {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
-        // Fetch the booking details from the database, or throw an error if the booking is not found
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if (booking == null) {
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+        Account account = SecurityUtil.getCurrentAccount();
+
+        Booking booking;
+
+        // Check if user is car_owner
+        if (ERole.CAR_OWNER.equals(account.getRole().getName())) {
+            // Get booking with customer's information rented car of car_owner
+            booking = bookingRepository.findBookingByBookingNumberAndOwnerId(bookingNumber, accountId);
+            if (booking == null) {
+                throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+            }
+            // Check if user is customer
+        } else if (ERole.CUSTOMER.equals(account.getRole().getName())) {
+            booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+            if (booking == null) {
+                throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+            }
+
+            if (!booking.getAccount().getId().equals(accountId)) {
+                throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
+            }
+
+        } else {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
         }
-        if (!booking.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
-        }
+
         // Calculate rental duration in minutes.
         long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
         long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
@@ -500,6 +529,7 @@ public class BookingService {
 
         return bookingResponse;
     }
+
 
 }
 
