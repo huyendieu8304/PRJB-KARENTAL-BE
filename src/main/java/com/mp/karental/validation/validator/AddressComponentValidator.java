@@ -21,6 +21,9 @@ public class AddressComponentValidator implements ConstraintValidator<ValidAddre
         if (bookingRequest == null) {
             return true; // Ignore validation if object is null
         }
+        if(!bookingRequest.isDriver()){
+            return true;
+        }
 
         String city = bookingRequest.getDriverCityProvince();
         String district = bookingRequest.getDriverDistrict();

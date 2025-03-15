@@ -78,6 +78,8 @@ public enum ErrorCode {
     SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3016, "There was error during sending forgot password email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
     TRANSACTION_NOT_FOUND_IN_DB(3017, "The transaction is not exist in the system", HttpStatus.NOT_FOUND),
     BOOKING_NOT_FOUND_IN_DB(3018, "The booking is not exist in the system", HttpStatus.NOT_FOUND),
+    BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
+
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),

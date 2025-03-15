@@ -70,20 +70,8 @@ public class BookingService {
      * @throws AppException if there are validation issues or car availability problems.
      */
     public BookingResponse createBooking(BookingRequest bookingRequest) throws AppException {
-        // Update status bookings before creating a new one.
-        updateStatusBookings();
-
-        // Get the current logged-in user's account ID.
-        String accountId = SecurityUtil.getCurrentAccountId();
-
-        // Retrieve the account details of the logged-in user.
-        Account accountCustomer = SecurityUtil.getCurrentAccount();
-
-        // account must have completed the individual profile to booking
-        // Validate profile completion
-        if (!isProfileComplete(accountCustomer.getProfile())) {
-            throw new AppException(ErrorCode.FORBIDDEN_PROFILE_INCOMPLETE);
-        }
+        Account accountCustomer = prepareBooking();
+        String accountId = accountCustomer.getId();
 
         // Retrieve car details from the database, throw an exception if not found.
         Car car = carRepository.findById(bookingRequest.getCarId())
@@ -103,17 +91,7 @@ public class BookingService {
         booking.setBookingNumber(redisUtil.generateBookingNumber());
 
         // Upload the driver's license to S3 storage.
-        MultipartFile drivingLicense = bookingRequest.getDriverDrivingLicense();
-        String s3Key;
-        if (bookingRequest.isDriver()) {
-            if (drivingLicense == null || drivingLicense.isEmpty()) {
-                throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
-            }
-            s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
-        } else {
-            s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
-        }
-        fileService.uploadFile(drivingLicense, s3Key);
+        String s3Key = handleDriverLicense(bookingRequest, booking, accountCustomer);
 
         booking.setDriverDrivingLicenseUri(s3Key);
 
@@ -125,10 +103,6 @@ public class BookingService {
         booking.setDeposit(car.getDeposit());
         booking.setBasePrice(car.getBasePrice());
 
-        // Calculate rental duration in minutes.
-        long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
-        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
-
         // Handle different payment types.
         if (booking.getPaymentType().equals(EPaymentType.WALLET)
                 && walletCustomer.getBalance() >= car.getDeposit()) {
@@ -139,35 +113,16 @@ public class BookingService {
         } else {
             booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
         }
-
-
         // Save the booking to the database.
         bookingRepository.save(booking);
 
-        // Convert the booking entity to a response DTO.
-        BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
-        bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(s3Key));
-        bookingResponse.setCarId(booking.getCar().getId());
-        bookingResponse.setTotalPrice(booking.getBasePrice() * days);
-
-        return bookingResponse;
+        return buildBookingResponse(booking, s3Key);
     }
 
 
     public BookingResponse editBooking(EditBookingRequest editBookingRequest, String bookingNumber) throws AppException {
-        // Update status bookings before creating a new one.
-        updateStatusBookings();
-
-        // Get the current logged-in user's account ID.
-        String accountId = SecurityUtil.getCurrentAccountId();
-        // Retrieve the account details of the logged-in user.
-        Account accountCustomer = SecurityUtil.getCurrentAccount();
-
-        // account must have completed the individual profile to booking
-        // Validate profile completion
-        if (!isProfileComplete(accountCustomer.getProfile())) {
-            throw new AppException(ErrorCode.FORBIDDEN_PROFILE_INCOMPLETE);
-        }
+        Account accountCustomer = prepareBooking();
+        String accountId = accountCustomer.getId();
 
         // Retrieve booking details from the database
         Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
@@ -177,38 +132,91 @@ public class BookingService {
         if (!booking.getAccount().getId().equals(accountId)) {
             throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
         }
+        if(!editBookingRequest.getCarId().equals(booking.getCar().getId())) {
+            throw new AppException(ErrorCode.CAR_NOT_AVAILABLE);
+        }
+
+        if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
+                booking.getStatus() == EBookingStatus.PENDING_PAYMENT ||
+                booking.getStatus() == EBookingStatus.COMPLETED ||
+                booking.getStatus() == EBookingStatus.CANCELLED) {
+            throw new AppException(ErrorCode.BOOKING_CANNOT_BE_EDITED);
+        }
 
         // Update the car details using the request data
         bookingMapper.editBooking(booking, editBookingRequest);
-        MultipartFile drivingLicense = editBookingRequest.getDriverDrivingLicense();
-        String s3Key;
-        String existingUri = booking.getDriverDrivingLicenseUri();
-        if (existingUri == null) {
-            existingUri = "";
-        }
-        if (editBookingRequest.isDriver()) {
-            if ((drivingLicense == null || drivingLicense.isEmpty()) && existingUri.startsWith("user/")) {
-                throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
-            }
-            if (drivingLicense != null && !drivingLicense.isEmpty()) {
-                s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(drivingLicense);
-                fileService.uploadFile(drivingLicense, s3Key);  // Only upload when there is a file
-            } else {
-                s3Key = existingUri; // Keep existing URI
-            }
-        } else {
-            s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
-        }
-        // Only upload if there is a file to avoid NullPointerException
-        if (drivingLicense != null && !drivingLicense.isEmpty()) {
-            fileService.uploadFile(drivingLicense, s3Key);
-        }
+        String s3Key = handleDriverLicense(editBookingRequest, booking, accountCustomer);
 
         booking.setDriverDrivingLicenseUri(s3Key);
 
         // Save the booking to the database.
         bookingRepository.saveAndFlush(booking);
 
+        return buildBookingResponse(booking, s3Key);
+    }
+
+    private String handleDriverLicense(Object request, Booking booking, Account accountCustomer) throws AppException {
+        MultipartFile drivingLicense ;
+        String s3Key = "";
+        if(request instanceof BookingRequest bookingRequest){
+            drivingLicense = bookingRequest.getDriverDrivingLicense();
+            // Upload the driver's license to S3 storage.
+            if (bookingRequest.isDriver()) {
+                if (drivingLicense == null || drivingLicense.isEmpty()) {
+                    throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
+                }
+                checkNullPointerDriver(bookingRequest);
+                s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(bookingRequest.getDriverDrivingLicense());
+                fileService.uploadFile(drivingLicense, s3Key);
+            } else {
+                s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
+
+                booking.setDriverFullName(accountCustomer.getProfile().getFullName());
+                setAccountProfileToDriver(booking, accountCustomer);
+            }
+        }
+        else if(request instanceof EditBookingRequest editBookingRequest){
+            drivingLicense = editBookingRequest.getDriverDrivingLicense();
+            String existingUri = booking.getDriverDrivingLicenseUri();
+            if (existingUri == null) {
+                existingUri = "";
+            }
+            if (editBookingRequest.isDriver()) {
+                if ((drivingLicense == null || drivingLicense.isEmpty()) && existingUri.startsWith("user/")) {
+                    throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
+                }
+                checkNullPointerDriver(editBookingRequest);
+                if (drivingLicense != null && !drivingLicense.isEmpty()) {
+                    s3Key = "booking/" + booking.getBookingNumber() + "/driver-driving-license" + fileService.getFileExtension(drivingLicense);
+                    fileService.uploadFile(drivingLicense, s3Key);  // Only upload when there is a file
+                } else {
+                    s3Key = existingUri; // Keep existing URI
+                }
+            } else {
+                s3Key = accountCustomer.getProfile().getDrivingLicenseUri();
+                setAccountProfileToDriver(booking, accountCustomer);
+            }
+        }
+        return s3Key;
+    }
+
+    private Account prepareBooking() throws AppException {
+        // Update status bookings before creating or editing a booking
+        updateStatusBookings();
+
+        // Get the current logged-in user's account ID and account details
+        Account accountCustomer = SecurityUtil.getCurrentAccount();
+
+        // Ensure the account has completed the individual profile
+        if (!isProfileComplete(accountCustomer.getProfile())) {
+            throw new AppException(ErrorCode.FORBIDDEN_PROFILE_INCOMPLETE);
+        }
+
+        return accountCustomer;
+    }
+
+
+    private BookingResponse buildBookingResponse(Booking booking, String s3Key) {
         // Calculate rental duration in minutes.
         long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
         long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
@@ -218,10 +226,20 @@ public class BookingService {
         bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(s3Key));
         bookingResponse.setCarId(booking.getCar().getId());
         bookingResponse.setTotalPrice(booking.getBasePrice() * days);
-
+        if(booking.getDriverDrivingLicenseUri().startsWith("user/")){
+            bookingResponse.setDriver(false);
+        }
+        else{
+            bookingResponse.setDriver(true);
+        }
         return bookingResponse;
-
     }
+
+    private boolean isNullOrEmpty(String str) {
+        return str == null || str.trim().isEmpty();
+    }
+
+
 
     /**
      * Scheduled task to update expired bookings.
@@ -269,6 +287,47 @@ public class BookingService {
                 }
 
                 break; // stopped when a booking change to waiting confirm
+            }
+        }
+    }
+
+    private void setAccountProfileToDriver(Booking booking,Account account) {
+        booking.setDriverFullName(account.getProfile().getFullName());
+        booking.setDriverPhoneNumber(account.getProfile().getPhoneNumber());
+        booking.setDriverNationalId(account.getProfile().getNationalId());
+        booking.setDriverDob(account.getProfile().getDob());
+        booking.setDriverEmail(account.getEmail());
+        booking.setDriverCityProvince(account.getProfile().getCityProvince());
+        booking.setDriverDistrict(account.getProfile().getDistrict());
+        booking.setDriverWard(account.getProfile().getWard());
+        booking.setDriverHouseNumberStreet(account.getProfile().getHouseNumberStreet());
+    }
+
+    private void checkNullPointerDriver(Object request){
+        if(request instanceof BookingRequest bookingRequest){
+            if (isNullOrEmpty(bookingRequest.getDriverFullName()) ||
+                    isNullOrEmpty(bookingRequest.getDriverPhoneNumber()) ||
+                    isNullOrEmpty(bookingRequest.getDriverNationalId()) ||
+                    bookingRequest.getDriverDob() == null ||
+                    isNullOrEmpty(bookingRequest.getDriverEmail()) ||
+                    isNullOrEmpty(bookingRequest.getDriverCityProvince()) ||
+                    isNullOrEmpty(bookingRequest.getDriverDistrict()) ||
+                    isNullOrEmpty(bookingRequest.getDriverWard()) ||
+                    isNullOrEmpty(bookingRequest.getDriverHouseNumberStreet())) {
+                throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
+            }
+        }
+        else if(request instanceof EditBookingRequest editBookingRequest){
+            if (isNullOrEmpty(editBookingRequest.getDriverFullName()) ||
+                    isNullOrEmpty(editBookingRequest.getDriverPhoneNumber()) ||
+                    isNullOrEmpty(editBookingRequest.getDriverNationalId()) ||
+                    editBookingRequest.getDriverDob() == null ||
+                    isNullOrEmpty(editBookingRequest.getDriverEmail()) ||
+                    isNullOrEmpty(editBookingRequest.getDriverCityProvince()) ||
+                    isNullOrEmpty(editBookingRequest.getDriverDistrict()) ||
+                    isNullOrEmpty(editBookingRequest.getDriverWard()) ||
+                    isNullOrEmpty(editBookingRequest.getDriverHouseNumberStreet())) {
+                throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
             }
         }
     }
@@ -396,16 +455,7 @@ public class BookingService {
         if (!booking.getAccount().getId().equals(accountId)) {
             throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
         }
-        // Calculate rental duration in minutes.
-        long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
-        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
-        BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
-
-        bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(booking.getDriverDrivingLicenseUri()));
-        bookingResponse.setCarId(booking.getCar().getId());
-        bookingResponse.setTotalPrice(booking.getBasePrice() * days);
-
-        return bookingResponse;
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
 }
