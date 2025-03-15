@@ -1,9 +1,8 @@
-package automationtest.registeraccount;
+package com.mp.karental.automationtest.forgotpassword;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -14,15 +13,13 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.Duration;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class RegistrationTest {
+public class EnterEmailToResetPasswordTest {
     private WebDriver driver;
 
     @BeforeEach
@@ -75,8 +72,7 @@ public class RegistrationTest {
 
     static Stream<Arguments> testData() {
         return Stream.of(
-                Arguments.of("", "", "", "", "",null, null, "Phone number is required."),
-                Arguments.of("user", "user123@example.com", "0234563392", "Test@1234", "Test@1234", true, true, "Create account successfully. Please check your email inbox to verify your email address."),
+                Arguments.of("user", "user123@example.com", "0234563392", "Test@1234", "Test@1234", true, true, "Registration successful"),
                 Arguments.of("user1", "user2@example.com", "0972427628", "Test@1234", "Test@1234", true, true, "The full name can only contain alphabet characters."),
                 Arguments.of("User", "user1@example.com", "0972427777", "Test@1234", "Test@1234", true, true, "Email already existed. Please try another email."),
                 Arguments.of("user", "userexample.com", "0342567892", "Test@1234", "Test@1234", true, true, "Please enter a valid email address"),
