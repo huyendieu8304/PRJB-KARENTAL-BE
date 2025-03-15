@@ -2,12 +2,14 @@ package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.booking.BookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
+import com.mp.karental.constant.EBookingStatus;
+import com.mp.karental.dto.request.BookingRequest;
 import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.dto.response.car.CarResponse;
-import com.mp.karental.service.BookingService;
+import com.mp.karental.service.booking.BookingService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -60,14 +63,40 @@ public class BookingController {
      * @return a paginated list of bookings wrapped in `ApiResponse<Page<BookingThumbnailResponse>>`
      */
     @GetMapping("/customer/my-bookings")
-    public ApiResponse<Page<BookingThumbnailResponse>> getBookings(
+    public ApiResponse<BookingListResponse> getBookings(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt,DESC") String sort) {
+            @RequestParam(required = false) EBookingStatus status,
+            @RequestParam(defaultValue = "updatedAt,DESC") String sort) {
 
-        Page<BookingThumbnailResponse> bookings = bookingService.getBookingsByUserId(page, size, sort);
-        return ApiResponse.<Page<BookingThumbnailResponse>>builder()
-                .data(bookings)
+        BookingListResponse response = bookingService.getBookingsByUserId(page, size, sort,
+                (status != null) ? status.name() : null);
+
+        return ApiResponse.<BookingListResponse>builder()
+                .data(response)
+                .build();
+    }
+
+    /**
+     * API endpoint to retrieve the list of bookings for the current customer.
+     *
+     * @param page the page number (default is 0)
+     * @param size the number of records per page (default is 10)
+     * @param sort sorting field and direction in the format "field,DIRECTION" (default is "updatedAt,DESC")
+     * @return a paginated list of bookings wrapped in `ApiResponse<Page<BookingThumbnailResponse>>`
+     */
+    @GetMapping("/car-owner/rentals")
+    public ApiResponse<BookingListResponse> getBookingsForCarOwner(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) EBookingStatus status,
+            @RequestParam(defaultValue = "updatedAt,DESC") String sort) {
+
+        BookingListResponse response = bookingService.getBookingsByCarOwner(page, size, sort,
+                (status != null) ? status.name() : null);
+
+        return ApiResponse.<BookingListResponse>builder()
+                .data(response)
                 .build();
     }
 

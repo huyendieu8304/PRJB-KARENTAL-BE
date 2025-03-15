@@ -35,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -59,7 +60,7 @@ public class BookingService {
     TransactionService transactionService;
 
     // Define constant field names to avoid repetition
-    private static final String FIELD_CREATED_AT = "createdAt";
+    private static final String FIELD_UPDATED_AT = "updatedAt";
     private static final String FIELD_BASE_PRICE = "basePrice";
 
     /**
@@ -134,7 +135,7 @@ public class BookingService {
                 && walletCustomer.getBalance() >= car.getDeposit()) {
             // If the user has enough balance in the wallet, deduct the deposit and proceed.
             transactionService.payDeposit(accountId, booking.getDeposit(), booking);
-            booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+            booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
             walletRepository.save(walletCustomer);
         } else {
             booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
@@ -252,7 +253,7 @@ public class BookingService {
             // check when customer top up wallet
             if (wallet.getBalance() >= booking.getDeposit()) {
                 transactionService.payDeposit(booking.getAccount().getId(), booking.getDeposit(), booking);
-                booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+                booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
                 walletRepository.save(wallet);
                 bookingRepository.save(booking);
                 // cancel booking overlap
@@ -294,71 +295,84 @@ public class BookingService {
 
 
     /**
-     * Retrieves the list of bookings for the currently logged-in user, with pagination and sorting.
+     * Retrieves the list of bookings for the renter (based on accountId).
+     * If the status is null or invalid, it returns all bookings.
      *
-     * @param page the page number to retrieve
-     * @param size the number of records per page
-     * @param sort sorting field and direction in the format "field,DIRECTION"
-     * @return a paginated list of `BookingThumbnailResponse`
+     * @param page   the page number (starting from 0)
+     * @param size   the number of records per page
+     * @param sort   sorting string in the format "field,DIRECTION" (e.g., "updatedAt,DESC")
+     * @param status booking status (nullable to fetch all bookings)
+     * @return list of user bookings wrapped in `BookingListResponse`
      */
-    public Page<BookingThumbnailResponse> getBookingsByUserId(int page, int size, String sort) {
-        // Get the currently authenticated user's account ID
+    public BookingListResponse getBookingsByUserId(int page, int size, String sort, String status) {
         String accountId = SecurityUtil.getCurrentAccountId();
+        Pageable pageable = createPageable(page, size, sort);
 
-        // Validate and limit size (maximum 100)
-        if (size <= 0 || size > 100) {
-            size = 10; // Default value if client provides an invalid input
+        Page<Booking> bookings;
+        if (status == null || status.isBlank()) {
+            bookings = bookingRepository.findByAccountId(accountId, pageable);
+        } else {
+            EBookingStatus bookingStatus = parseStatus(status);
+            bookings = (bookingStatus != null)
+                    ? bookingRepository.findByAccountIdAndStatus(accountId, bookingStatus, pageable)
+                    : bookingRepository.findByAccountId(accountId, pageable);
         }
 
-        // Ensure page number is non-negative (set to 0 if negative)
-        if (page < 0) {
-            page = 0;
+        return getBookingListResponse(bookings);
+    }
+
+    /**
+     * Retrieves the list of bookings for the car owner (based on ownerId).
+     * If the status is null or invalid, it returns all bookings.
+     *
+     * @param page   the page number (starting from 0)
+     * @param size   the number of records per page
+     * @param sort   sorting string in the format "field,DIRECTION" (e.g., "updatedAt,DESC")
+     * @param status booking status (nullable to fetch all bookings)
+     * @return list of car owner bookings wrapped in `BookingListResponse`
+     */
+    public BookingListResponse getBookingsByCarOwner(int page, int size, String sort, String status) {
+        String ownerId = SecurityUtil.getCurrentAccountId();
+        Pageable pageable = createPageable(page, size, sort);
+
+        Page<Booking> bookings;
+        if (status == null || status.isBlank()) {
+            // If status is null or empty, fetch all bookings
+            bookings = bookingRepository.findBookingsByCarOwnerId(ownerId, pageable);
+        } else {
+            // Parse the status; if invalid, default to fetching all bookings
+            EBookingStatus bookingStatus = parseStatus(status);
+            bookings = (bookingStatus != null)
+                    ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, pageable)
+                    : bookingRepository.findBookingsByCarOwnerId(ownerId, pageable);
         }
 
-        // Define default sorting field and direction
-        String sortField = FIELD_CREATED_AT;
-        Sort.Direction sortDirection = Sort.Direction.DESC;
+        return getBookingListResponse(bookings);
+    }
 
-        if (sort != null && !sort.isBlank()) {
-            String[] sortParams = sort.split(",");
-            if (sortParams.length == 2) {
-                String requestedField = sortParams[0].trim();
-                String requestedDirection = sortParams[1].trim().toUpperCase();
+    /**
+     * Converts a page of `Booking` objects into `BookingListResponse`.
+     * Includes booking details, car images, and additional computed fields.
+     *
+     * @param bookings page of bookings
+     * @return formatted booking response
+     */
+    private BookingListResponse getBookingListResponse(Page<Booking> bookings) {
+        String currentUserId = SecurityUtil.getCurrentAccountId();
 
-                // Check if requestedField valid
-                if (List.of(FIELD_CREATED_AT, FIELD_BASE_PRICE).contains(requestedField)) {
-                    sortField = requestedField;
-                }
-
-                // Check if requestedDirection valid
-                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
-                    sortDirection = Sort.Direction.valueOf(requestedDirection);
-                }
-            }
-        }
-
-        // Create pageable object with sorting
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
-
-        // Retrieve bookings from the repository
-        Page<Booking> bookings = bookingRepository.findByAccountId(accountId, pageable);
-
-        return bookings.map(booking -> {
-            // Map the Booking entity to a BookingThumbnailResponse DTO
+        Page<BookingThumbnailResponse> bookingResponses = bookings.map(booking -> {
             BookingThumbnailResponse response = bookingMapper.toBookingThumbnailResponse(booking);
 
-            // Calculate the total rental period in days
+            // Calculate rental duration and total price
             long totalHours = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toHours();
-            long numberOfDay = (long) Math.ceil((double) totalHours / 24); // Round up to full days
-
-            // Calculate the total price based on the base price and rental period
+            long numberOfDay = (long) Math.ceil((double) totalHours / 24);
             long totalPrice = numberOfDay * booking.getBasePrice();
 
             response.setNumberOfDay((int) numberOfDay);
             response.setTotalPrice(totalPrice);
-            response.setCreatedAt(booking.getCreatedAt());
+            response.setUpdatedAt(booking.getUpdatedAt());
 
-            // Retrieve car images from the file storage service
+            // Retrieve car images
             response.setCarImageFrontUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
             response.setCarImageBackUrl(fileService.getFileUrl(booking.getCar().getCarImageBack()));
             response.setCarImageLeftUrl(fileService.getFileUrl(booking.getCar().getCarImageLeft()));
@@ -367,11 +381,90 @@ public class BookingService {
             return response;
         });
 
+        // Count ongoing bookings
+        int totalOnGoingBookings = bookingRepository.countOngoingBookingsByCar(
+                currentUserId,
+                List.of(
+                        EBookingStatus.PENDING_DEPOSIT,
+                        EBookingStatus.WAITING_CONFIRMED,
+                        EBookingStatus.CONFIRMED,
+                        EBookingStatus.IN_PROGRESS,
+                        EBookingStatus.PENDING_PAYMENT
+                )
+        );
+
+        // Count bookings that are waiting for confirmation
+        int totalWaitingConfirmBooking = bookingRepository.countBookingsByStatus(
+                currentUserId,
+                EBookingStatus.WAITING_CONFIRMED
+        );
+
+        return new BookingListResponse(totalOnGoingBookings, totalWaitingConfirmBooking, bookingResponses);
     }
 
+
     /**
-     * this method to get the wallet by account login
+     * Creates a `Pageable` object for pagination and sorting.
+     * Ensures default values are set if the input is invalid.
      *
+     * @param page the requested page number
+     * @param size the number of records per page
+     * @param sort sorting string in the format "field,DIRECTION" (e.g., "updatedAt,DESC")
+     * @return `Pageable` object for pagination
+     */
+    private Pageable createPageable(int page, int size, String sort) {
+        if (size <= 0 || size > 100) {
+            size = 10; // Default page size
+        }
+        if (page < 0) {
+            page = 0;
+        }
+
+        // Default sorting values
+        String sortField = FIELD_UPDATED_AT;
+        Sort.Direction sortDirection = Sort.Direction.DESC;
+
+        // Parse sorting parameters if provided
+        if (sort != null && !sort.isBlank()) {
+            String[] sortParams = sort.split(",");
+            if (sortParams.length == 2) {
+                String requestedField = sortParams[0].trim();
+                String requestedDirection = sortParams[1].trim().toUpperCase();
+
+                if (List.of(FIELD_UPDATED_AT, FIELD_BASE_PRICE).contains(requestedField)) {
+                    sortField = requestedField;
+                }
+                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
+                    sortDirection = Sort.Direction.valueOf(requestedDirection);
+                }
+            }
+        }
+
+        return PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+    }
+
+
+    /**
+     * Converts a status string to an `EBookingStatus` enum.
+     * If the status is invalid or not found, returns `null` (defaulting to all bookings).
+     *
+     * @param statusStr the input status string
+     * @return corresponding `EBookingStatus` or `null` if invalid
+     */
+    private EBookingStatus parseStatus(String statusStr) {
+        if (statusStr == null || statusStr.isBlank()) {
+            return null;
+        }
+
+        return Arrays.stream(EBookingStatus.values())
+                .filter(e -> e.name().equalsIgnoreCase(statusStr))
+                .findFirst()
+                .orElse(null);
+    }
+
+
+    /**
+     * This method to get the wallet by account login
      * @return wallet of that account
      */
     public WalletResponse getWallet() {
