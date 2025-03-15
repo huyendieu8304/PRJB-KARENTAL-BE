@@ -336,14 +336,14 @@ public class BookingService {
 
         Page<Booking> bookings;
         if (status == null || status.isBlank()) {
-            // If status is null or empty, fetch all bookings
-            bookings = bookingRepository.findBookingsByCarOwnerId(ownerId, pageable);
+            // If status is null or empty, fetch all bookings, not include PENDING_DEPOSIT
+            bookings = bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
         } else {
-            // Parse the status; if invalid, default to fetching all bookings
+            // Parse the status; if invalid, default to fetching all bookings, not include PENDING_DEPOSIT
             EBookingStatus bookingStatus = parseStatus(status);
             bookings = (bookingStatus != null)
-                    ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, pageable)
-                    : bookingRepository.findBookingsByCarOwnerId(ownerId, pageable);
+                    ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
+                    : bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
         }
 
         return getBookingListResponse(bookings);

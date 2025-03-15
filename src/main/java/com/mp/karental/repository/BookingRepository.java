@@ -136,20 +136,28 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     SELECT b FROM Booking b
     JOIN b.car c
     WHERE c.account.id = :ownerId
+    AND b.status <> :excludedStatus
 """)
-    Page<Booking> findBookingsByCarOwnerId(@Param("ownerId") String ownerId, Pageable pageable);
+    Page<Booking> findBookingsByCarOwnerId(
+            @Param("ownerId") String ownerId,
+            @Param("excludedStatus") EBookingStatus excludedStatus,
+            Pageable pageable
+    );
 
     @Query("""
     SELECT b FROM Booking b
     JOIN b.car c
     WHERE c.account.id = :ownerId
     AND (:status IS NULL OR b.status = :status)
+    AND b.status <> :excludedStatus
 """)
     Page<Booking> findBookingsByCarOwnerIdAndStatus(
             @Param("ownerId") String ownerId,
             @Param("status") EBookingStatus status,
+            @Param("excludedStatus") EBookingStatus excludedStatus,
             Pageable pageable
     );
+
     Booking findBookingByBookingNumber(String bookingNumber);
 
     Booking getBookingsByBookingNumber(String bookingNumber);
