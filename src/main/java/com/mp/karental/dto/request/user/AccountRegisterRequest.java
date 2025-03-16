@@ -24,13 +24,17 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "DTO send along create account request")
+@Schema(description = "DTO contain necessary information to create new user's account")
 public class AccountRegisterRequest {
 
     @RequiredField(fieldName = "Full name")
     //The name can only contain alphabet characters (accept unicode), spaces and hyphens -
     @Pattern(regexp = "^[\\p{L}\\s-]+$", message = "INVALID_NAME")
-    @Schema(example = "Nguyễn Thị Bích")
+    @Schema(
+            description = "User's full name",
+            example = "Nguyễn Thị Bích",
+            pattern = "^[\\p{L}\\s-]+$"
+    )
     String fullName;
 
     @RequiredField(fieldName = "Email")

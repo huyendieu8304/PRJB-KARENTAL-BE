@@ -32,16 +32,15 @@ import org.springframework.web.bind.annotation.*;
  * </p>
  *
  * @author DieuTTH4
- *
  * @version 1.0
  */
 @RestController
-@RequestMapping("/user")
+@RequestMapping(value = "/user", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Validated
 @Slf4j
-@Tag(name = "User", description = "Operations about user")
+@Tag(name = "User", description = "API for managing user")
 public class UserController {
 
     UserService userService;
@@ -56,33 +55,47 @@ public class UserController {
      *
      * @param request the registration details for the new account
      * @return an {@code ApiResponse} containing the created user information
-     *
      * @author DieuTTH4
      */
-    @PostMapping("/register")
     @Operation(
             summary = "Create a new account",
-            description = "User create a new Customer or Car Owner account",
+            description = "User create a new account with role Customer or Car Owner",
             responses = {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                        description = "Success",
-                            responseCode = "200"
+                            responseCode = "200",
+                            description = "Success"
                     ),
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                        description = "Bad request",
                             responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 2000 | {fieldName} is required.|
+                                    | 2001 | The full name can only contain alphabet characters.|
+                                    | 2002 | Please enter a valid email address. |
+                                    | 2003 | Email already existed. Please try another email. |
+                                    | 2004 | Invalid phone number. |
+                                    | 2005 | The phone number already existed. Please try another phone number. |
+                                    | 2006 | Password must contain at least one number, one numeral, and seven characters. |
+                                    | 3002 | The entity role requested is not found in the database. |
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3005 | There was error during sending verify email fail, please try again.|
+                                    """,
                             content = @Content(schema = @Schema(implementation = ApiResponse.class))
                     )
             }
     )
-    ApiResponse<UserResponse> registerAccount(
-            @RequestBody
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    required = true,
-                    description = "Information of new user",
-                    content = @Content(schema = @Schema(implementation = AccountRegisterRequest.class))
-            )
-            @Valid AccountRegisterRequest request){
+    @PostMapping("/register")
+    public ApiResponse<UserResponse> registerAccount(@RequestBody @Valid AccountRegisterRequest request) {
         log.info("Registering account {}", request);
         return ApiResponse.<UserResponse>builder()
                 .message("Create account successfully. Please check your email inbox to verify your email address.")
@@ -92,26 +105,98 @@ public class UserController {
 
     /**
      * this method check whether the email exist in the db or not
+     *
      * @param request Object contain email
      * @return ApiResponse Object
      */
+    @Operation(
+            summary = "Check whether the email has existed in the database",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 2000 | {fieldName} is required.|
+                                    | 2002 | Please enter a valid email address. |
+                                    | 2003 | Email already existed. Please try another email. |
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @PostMapping("/check-unique-email")
-    ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueEmailRequest request){
+    public ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueEmailRequest request) {
         return ApiResponse.<String>builder()
                 .message("Email is unique.")
                 .build();
     }
 
+    @Operation(
+            summary = "Resend verify email",
+            description = "Resend verify email to the email address in the api",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3022 | The email address you’ve entered does not exist. Please try again.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3005 | There was error during sending verify email fail, please try again.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @GetMapping("/resend-verify-email/{email}")
-    ApiResponse<String> resendVerifyEmail(@PathVariable("email")
-                                          @Email(message = "INVALID_EMAIL")
-                                          String email){
+    public ApiResponse<String> resendVerifyEmail(@PathVariable("email")
+                                                 @Email(message = "INVALID_EMAIL")
+                                                 String email) {
         return ApiResponse.<String>builder()
                 .message(userService.resendVerifyEmail(email))
                 .build();
     }
 
-
+    @Operation(
+            summary = "Verify email",
+            description = "Verify whether the email that user used to register account is valid",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3022 | The email address you’ve entered does not exist. Please try again.|
+                                    | 4011 | The token is invalid or this link has expired or has been used.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @GetMapping("/verify-email")
     public ApiResponse<String> verifyEmail(@RequestParam("t") String verifyEmailToken) {
         userService.verifyEmail(verifyEmailToken);
@@ -127,8 +212,7 @@ public class UserController {
      * @return an ApiResponse containing updated user information
      */
     @PutMapping(value = "/edit-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<EditProfileResponse> editProfile(@ModelAttribute @Valid EditProfileRequest request)
-    {
+    public ApiResponse<EditProfileResponse> editProfile(@ModelAttribute @Valid EditProfileRequest request) {
         log.info("Editing profile for user: {}", request);
         return ApiResponse.<EditProfileResponse>builder()
                 .data(userService.editProfile(request))
@@ -143,7 +227,7 @@ public class UserController {
      */
     @GetMapping("/edit-profile")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'CAR_OWNER')")
-    ResponseEntity<ApiResponse<EditProfileResponse>> getUserProfile() {
+    public ResponseEntity<ApiResponse<EditProfileResponse>> getUserProfile() {
         log.info("Fetching user profile");
         return ResponseEntity.ok(
                 ApiResponse.<EditProfileResponse>builder()

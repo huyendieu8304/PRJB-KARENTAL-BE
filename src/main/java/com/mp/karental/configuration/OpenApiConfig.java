@@ -9,10 +9,12 @@ import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import java.util.List;
 
 @Configuration
+@Profile("dev")
 public class OpenApiConfig {
     @Value("${application.security.jwt.access-token-cookie-name}")
     private static String accessTokenCookieName;
@@ -26,7 +28,7 @@ public class OpenApiConfig {
                         .version("1.0"))
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:8080/karental")
+                                .url("http://localhost:8080/karental/api")
                                 .description("Local ENV")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("cookieAuth"))

@@ -25,7 +25,7 @@ public class ApiResponse<T>{
      * By default, it would be 1000, means that the request is successfully resolved
      */
     @Builder.Default
-    @Schema(description = "Response code", example = "1000")
+    @Schema(description = "Response code", defaultValue = "1000")
     int code = 1000;
 
     /**
@@ -33,7 +33,7 @@ public class ApiResponse<T>{
      * By default, it would be "Success"
      */
     @Builder.Default
-    @Schema(description = "Response message", example = "Success")
+    @Schema(description = "Response message", defaultValue = "Success")
     String message = "Success";
 
     /**

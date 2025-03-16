@@ -28,9 +28,11 @@ public class UserResponse {
 
     @Schema(description = "User's email", example = "bich@example.com")
     String email;
+
     @Schema(description = "User's phone number", example = "0123456789")
     String phoneNumber;
 
+    @Schema(description = "User's role", example = "CUSTOMER")
     String role;
 
 }

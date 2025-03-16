@@ -4,6 +4,7 @@ import com.mp.karental.dto.request.auth.ChangePasswordRequest;
 import com.mp.karental.dto.request.auth.LoginRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.service.AuthenticationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -11,6 +12,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -24,11 +26,12 @@ import org.springframework.web.bind.annotation.*;
  * @version 1.0
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping(value = "/auth", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Validated
 @Slf4j
+@Tag(name = "Authentication", description = "API for authentication's operations")
 public class AuthenticationController {
 
     AuthenticationService authenticationService;
