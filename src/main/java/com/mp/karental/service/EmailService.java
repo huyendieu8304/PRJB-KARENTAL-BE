@@ -43,7 +43,7 @@ public class EmailService {
         String subject = "Welcome to Karental, " + to;
         String htmlContent = "<p><strong>Thank you for registering to our system!</strong></p>"
                 + "<p>To continue using our services, please verify your email by clicking the link below:</p>"
-                + "<p><a href=\"" + confirmUrl + "\" style=\"color: blue; font-weight: bold;\">Verify Email</a></p>"
+                + "<p><a class= \"verify-email\" href=\"" + confirmUrl + "\" style=\"color: blue; font-weight: bold;\">Verify Email</a></p>"
                 + "<p>If you did not sign up for this service, please ignore this email.</p>";
         sendEmail(to, subject, htmlContent);
     }
