@@ -126,7 +126,6 @@ public class CarService {
         // If the car does not exist, throw an exception
         Car car = carRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
-        ECarStatus currentStatus = car.getStatus();
 
         // Ensure that the currently logged-in user is the owner of the car
         // Prevents unauthorized users from modifying someone else's car
@@ -134,20 +133,20 @@ public class CarService {
             throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
 
-        // Update the car details using the request data
-        carMapper.editCar(car, request);
-
         // Update the car's status
+        ECarStatus currentStatus = car.getStatus();
         ECarStatus newStatus = request.getStatus();
         if (newStatus == null) {
-            newStatus = car.getStatus(); // Keep the existing status if none is provided
+            newStatus = currentStatus; // Keep the existing status if none is provided
         }
 
         if (!isValidStatusChange(currentStatus, newStatus)){
             throw new AppException(ErrorCode.INVALID_CAR_STATUS_CHANGE);
         }
 
-        car.setStatus(newStatus); // Convert status to uppercase for consistency
+        // Update the car details using the request data
+        carMapper.editCar(car, request);
+        car.setStatus(newStatus);
 
         // Update the car's address details
         setCarAddress(request, car);

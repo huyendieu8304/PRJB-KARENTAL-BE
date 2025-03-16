@@ -234,7 +234,7 @@ public class BookingService {
      * @throws AppException If the account's profile is incomplete or any error occurs during the booking preparation.
      */
     private Account prepareBooking() throws AppException {
-        // Update status bookings before creating or editing a booking
+        // Update expired bookings before creating or editing a booking
         updateStatusBookings();
 
         // Get the current logged-in user's account ID and account details
@@ -531,6 +531,7 @@ public class BookingService {
         if (booking == null) {
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
         }
+        //the booking is of another account
         if (!booking.getAccount().getId().equals(accountId)) {
             throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
         }

@@ -6,7 +6,6 @@ import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
-import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
