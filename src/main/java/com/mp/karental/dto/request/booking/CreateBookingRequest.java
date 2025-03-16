@@ -31,7 +31,7 @@ import java.time.LocalDateTime;
 @Builder
 @ValidBookingTime(message = "INVALID_BOOKING_TIME")
 @ValidAddressComponent(message = "INVALID_ADDRESS_COMPONENT")
-public class BookingRequest {
+public class CreateBookingRequest {
     @RequiredField(fieldName = "car id")
     String carId;
 
@@ -58,7 +58,7 @@ public class BookingRequest {
     @Pattern(regexp = "\\d{9,12}", message = "Invalid national ID format")
     String driverNationalId;
 
-    @Past(message = "Driver's date of birth must be in the past")
+    @ValidAge(min = 18)
     LocalDate driverDob;
 
     @Email(message = "Invalid email format")
@@ -76,5 +76,6 @@ public class BookingRequest {
 
     String driverHouseNumberStreet;
 
+    // This variable indicates whether the user is using renter (false) or driver (true) information.
     boolean isDriver;
 }

@@ -5,7 +5,7 @@ import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
-import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.exception.AppException;
@@ -54,7 +54,7 @@ class BookingControllerTest {
     @MockitoBean
     private BookingService bookingService;
 
-    private BookingRequest bookingRequest;
+    private CreateBookingRequest CreateBookingRequest;
     private EditBookingRequest editBookingRequest;
     private BookingResponse bookingResponse;
 
@@ -66,18 +66,18 @@ class BookingControllerTest {
                 .build();
 
         // Given
-        bookingRequest = new BookingRequest();
-        bookingRequest.setCarId("123");
-        bookingRequest.setDriverFullName("John Doe");
-        bookingRequest.setDriverPhoneNumber("0123456789");
-        bookingRequest.setDriverNationalId("123456789000");
-        bookingRequest.setDriverDob(LocalDate.of(1990, 1, 1));
-        bookingRequest.setDriverEmail("johndoe@example.com");
-        bookingRequest.setDriverCityProvince("Thành phố Hà Nội");
-        bookingRequest.setDriverDistrict("Quận Ba Đình");
-        bookingRequest.setDriverWard("Phường Phúc Xá");
-        bookingRequest.setDriverHouseNumberStreet("123 Kim Ma");
-        bookingRequest.setPickUpLocation("Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma");
+        CreateBookingRequest = new CreateBookingRequest();
+        CreateBookingRequest.setCarId("123");
+        CreateBookingRequest.setDriverFullName("John Doe");
+        CreateBookingRequest.setDriverPhoneNumber("0123456789");
+        CreateBookingRequest.setDriverNationalId("123456789000");
+        CreateBookingRequest.setDriverDob(LocalDate.of(1990, 1, 1));
+        CreateBookingRequest.setDriverEmail("johndoe@example.com");
+        CreateBookingRequest.setDriverCityProvince("Thành phố Hà Nội");
+        CreateBookingRequest.setDriverDistrict("Quận Ba Đình");
+        CreateBookingRequest.setDriverWard("Phường Phúc Xá");
+        CreateBookingRequest.setDriverHouseNumberStreet("123 Kim Ma");
+        CreateBookingRequest.setPickUpLocation("Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma");
 
         bookingResponse = new BookingResponse();
         bookingResponse.setBookingNumber("BK123456"); 
@@ -91,7 +91,7 @@ class BookingControllerTest {
         bookingResponse.setBookingNumber("BK123456");
         bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRM);
 
-        when(bookingService.createBooking(any(BookingRequest.class))).thenReturn(bookingResponse);
+        when(bookingService.createBooking(any(CreateBookingRequest.class))).thenReturn(bookingResponse);
 
         
         mockMvc.perform(multipart("/booking/customer/create-book")
@@ -254,7 +254,7 @@ class BookingControllerTest {
     }
 
     @Test
-    void testGetCarById_Success() throws Exception {
+    void testGetBookingByNumber_Success() throws Exception {
         // Prepare the mock response from bookingService
         String bookingNumber = "12345";
         BookingResponse bookingResponse = new BookingResponse();
@@ -273,7 +273,7 @@ class BookingControllerTest {
     }
 
     @Test
-    void testGetCarById_NotFound() throws Exception {
+    void testGetBookingByNumber_NotFound() throws Exception {
         // Prepare the booking number that will not be found in the service
         String bookingNumber = "non-existent-id";
 

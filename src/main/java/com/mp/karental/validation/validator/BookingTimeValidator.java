@@ -1,6 +1,6 @@
 package com.mp.karental.validation.validator;
 
-import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.validation.ValidBookingTime;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
@@ -12,11 +12,11 @@ import java.time.LocalTime;
 /**
  * Validator class for ensuring valid booking times based on specific business rules.
  */
-public class BookingTimeValidator implements ConstraintValidator<ValidBookingTime, BookingRequest> {
+public class BookingTimeValidator implements ConstraintValidator<ValidBookingTime, CreateBookingRequest> {
 
     @Override
-    public boolean isValid(BookingRequest bookingRequest, ConstraintValidatorContext context) {
-        if (bookingRequest.getPickUpTime() == null || bookingRequest.getDropOffTime() == null) {
+    public boolean isValid(CreateBookingRequest CreateBookingRequest, ConstraintValidatorContext context) {
+        if (CreateBookingRequest.getPickUpTime() == null || CreateBookingRequest.getDropOffTime() == null) {
             return false;
         }
 
@@ -24,8 +24,8 @@ public class BookingTimeValidator implements ConstraintValidator<ValidBookingTim
         LocalDate today = now.toLocalDate();
         LocalTime nowTime = now.toLocalTime();
 
-        LocalDateTime pickUpDateTime = bookingRequest.getPickUpTime();
-        LocalDateTime dropOffDateTime = bookingRequest.getDropOffTime();
+        LocalDateTime pickUpDateTime = CreateBookingRequest.getPickUpTime();
+        LocalDateTime dropOffDateTime = CreateBookingRequest.getDropOffTime();
 
         // Pick-up time cannot be in the past and must be before drop-off
         if (pickUpDateTime.isBefore(now) || pickUpDateTime.isAfter(dropOffDateTime)) {

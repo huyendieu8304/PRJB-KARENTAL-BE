@@ -1,6 +1,7 @@
 package com.mp.karental.dto.request.booking;
 
 import com.mp.karental.validation.RequiredField;
+import com.mp.karental.validation.ValidAge;
 import com.mp.karental.validation.ValidDocument;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -41,7 +42,7 @@ public class EditBookingRequest {
     @Pattern(regexp = "\\d{9,12}", message = "Invalid national ID format")
     String driverNationalId;
 
-    @Past(message = "Driver's date of birth must be in the past")
+    @ValidAge(min = 18)
     LocalDate driverDob;
 
     @Email(message = "Invalid email format")
@@ -59,5 +60,6 @@ public class EditBookingRequest {
 
     String driverHouseNumberStreet;
 
+    // This variable indicates whether the user is using renter (false) or driver (true) information.
     boolean isDriver;
 }
