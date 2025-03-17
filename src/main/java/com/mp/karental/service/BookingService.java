@@ -305,13 +305,16 @@ public class BookingService {
      * @return list of user bookings wrapped in `BookingListResponse`
      */
     public BookingListResponse getBookingsByUserId(int page, int size, String sort, String status) {
+        // Retrieve the account ID of the currently logged-in user
         String accountId = SecurityUtil.getCurrentAccountId();
         Pageable pageable = createPageable(page, size, sort);
 
         Page<Booking> bookings;
         if (status == null || status.isBlank()) {
+            // If no status is provided, retrieve all bookings for the user
             bookings = bookingRepository.findByAccountId(accountId, pageable);
         } else {
+            // Parse the provided status string into an enum value
             EBookingStatus bookingStatus = parseStatus(status);
             bookings = (bookingStatus != null)
                     ? bookingRepository.findByAccountIdAndStatus(accountId, bookingStatus, pageable)
@@ -323,24 +326,19 @@ public class BookingService {
 
     /**
      * Retrieves the list of bookings for the car owner (based on ownerId).
-     * If the status is null or invalid, it returns all bookings.
-     *
-     * @param page   the page number (starting from 0)
-     * @param size   the number of records per page
-     * @param sort   sorting string in the format "field,DIRECTION" (e.g., "updatedAt,DESC")
-     * @param status booking status (nullable to fetch all bookings)
-     * @return list of car owner bookings wrapped in `BookingListResponse`
+     * If the status is null or invalid, it returns all bookings except those in PENDING_DEPOSIT status.
      */
     public BookingListResponse getBookingsByCarOwner(int page, int size, String sort, String status) {
+        // Retrieve the car owner's account ID
         String ownerId = SecurityUtil.getCurrentAccountId();
         Pageable pageable = createPageable(page, size, sort);
 
         Page<Booking> bookings;
         if (status == null || status.isBlank()) {
-            // If status is null or empty, fetch all bookings, not include PENDING_DEPOSIT
+            // Fetch all bookings that do not have PENDING_DEPOSIT status
             bookings = bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
         } else {
-            // Parse the status; if invalid, default to fetching all bookings, not include PENDING_DEPOSIT
+            // Parse the provided status string into an enum value
             EBookingStatus bookingStatus = parseStatus(status);
             bookings = (bookingStatus != null)
                     ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
@@ -353,17 +351,16 @@ public class BookingService {
     /**
      * Converts a page of `Booking` objects into `BookingListResponse`.
      * Includes booking details, car images, and additional computed fields.
-     *
-     * @param bookings page of bookings
-     * @return formatted booking response
      */
     private BookingListResponse getBookingListResponse(Page<Booking> bookings) {
+        // Retrieve the current user's account ID
         String currentUserId = SecurityUtil.getCurrentAccountId();
 
+        // Map booking entities to response DTOs
         Page<BookingThumbnailResponse> bookingResponses = bookings.map(booking -> {
             BookingThumbnailResponse response = bookingMapper.toBookingThumbnailResponse(booking);
 
-            // Calculate rental duration and total price
+            // Calculate rental duration in days and total price
             long totalHours = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toHours();
             long numberOfDay = (long) Math.ceil((double) totalHours / 24);
             long totalPrice = numberOfDay * booking.getBasePrice();
@@ -381,7 +378,7 @@ public class BookingService {
             return response;
         });
 
-        // Count ongoing bookings
+        // Count the number of ongoing bookings for the current user
         int totalOnGoingBookings = bookingRepository.countOngoingBookingsByCar(
                 currentUserId,
                 List.of(
@@ -393,7 +390,7 @@ public class BookingService {
                 )
         );
 
-        // Count bookings that are waiting for confirmation
+        // Count the number of bookings that are waiting for confirmation for the car owner
         int totalWaitingConfirmBooking = bookingRepository.countBookingsByOwnerAndStatus(
                 currentUserId,
                 EBookingStatus.WAITING_CONFIRMED
@@ -402,15 +399,9 @@ public class BookingService {
         return new BookingListResponse(totalOnGoingBookings, totalWaitingConfirmBooking, bookingResponses);
     }
 
-
     /**
      * Creates a `Pageable` object for pagination and sorting.
      * Ensures default values are set if the input is invalid.
-     *
-     * @param page the requested page number
-     * @param size the number of records per page
-     * @param sort sorting string in the format "field,DIRECTION" (e.g., "updatedAt,DESC")
-     * @return `Pageable` object for pagination
      */
     private Pageable createPageable(int page, int size, String sort) {
         if (size <= 0 || size > 100) {
@@ -425,17 +416,27 @@ public class BookingService {
         Sort.Direction sortDirection = Sort.Direction.DESC;
 
         // Parse sorting parameters if provided
+        // Check if the 'sort' parameter is valid (not null or blank)
         if (sort != null && !sort.isBlank()) {
+            // Split the 'sort' string by commas to extract the sorting field and direction
             String[] sortParams = sort.split(",");
+
+            // Ensure that the 'sort' parameter has exactly two parts: [field_name, sort_direction]
             if (sortParams.length == 2) {
+                // Trim any extra spaces from the field name
                 String requestedField = sortParams[0].trim();
+
+                // Convert the sorting direction to uppercase to ensure consistency (e.g., "asc" -> "ASC")
                 String requestedDirection = sortParams[1].trim().toUpperCase();
 
+                // Check if the requested sorting field is valid (only allows "updatedAt" or "basePrice")
                 if (List.of(FIELD_UPDATED_AT, FIELD_BASE_PRICE).contains(requestedField)) {
-                    sortField = requestedField;
+                    sortField = requestedField; // Assign the requested sorting field if valid
                 }
+
+                // Validate sorting direction, only allowing "ASC" or "DESC"
                 if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
-                    sortDirection = Sort.Direction.valueOf(requestedDirection);
+                    sortDirection = Sort.Direction.valueOf(requestedDirection); // Set sorting direction
                 }
             }
         }
@@ -443,151 +444,79 @@ public class BookingService {
         return PageRequest.of(page, size, Sort.by(sortDirection, sortField));
     }
 
-
     /**
      * Converts a status string to an `EBookingStatus` enum.
      * If the status is invalid or not found, returns `null` (defaulting to all bookings).
-     *
-     * @param statusStr the input status string
-     * @return corresponding `EBookingStatus` or `null` if invalid
      */
     private EBookingStatus parseStatus(String statusStr) {
+        // Check if the input status is null or blank
         if (statusStr == null || statusStr.isBlank()) {
-            return null;
+            return null; // Return null to indicate that all statuses should be considered
         }
 
-        return Arrays.stream(EBookingStatus.values())
-                .filter(e -> e.name().equalsIgnoreCase(statusStr))
-                .findFirst()
-                .orElse(null);
-    }
-
-
-    /**
-     * This method to get the wallet by account login
-     * @return wallet of that account
-     */
-    public WalletResponse getWallet() {
-        // Get the current logged-in user's account ID.
-        String accountId = SecurityUtil.getCurrentAccountId();
-        Wallet wallet = walletRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
-        return new WalletResponse(
-                wallet.getId(),
-                wallet.getBalance()
-        );
+        // Convert the input string to an EBookingStatus enum by matching it with defined values
+        return Arrays.stream(EBookingStatus.values())  // Convert enum values to a stream
+                .filter(e -> e.name().equalsIgnoreCase(statusStr)) // Compare ignoring case
+                .findFirst() // Return the first match if found
+                .orElse(null); // Return null if no match is found
     }
 
     /**
      * Retrieve the booking details based on the given booking number.
-     *
-     * - If the user is a **CAR_OWNER**, they can only view booking details of customers
-     *   who have rented their car.
-     * - If the user is a **CUSTOMER**, they can only view their own booking details.
-     * - If the user has an invalid role, an **unauthorized error** is thrown.
-     *
-     * @param bookingNumber The unique identifier of the booking.
-     * @return BookingResponse containing booking details.
-     * @throws AppException If the booking is not found or access is forbidden.
+     * Ensures proper authorization for CAR_OWNER and CUSTOMER roles.
      */
     public BookingResponse getBookingDetailsByBookingNumber(String bookingNumber) {
-        // Retrieve the current user account ID to ensure the user is logged in
+        // Retrieve the currently logged-in user's account ID
         String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Get the full account details of the currently logged-in user
         Account account = SecurityUtil.getCurrentAccount();
 
         Booking booking;
 
-        // Check if user is car_owner
+        // Check if the user is a CAR_OWNER
         if (ERole.CAR_OWNER.equals(account.getRole().getName())) {
-            // Get booking with customer's information rented car of car_owner
+            // Retrieve the booking details only if the booking is associated with the car owner's vehicles
             booking = bookingRepository.findBookingByBookingNumberAndOwnerId(bookingNumber, accountId);
-            if (booking == null) {
-                throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-            }
-            // Check if user is customer
-        } else if (ERole.CUSTOMER.equals(account.getRole().getName())) {
-            booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+
+            // If no booking is found, throw an exception indicating that it does not exist in the database
             if (booking == null) {
                 throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
             }
 
-            if (!booking.getAccount().getId().equals(accountId)) {
+            // Check if the user is a CUSTOMER
+        } else if (ERole.CUSTOMER.equals(account.getRole().getName())) {
+            // Retrieve the booking details (without filtering by owner)
+            booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+
+            // If the booking does not exist OR it does not belong to the current user, deny access
+            if (booking == null || !booking.getAccount().getId().equals(accountId)) {
                 throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
             }
 
+            // If the user role is neither CAR_OWNER nor CUSTOMER, throw an unauthorized error
         } else {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
-        // Calculate rental duration in minutes.
+        // Calculate the rental duration in total minutes
         long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
-        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
+
+        // Convert minutes to full days (rounded up)
+        long days = (long) Math.ceil(minutes / (24.0 * 60));
+
+        // Convert the booking entity to a response DTO
         BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
 
+        // Set the driver's driving license URL
         bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(booking.getDriverDrivingLicenseUri()));
+
+        // Set the ID of the car associated with the booking
         bookingResponse.setCarId(booking.getCar().getId());
+
+        // Calculate and set the total price for the rental period
         bookingResponse.setTotalPrice(booking.getBasePrice() * days);
 
         return bookingResponse;
     }
-
-    /**
-     * Confirms a booking by the car owner and returns updated booking details.
-     *
-     * @return BookingResponse containing updated booking details.
-     * @throws AppException if validation fails.
-     */
-    public BookingResponse confirmBooking(String bookingNumber) {
-        log.info("Car owner {} is confirming booking {}", SecurityUtil.getCurrentAccount().getId(), bookingNumber);
-
-        // Get booking by bookingNumber
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if (booking == null) {
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-        }
-
-        // Get the current logged-in account
-        Account account = SecurityUtil.getCurrentAccount();
-
-        // Ensure the user is a car owner
-        if (!ERole.CAR_OWNER.equals(account.getRole().getName())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
-
-        // Ensure the booking belongs to the current car owner
-        if (!booking.getCar().getAccount().getId().equals(account.getId())) {
-            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
-        }
-
-        // Ensure the booking status is valid for confirmation
-        if (booking.getStatus() == null || !EBookingStatus.WAITING_CONFIRMED.equals(booking.getStatus())) {
-            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
-        }
-
-        // Ensure the booking has not expired
-        if (booking.getPickUpTime() == null || LocalDateTime.now().isAfter(booking.getPickUpTime())) {
-            throw new AppException(ErrorCode.BOOKING_EXPIRED);
-        }
-
-        // Update the booking status to CONFIRMED
-        booking.setStatus(EBookingStatus.CONFIRMED);
-        bookingRepository.saveAndFlush(booking);
-
-        log.info("Booking {} confirmed successfully by car owner {}", bookingNumber, account.getId());
-
-        // Calculate rental duration in minutes.
-        long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
-        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
-
-        // Convert the booking entity to a response DTO.
-        BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
-        bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(booking.getDriverDrivingLicenseUri()));
-        bookingResponse.setCarId(booking.getCar().getId());
-        bookingResponse.setTotalPrice(booking.getBasePrice() * days);
-
-        return bookingResponse;
-    }
-
-
 }
-
