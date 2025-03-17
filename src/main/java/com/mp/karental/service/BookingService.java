@@ -305,24 +305,33 @@ public class BookingService {
      * @return list of user bookings wrapped in `BookingListResponse`
      */
     public BookingListResponse getBookingsByUserId(int page, int size, String sort, String status) {
-        // Retrieve the account ID of the currently logged-in user
+        // Retrieve the currently logged-in user's account ID
         String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Create a Pageable object for pagination and sorting
         Pageable pageable = createPageable(page, size, sort);
 
         Page<Booking> bookings;
+
+        // Check if the status parameter is null or blank
         if (status == null || status.isBlank()) {
             // If no status is provided, retrieve all bookings for the user
             bookings = bookingRepository.findByAccountId(accountId, pageable);
         } else {
-            // Parse the provided status string into an enum value
+            // Convert the status string into the EBookingStatus enum
             EBookingStatus bookingStatus = parseStatus(status);
+
+            // If the status is valid, fetch bookings filtered by status
+            // Otherwise, fetch all bookings for the user
             bookings = (bookingStatus != null)
                     ? bookingRepository.findByAccountIdAndStatus(accountId, bookingStatus, pageable)
                     : bookingRepository.findByAccountId(accountId, pageable);
         }
 
+        // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings);
     }
+
 
     /**
      * Retrieves the list of bookings for the car owner (based on ownerId).
