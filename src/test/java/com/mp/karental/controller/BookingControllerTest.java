@@ -35,10 +35,9 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(classes = KarentalApplication.class)
@@ -284,6 +283,26 @@ class BookingControllerTest {
         mockMvc.perform(get("/booking/customer/{bookingNumber}", bookingNumber)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());  // Assert that the response status is 404
+    }
+
+    @Test
+    void testCancelBooking_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.CANCELLED);
+
+        // Mock the service method
+        when(bookingService.cancelBooking(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/customer/cancel-booking/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
     }
 
 }

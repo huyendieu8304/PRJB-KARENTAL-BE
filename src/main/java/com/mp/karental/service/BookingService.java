@@ -73,6 +73,7 @@ public class BookingService {
      * @param CreateBookingRequest The booking request details.
      * @return BookingResponse containing booking details.
      * @throws AppException if there are validation issues or car availability problems.
+     * @throws MessagingException if booking successful or expired booking
      */
     public BookingResponse createBooking(CreateBookingRequest CreateBookingRequest) throws AppException, MessagingException {
         // Get the current logged-in user's account ID and account details
@@ -137,6 +138,7 @@ public class BookingService {
      * @param bookingNumber The booking number of the booking to be edited.
      * @return BookingResponse containing the updated booking details.
      * @throws AppException If there are any validation issues, the booking is not found, or the user doesn’t have access to edit the booking.
+     * @throws MessagingException if have any expired booking
      */
     public BookingResponse editBooking(EditBookingRequest EditBookingRequest, String bookingNumber) throws AppException, MessagingException {
         // Get the current logged-in user's account ID and account details
@@ -241,6 +243,7 @@ public class BookingService {
      *
      * @return The account of the currently logged-in user.
      * @throws AppException If the account's profile is incomplete or any error occurs during the booking preparation.
+     * @throws MessagingException if booking expired booking or cancel booking with any reason
      */
     private Account prepareBooking() throws AppException, MessagingException {
         // Update expired bookings before creating or editing a booking
@@ -299,6 +302,7 @@ public class BookingService {
     /**
      * Scheduled task to update expired bookings.
      * Runs every 10 seconds to check and cancel bookings that are not confirmed within 2 minutes.
+     * @throws MessagingException if booking expired booking or cancel booking with any reason
      */
     @Scheduled(fixedRate = 10000)
     public void updateStatusBookings() throws MessagingException {
@@ -580,52 +584,95 @@ public class BookingService {
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
+    /**
+     * Cancels a booking based on the provided booking number.
+     * This method ensures that only the booking owner can cancel the booking.
+     * Depending on the current booking status, it processes refunds, updates wallet balances,
+     * and sends appropriate email notifications to the customer and car owner.
+     *
+     * @param bookingNumber The unique identifier of the booking to be canceled.
+     * @return A {@link BookingResponse} containing the updated booking details.
+     * @throws MessagingException If there is an issue sending the cancellation email.
+     * @throws AppException If the booking is not found, the user is unauthorized to cancel,
+     *                      or the booking is in a non-cancellable state.
+     */
     public BookingResponse cancelBooking(String bookingNumber) throws MessagingException {
+        // Get the currently logged-in account ID
         String accountId = SecurityUtil.getCurrentAccountId();
+        // Retrieve the account details of the logged-in user
         Account accountCustomer = SecurityUtil.getCurrentAccount();
+
+        // Find the booking by booking number
         Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
         if (booking == null) {
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB); // Throw an error if booking is not found
         }
-        //the booking is of another account
+
+        // Ensure that the booking belongs to the logged-in user
         if (!booking.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
+            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS); // Throw an error if user tries to cancel someone else's booking
         }
+
+        // Retrieve car and car owner information from the booking
         Car car = booking.getCar();
         Account accountCarOwner = car.getAccount();
-        // Retrieve the user's wallet, throw an exception if not found.
+
+        // Retrieve the customer's wallet, throw an error if not found
         Wallet walletCustomer = walletRepository.findById(accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
+        // Get the admin account ID (assuming the admin has roleId = 3)
         String accountIdAdmin = accountRepository.findByRoleId(3).getId();
         Wallet walletAdmin = walletRepository.findById(accountIdAdmin)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
-        //do not allow edit
+
+        // Check if the booking is in a state that cannot be canceled
         if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
                 booking.getStatus() == EBookingStatus.PENDING_PAYMENT ||
                 booking.getStatus() == EBookingStatus.COMPLETED ||
                 booking.getStatus() == EBookingStatus.CANCELLED) {
             throw new AppException(ErrorCode.BOOKING_CANNOT_CANCEL);
         }
-        if(booking.getStatus() == EBookingStatus.PENDING_DEPOSIT) {
+
+        // If the booking is in PENDING_DEPOSIT status, only send a cancellation email to the customer
+        if (booking.getStatus() == EBookingStatus.PENDING_DEPOSIT) {
             emailService.sendCustomerBookingCanceledEmail(accountCustomer.getEmail(),
                     booking.getCar().getBrand() + " " + booking.getCar().getModel());
         }
-        if(booking.getStatus() == EBookingStatus.WAITING_CONFIRM) {
+
+        // If the booking is in WAITING_CONFIRM status, refund the full deposit to the customer
+        else if (booking.getStatus() == EBookingStatus.WAITING_CONFIRM) {
+            // Refund the full deposit amount to the customer's wallet
             walletCustomer.setBalance(booking.getDeposit() + walletCustomer.getBalance());
+            // Deduct the refunded amount from the admin's wallet
             walletAdmin.setBalance(walletAdmin.getBalance() - booking.getDeposit());
+
+            // Send an email notification to the customer about the full refund
             emailService.sendCustomerBookingCanceledWithFullRefundEmail(accountCustomer.getEmail(),
                     booking.getCar().getBrand() + " " + booking.getCar().getModel());
         }
-        else if(booking.getStatus() == EBookingStatus.CONFIRMED){
+
+        // If the booking is in CONFIRMED status, refund 70% of the deposit and notify the car owner
+        else if (booking.getStatus() == EBookingStatus.CONFIRMED) {
+            // Refund 70% of the deposit amount to the customer's wallet
             walletCustomer.setBalance((long) (booking.getDeposit() * 0.7) + walletCustomer.getBalance());
+            // Deduct the refunded amount from the admin's wallet
             walletAdmin.setBalance(walletAdmin.getBalance() - (long) (booking.getDeposit() * 0.7));
+
+            // Send an email notification to the customer about the partial refund (70%)
             emailService.sendCustomerBookingCanceledWithPartialRefundEmail(accountCustomer.getEmail(),
                     booking.getCar().getBrand() + " " + booking.getCar().getModel());
+
+            // Notify the car owner about the cancellation and inform them about the system's revenue share
             emailService.sendCarOwnerBookingCanceledEmail(accountCarOwner.getEmail(),
                     booking.getCar().getBrand() + " " + booking.getCar().getModel());
         }
+
+        // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
         bookingRepository.saveAndFlush(booking);
+
+        // Return the updated booking details
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 

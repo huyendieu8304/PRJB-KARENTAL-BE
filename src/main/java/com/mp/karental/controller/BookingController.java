@@ -96,6 +96,16 @@ public class BookingController {
                 .build();
     }
 
+    /**
+     * Handles the cancellation of a booking by a customer.
+     * This endpoint allows a customer to cancel their booking based on the provided booking number.
+     * The cancellation process is managed by the {@code cancelBooking} method in {@code BookingService},
+     * which handles refunds, updates the booking status, and sends necessary email notifications.
+     *
+     * @param bookingNumber The unique identifier of the booking to be canceled.
+     * @return An {@link ApiResponse} containing the updated {@link BookingResponse} with the booking details.
+     * @throws MessagingException If an error occurs while sending cancellation emails.
+     */
     @PutMapping("/customer/cancel-booking/{bookingNumber}")
     public ApiResponse<BookingResponse> cancelBooking(@PathVariable String bookingNumber) throws MessagingException {
         return ApiResponse.<BookingResponse>builder()

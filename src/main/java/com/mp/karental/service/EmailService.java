@@ -62,30 +62,17 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    //rent car
+
     /**
-     * Sends an email confirmation for a successful car booking.
-     * @param to Recipient's email address.
+     * Sends an email to the customer notifying them that their booking is awaiting confirmation.
+     * @param to Recipient email address.
      * @param carName Name of the booked car.
-     * @param walletUrl URL to check the wallet deposit.
-     * @param carDetailsUrl URL to view car details.
-     * @throws MessagingException If an error occurs while sending the email.
+     * @param bookingNumber Booking reference number.
+     * @throws MessagingException If email sending fails.
      */
-    public void sendRentCarEmail(String to, String carName, String walletUrl, String carDetailsUrl) throws MessagingException {
-        String subject = "Your car has been booked";
-        String htmlContent = String.format(
-                "<p>Congratulations! Your car <strong>%s</strong> has been booked at <strong>%s</strong>.</p>"
-                        + "<p>Please go to your <a href=\"%s\">wallet</a> to check if the deposit has been paid "
-                        + "and go to your <a href=\"%s\">car’s details page</a> to confirm the deposit.</p>"
-                        + "<p>Thank you!</p>",
-                carName, getCurrentFormattedDateTime(), walletUrl, carDetailsUrl);
-        sendEmail(to, subject, htmlContent);
-    }
-
-
-
-
-
     public void sendBookingWaitingForConfirmationEmail(String to, String carName, String bookingNumber) throws MessagingException {
+        // Email content
         String subject = "Your Booking is Pending Confirmation";
         String htmlContent = String.format(
                 "<p>Dear Customer,</p>"
@@ -97,7 +84,15 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    /**
+     * Sends an email to the car owner requesting confirmation for a booking.
+     * @param to Recipient email address.
+     * @param carName Name of the booked car.
+     * @param licensePlate License plate of the car.
+     * @throws MessagingException If email sending fails.
+     */
     public void sendCarOwnerConfirmationRequestEmail(String to, String carName, String licensePlate) throws MessagingException {
+        // Email content
         String subject = "A New Booking Needs Your Confirmation";
         String htmlContent = String.format(
                 "<p>Dear Car Owner,</p>"
@@ -110,6 +105,13 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    /**
+     * Sends an email to notify the customer that their booking has been canceled by the system.
+     * @param to Recipient email address.
+     * @param carName Name of the booked car.
+     * @param reason Reason for cancellation.
+     * @throws MessagingException If email sending fails.
+     */
     public void sendSystemCanceledBookingEmail(String to, String carName, String reason) throws MessagingException {
         String subject = "Your Booking Has Been Cancelled";
         String htmlContent = String.format(
@@ -122,6 +124,12 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    /**
+     * Sends an email to notify the customer that their booking has been successfully canceled.
+     * @param to Recipient email address.
+     * @param carName Name of the booked car.
+     * @throws MessagingException If email sending fails.
+     */
     public void sendCustomerBookingCanceledEmail(String to, String carName) throws MessagingException {
         String subject = "Booking Cancellation Successful";
         String htmlContent = String.format(
@@ -134,6 +142,12 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    /**
+     * Sends an email to notify the customer that their booking has been canceled with a full refund.
+     * @param to Recipient email address.
+     * @param carName Name of the booked car.
+     * @throws MessagingException If email sending fails.
+     */
     public void sendCustomerBookingCanceledWithFullRefundEmail(String to, String carName) throws MessagingException {
         String subject = "Booking Cancellation Successful - Full Refund";
         String htmlContent = String.format(
@@ -147,6 +161,12 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    /**
+     * Sends an email to notify the customer that their booking has been canceled with a 70% refund.
+     * @param to Recipient email address.
+     * @param carName Name of the booked car.
+     * @throws MessagingException If email sending fails.
+     */
     public void sendCustomerBookingCanceledWithPartialRefundEmail(String to, String carName) throws MessagingException {
         String subject = "Booking Cancellation Successful - 70% Refund";
         String htmlContent = String.format(
@@ -160,6 +180,12 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    /**
+     * Sends an email to notify the car owner that a booking has been canceled.
+     * @param to Recipient email address.
+     * @param carName Name of the booked car.
+     * @throws MessagingException If email sending fails.
+     */
     public void sendCarOwnerBookingCanceledEmail(String to, String carName) throws MessagingException {
         String subject = "Booking Cancellation Notification";
         String htmlContent = String.format(
@@ -169,24 +195,6 @@ public class EmailService {
                         + "<p>Thank you!</p>",
                 carName);
 
-        sendEmail(to, subject, htmlContent);
-    }
-
-
-
-
-    /**
-     * Sends an email notification when a car booking is canceled.
-     * @param to Recipient's email address.
-     * @param carName Name of the canceled car booking.
-     * @throws MessagingException If an error occurs while sending the email.
-     */
-    public void sendCancelBookingEmail(String to, String carName) throws MessagingException {
-        String subject = "A booking with your car has been cancelled";
-        String htmlContent = String.format(
-                "<p>Please be informed that a booking with your car <strong>%s</strong> has been cancelled at <strong>%s</strong>. "
-                        + "The deposit will be returned to the customer’s wallet.</p>",
-                carName, getCurrentFormattedDateTime());
         sendEmail(to, subject, htmlContent);
     }
 
