@@ -19,7 +19,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "DTO contain necessary information to check unique email")
+@Schema(name = "request.user.CheckUniqueEmailRequest",description = "DTO contain necessary information to check unique email")
 public class CheckUniqueEmailRequest {
     @RequiredField(fieldName = "Email")
     @Email(message = "INVALID_EMAIL")

@@ -18,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "DTO contain necessary information to change password")
+@Schema(name = "request.auth.ChangePasswordRequest", description = "DTO contain necessary information to change password")
 public class ChangePasswordRequest {
 
     @RequiredField(fieldName = "Forgot password token")

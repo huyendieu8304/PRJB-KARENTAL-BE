@@ -18,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Standard API response format")
+@Schema(name = "response.ApiResponse",description = "Standard API response format")
 public class ApiResponse<T>{
     /**
      * The code signifies the status of the request

@@ -24,7 +24,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "DTO contain necessary information to login into the system")
+@Schema(name = "request.auth.LoginRequest", description = "DTO contain necessary information to login into the system")
 public class LoginRequest {
     @RequiredField(fieldName = "Email")
     @Email(message = "INVALID_EMAIL")

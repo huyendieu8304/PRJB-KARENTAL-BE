@@ -21,7 +21,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Data of an user")
+@Schema(name = "response.user.UserResponse", description = "Data of an user")
 public class UserResponse {
     @Schema(description = "User's full name", example = "Nguyễn Thị Bích")
     String fullName;

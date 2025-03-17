@@ -19,7 +19,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Data return after login success fully")
+@Schema(name = "response.auth.LoginResponse", description = "Data return after login success fully")
 public class LoginResponse {
     @Schema(example = "CUSTOMER")
     String userRole;
