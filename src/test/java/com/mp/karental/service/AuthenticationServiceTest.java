@@ -137,7 +137,7 @@ class AuthenticationServiceTest {
 
 
         // Call tested method
-        ResponseEntity<ApiResponse<?>> responseEntity = authenticationService.login(loginRequest);
+        ResponseEntity<ApiResponse<LoginResponse>> responseEntity = authenticationService.login(loginRequest);
 
         // Assert
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
@@ -211,7 +211,7 @@ class AuthenticationServiceTest {
         when(jwtUtils.generateRefreshTokenFromAccountId(accountId)).thenReturn(newRefreshToken);
 
         // Calling
-        ResponseEntity<ApiResponse<?>> response = authenticationService.refreshToken(httpServletRequest);
+        ResponseEntity<ApiResponse<String>> response = authenticationService.refreshToken(httpServletRequest);
 
         // Assert
         assertNotNull(response);
@@ -340,7 +340,7 @@ class AuthenticationServiceTest {
         when(jwtUtils.getExpirationAtFromAccessToken(accessToken)).thenReturn(mockInstant);
 
         // logout
-        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(httpServletRequest);
+        ResponseEntity<ApiResponse<String>> response = authenticationService.logout(httpServletRequest);
 
         // verify tokenService is called
         verify(tokenService, times(1)).invalidateAccessToken(eq(accessToken), any(Instant.class));
@@ -367,7 +367,7 @@ class AuthenticationServiceTest {
         when(jwtUtils.validateJwtAccessToken(accessToken)).thenReturn(true);
 
         // Gọi logout
-        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(httpServletRequest);
+        ResponseEntity<ApiResponse<String>> response = authenticationService.logout(httpServletRequest);
 
         // verify not saving invalidate for refresh token
         verify(tokenService, times(0)).invalidateRefreshToken(anyString(), any(Instant.class));
@@ -402,7 +402,7 @@ class AuthenticationServiceTest {
         when(jwtUtils.validateJwtAccessToken(accessToken)).thenThrow(new AppException(ErrorCode.UNAUTHENTICATED));
 
         // Gọi logout
-        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(httpServletRequest);
+        ResponseEntity<ApiResponse<String>> response = authenticationService.logout(httpServletRequest);
 
         // saving access token to invalidated Access token
         verify(tokenService, times(1)).invalidateRefreshToken(eq(refreshToken), any(Instant.class));
@@ -420,7 +420,7 @@ class AuthenticationServiceTest {
         //Given tokens in cookies is null
         when(httpServletRequest.getCookies()).thenReturn(null);
 
-        ResponseEntity<ApiResponse<?>> response = authenticationService.logout(httpServletRequest);
+        ResponseEntity<ApiResponse<String>> response = authenticationService.logout(httpServletRequest);
 
         // no saving
         verify(tokenService, never()).invalidateAccessToken(any(String.class), any(Instant.class));

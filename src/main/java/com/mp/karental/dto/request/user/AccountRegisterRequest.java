@@ -40,7 +40,7 @@ public class AccountRegisterRequest {
     @RequiredField(fieldName = "Email")
     @Email(message = "INVALID_EMAIL")
     @UniqueEmail(message = "NOT_UNIQUE_EMAIL")
-    @Schema(example = "bich@example.com")
+    @Schema( format = "email", example = "bich@example.com")
     String email;
 
     @RequiredField(fieldName = "Phone number")

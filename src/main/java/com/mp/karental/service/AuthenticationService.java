@@ -95,7 +95,7 @@ public class AuthenticationService {
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
 
-    public ResponseEntity<ApiResponse<?>> login(LoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(LoginRequest request) {
         log.info("Processing login request, email={}", request.getEmail());
         //authenticate user's login information
         Authentication authentication = null;
@@ -128,10 +128,10 @@ public class AuthenticationService {
                 .data(new LoginResponse(role, fullName))
                 .build();
         log.info("Account with email={} logged in successfully", request.getEmail());
-        return sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);
+        return  sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);
     }
 
-    private ResponseEntity<ApiResponse<?>> sendApiResponseResponseEntity(String accessToken, String refreshToken, ApiResponse<?> apiResponse) {
+    private <T> ResponseEntity<ApiResponse<T>> sendApiResponseResponseEntity(String accessToken, String refreshToken, ApiResponse<T> apiResponse) {
         //Generate token cookie
         ResponseCookie accessTokenCookie = generateCookie(accessTokenCookieName, accessToken, contextPath, accessTokenExpiration);
         ResponseCookie refreshTokenCookie = generateCookie(refreshTokenCookieName, refreshToken, refreshTokenUrl, refreshTokenExpiration);
@@ -144,7 +144,7 @@ public class AuthenticationService {
                 .body(apiResponse);
     }
 
-    public ResponseEntity<ApiResponse<?>> refreshToken(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<String>> refreshToken(HttpServletRequest request) {
         log.info("Processing refresh token request");
         //get the refresh token out from cookies
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
@@ -184,7 +184,7 @@ public class AuthenticationService {
         return sendApiResponseResponseEntity(newAccessToken, newRefreshToken, apiResponse);
     }
 
-    public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<String>> logout(HttpServletRequest request) {
         log.info("Processing refresh token request");
         //get tokens out from cookies
         String accessToken = getCookieValueByName(request, accessTokenCookieName);

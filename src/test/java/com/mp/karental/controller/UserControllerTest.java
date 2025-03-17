@@ -58,7 +58,7 @@ class UserControllerTest {
 
         UserResponse expectedUserResponse = new UserResponse();
         expectedUserResponse.setFullName("Nguyễn Văn A");
-        expectedUserResponse.setRole(Role.builder().name(ERole.CUSTOMER).build());
+        expectedUserResponse.setRole(ERole.CUSTOMER.name());
 
         // Configure the service mock to return the expected response
         when(userService.addNewAccount(request)).thenReturn(expectedUserResponse);

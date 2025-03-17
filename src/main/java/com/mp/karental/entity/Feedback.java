@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 /**
  * Represents a feedback entity for each booking in the system.
  * <p>
- * This entity maps to a database table for storing car information,
+ * This entity maps to a database table for storing feedback booking information,
  * </p>
  *
  * @author DieuTTH4

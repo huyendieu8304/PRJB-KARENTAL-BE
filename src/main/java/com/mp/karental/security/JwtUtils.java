@@ -122,10 +122,10 @@ public class JwtUtils {
             //JWT token is expired
             throw new  AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         } catch (JwtException e) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
         } catch (IllegalArgumentException e) {
             //JWT claims string is empty
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
     }
 
