@@ -5,7 +5,6 @@ import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
-import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.BookingListResponse;
@@ -23,7 +22,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.xmlbeans.impl.xb.ltgfmt.FileDesc;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,7 +34,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -127,7 +124,7 @@ public class BookingService {
      * Edits an existing booking based on the provided booking number and update request.
      *
      * @param EditBookingRequest The request details for updating the booking, including new car information and driver’s license.
-     * @param bookingNumber The booking number of the booking to be edited.
+     * @param bookingNumber      The booking number of the booking to be edited.
      * @return BookingResponse containing the updated booking details.
      * @throws AppException If there are any validation issues, the booking is not found, or the user doesn’t have access to edit the booking.
      */
@@ -144,7 +141,7 @@ public class BookingService {
         if (!booking.getAccount().getId().equals(accountId)) {
             throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
         }
-        if(!EditBookingRequest.getCarId().equals(booking.getCar().getId())) {
+        if (!EditBookingRequest.getCarId().equals(booking.getCar().getId())) {
             throw new AppException(ErrorCode.CAR_NOT_AVAILABLE);
         }
         //do not allow edit
@@ -170,8 +167,8 @@ public class BookingService {
     /**
      * Handles the upload of the driver's license and updates the booking with the license URI.
      *
-     * @param request The request object containing the driver's license details (CreateBookingRequest or EditBookingRequest).
-     * @param booking The booking to be updated with the driver's license URI.
+     * @param request         The request object containing the driver's license details (CreateBookingRequest or EditBookingRequest).
+     * @param booking         The booking to be updated with the driver's license URI.
      * @param accountCustomer The account of the customer making the booking.
      * @return The S3 key where the driver's license is stored.
      * @throws AppException If the driver's license is invalid or any other error occurs during file upload.
@@ -258,7 +255,7 @@ public class BookingService {
      * It also determines if the booking is for a driver or not based on the URI of the driver's license.
      *
      * @param booking The booking entity containing the booking details.
-     * @param s3Key The S3 key for the driver's license file.
+     * @param s3Key   The S3 key for the driver's license file.
      * @return A BookingResponse object containing the booking details and calculated values.
      */
     private BookingResponse buildBookingResponse(Booking booking, String s3Key) {
@@ -286,7 +283,6 @@ public class BookingService {
     private boolean isNullOrEmpty(String str) {
         return str == null || str.trim().isEmpty();
     }
-
 
 
     /**
@@ -349,7 +345,7 @@ public class BookingService {
      * @param booking The booking object that will be updated with the driver's information.
      * @param account The account object that contains the current logged-in user's profile details.
      */
-    private void setAccountProfileToDriver(Booking booking,Account account) {
+    private void setAccountProfileToDriver(Booking booking, Account account) {
         booking.setDriverFullName(account.getProfile().getFullName());
         booking.setDriverPhoneNumber(account.getProfile().getPhoneNumber());
         booking.setDriverNationalId(account.getProfile().getNationalId());
@@ -401,16 +397,15 @@ public class BookingService {
     /**
      * Validates driver information to ensure all required fields are provided.
      *
-     * @param fullName        The full name of the driver (must not be null or empty).
-     * @param phoneNumber     The phone number of the driver (must not be null or empty).
-     * @param nationalId      The national ID of the driver (must not be null or empty).
-     * @param dob             The date of birth of the driver (must not be null).
-     * @param email           The email of the driver (must not be null or empty).
-     * @param city            The city or province of the driver (must not be null or empty).
-     * @param district        The district of the driver (must not be null or empty).
-     * @param ward            The ward of the driver (must not be null or empty).
+     * @param fullName          The full name of the driver (must not be null or empty).
+     * @param phoneNumber       The phone number of the driver (must not be null or empty).
+     * @param nationalId        The national ID of the driver (must not be null or empty).
+     * @param dob               The date of birth of the driver (must not be null).
+     * @param email             The email of the driver (must not be null or empty).
+     * @param city              The city or province of the driver (must not be null or empty).
+     * @param district          The district of the driver (must not be null or empty).
+     * @param ward              The ward of the driver (must not be null or empty).
      * @param houseNumberStreet The house number and street address of the driver (must not be null or empty).
-     *
      * @throws AppException if any required field is missing or empty.
      */
     private void validateDriverInfo(String fullName, String phoneNumber, String nationalId,
@@ -428,6 +423,7 @@ public class BookingService {
             throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
         }
     }
+
     /**
      * to check the account must complete the profile before booking
      *
@@ -458,7 +454,7 @@ public class BookingService {
      * @param status booking status (nullable to fetch all bookings)
      * @return list of user bookings wrapped in `BookingListResponse`
      */
-    public BookingListResponse getBookingsByUserId(int page, int size, String sort, String status) {
+    public BookingListResponse getBookingsOfCustomer(int page, int size, String sort, String status) {
         // Retrieve the currently logged-in user's account ID
         String accountId = SecurityUtil.getCurrentAccountId();
 
@@ -467,20 +463,14 @@ public class BookingService {
 
         Page<Booking> bookings;
 
-        // Check if the status parameter is null or blank
-        if (status == null || status.isBlank()) {
-            // If no status is provided, retrieve all bookings for the user
-            bookings = bookingRepository.findByAccountId(accountId, pageable);
-        } else {
-            // Convert the status string into the EBookingStatus enum
-            EBookingStatus bookingStatus = parseStatus(status);
+        // Convert the status string into the EBookingStatus enum
+        EBookingStatus bookingStatus = parseStatus(status);
 
-            // If the status is valid, fetch bookings filtered by status
-            // Otherwise, fetch all bookings for the user
-            bookings = (bookingStatus != null)
-                    ? bookingRepository.findByAccountIdAndStatus(accountId, bookingStatus, pageable)
-                    : bookingRepository.findByAccountId(accountId, pageable);
-        }
+        // If the status is valid, fetch bookings filtered by status
+        // Otherwise, fetch all bookings for the user
+        bookings = (bookingStatus != null)
+                ? bookingRepository.findByAccountIdAndStatus(accountId, bookingStatus, pageable)
+                : bookingRepository.findByAccountId(accountId, pageable);
 
         // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings);
@@ -488,25 +478,20 @@ public class BookingService {
 
 
     /**
-     * Retrieves the list of bookings for the car owner (based on ownerId).
+     * Retrieves the list of bookings for the car owner (based on ownerId). (Car Owner view his/her rentals)
      * If the status is null or invalid, it returns all bookings except those in PENDING_DEPOSIT status.
      */
-    public BookingListResponse getBookingsByCarOwner(int page, int size, String sort, String status) {
+    public BookingListResponse getBookingsOfCarOwner(int page, int size, String sort, String status) {
         // Retrieve the car owner's account ID
         String ownerId = SecurityUtil.getCurrentAccountId();
         Pageable pageable = createPageable(page, size, sort);
 
         Page<Booking> bookings;
-        if (status == null || status.isBlank()) {
-            // Fetch all bookings that do not have PENDING_DEPOSIT status
-            bookings = bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
-        } else {
-            // Parse the provided status string into an enum value
-            EBookingStatus bookingStatus = parseStatus(status);
-            bookings = (bookingStatus != null)
-                    ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
-                    : bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
-        }
+        // Parse the provided status string into an enum value
+        EBookingStatus bookingStatus = parseStatus(status);
+        bookings = (bookingStatus != null)
+                ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
+                : bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
 
         return getBookingListResponse(bookings);
     }
@@ -614,16 +599,15 @@ public class BookingService {
      * If the status is invalid or not found, returns `null` (defaulting to all bookings).
      */
     private EBookingStatus parseStatus(String statusStr) {
-        // Check if the input status is null or blank
-        if (statusStr == null || statusStr.isBlank()) {
-            return null; // Return null to indicate that all statuses should be considered
-        }
+        try {
+            // Convert the input string to an EBookingStatus enum
+            EBookingStatus bookingStatus = EBookingStatus.valueOf(statusStr.toUpperCase());
+            return bookingStatus;
 
-        // Convert the input string to an EBookingStatus enum by matching it with defined values
-        return Arrays.stream(EBookingStatus.values())  // Convert enum values to a stream
-                .filter(e -> e.name().equalsIgnoreCase(statusStr)) // Compare ignoring case
-                .findFirst() // Return the first match if found
-                .orElse(null); // Return null if no match is found
+        } catch (Exception e){
+            log.info("parsing booking status {} to enum fail", statusStr);
+            return null;
+        }
     }
 
     /**
@@ -648,6 +632,7 @@ public class BookingService {
      * to ensure the user has access to the booking details. If the booking is not found or the user does not have
      * permission, an exception is thrown.
      * Ensures proper authorization for CAR_OWNER and CUSTOMER roles.
+     *
      * @param bookingNumber The booking number to fetch the booking details.
      * @return A BookingResponse object containing the booking details.
      * @throws AppException If the booking is not found or the user does not have permission to access the booking.
@@ -692,6 +677,9 @@ public class BookingService {
 
     /**
      * Confirms a booking by the car owner and returns updated booking details.
+     * <p>
+     *     Car Owner approve a booking, equivalent to allow the customer to rent the car as booking information
+     * </p>
      *
      * @return BookingResponse containing updated booking details.
      * @throws AppException if validation fails.
@@ -708,10 +696,6 @@ public class BookingService {
         // Get the current logged-in account
         Account account = SecurityUtil.getCurrentAccount();
 
-        // Ensure the user is a car owner
-        if (!ERole.CAR_OWNER.equals(account.getRole().getName())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
 
         // Ensure the booking belongs to the current car owner
         if (!booking.getCar().getAccount().getId().equals(account.getId())) {
@@ -725,6 +709,8 @@ public class BookingService {
 
         // Ensure the booking has not expired
         if (booking.getPickUpTime() == null || LocalDateTime.now().isAfter(booking.getPickUpTime())) {
+            booking.setStatus(EBookingStatus.CANCELLED);
+            bookingRepository.save(booking);
             throw new AppException(ErrorCode.BOOKING_EXPIRED);
         }
 

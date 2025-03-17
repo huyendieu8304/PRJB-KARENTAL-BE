@@ -5,7 +5,6 @@ import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
-import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.service.BookingService;
 import com.mp.karental.dto.response.booking.BookingListResponse;
@@ -14,9 +13,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -68,7 +65,7 @@ public class BookingController {
             @RequestParam(required = false) EBookingStatus status,
             @RequestParam(defaultValue = "updatedAt,DESC") String sort) {
 
-        BookingListResponse response = bookingService.getBookingsByUserId(page, size, sort,
+        BookingListResponse response = bookingService.getBookingsOfCustomer(page, size, sort,
                 (status != null) ? status.name() : null);
 
         return ApiResponse.<BookingListResponse>builder()
@@ -91,7 +88,7 @@ public class BookingController {
             @RequestParam(required = false) EBookingStatus status,
             @RequestParam(defaultValue = "updatedAt,DESC") String sort) {
 
-        BookingListResponse response = bookingService.getBookingsByCarOwner(page, size, sort,
+        BookingListResponse response = bookingService.getBookingsOfCarOwner(page, size, sort,
                 (status != null) ? status.name() : null);
 
         return ApiResponse.<BookingListResponse>builder()

@@ -26,11 +26,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.status = 'COMPLETED' AND b.car.id = :carId")
     long countCompletedBookingsByCar(@Param("carId") String carId);
 
-    @Query("SELECT COUNT(b) FROM Booking b WHERE b.account.id = :accountId AND b.status NOT IN (:completed, :cancelled)")
-    int countOngoingBookingsByCar(@Param("accountId") String accountId,
-                                  @Param("completed") EBookingStatus completed,
-                                  @Param("cancelled") EBookingStatus cancelled);
-
     @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.car.id = :carId AND b.account.id = :accountId AND b.status = 'COMPLETED'")
     boolean isCarBookedByAccount(@Param("carId") String carId, @Param("accountId") String accountId);
 
@@ -161,7 +156,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Booking findBookingByBookingNumber(String bookingNumber);
 
-    Booking getBookingsByBookingNumber(String bookingNumber);
 
     @Query("""
     SELECT b FROM Booking b

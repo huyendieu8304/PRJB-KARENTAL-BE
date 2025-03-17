@@ -12,7 +12,6 @@ import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.BookingMapper;
 import com.mp.karental.repository.*;
 import com.mp.karental.security.SecurityUtil;
-import com.mp.karental.service.*;
 import com.mp.karental.util.RedisUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -3036,7 +3035,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void getBookingsByUserId_Success() {
+    void getBookingsOfCustomer_Success() {
         // Arrange
         mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
 
@@ -3066,7 +3065,7 @@ class BookingServiceTest {
         when(fileService.getFileUrl(anyString())).thenReturn("test.jpg");
 
         // Act
-        Page<BookingThumbnailResponse> result = bookingService.getBookingsByUserId(page, size, sort);
+        Page<BookingThumbnailResponse> result = bookingService.getBookingsOfCustomer(page, size, sort);
 
         // Assert
         assertNotNull(result);
@@ -3080,7 +3079,7 @@ class BookingServiceTest {
 
 
     @Test
-    void getBookingsByUserId_EmptyResult() {
+    void getBookingsOfCustomer_EmptyResult() {
 
         int page = 0;
         int size = 10;
@@ -3089,7 +3088,7 @@ class BookingServiceTest {
         when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
 
         // Act
-        Page<BookingThumbnailResponse> result = bookingService.getBookingsByUserId(page, size, sort);
+        Page<BookingThumbnailResponse> result = bookingService.getBookingsOfCustomer(page, size, sort);
 
         // Assert
         assertNotNull(result);
@@ -3099,7 +3098,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void getBookingsByUserId_InvalidPage_ShouldResetToZero() {
+    void getBookingsOfCustomer_InvalidPage_ShouldResetToZero() {
         // Arrange
         int page = -1;
 
@@ -3109,7 +3108,7 @@ class BookingServiceTest {
         when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
 
         // Act
-        bookingService.getBookingsByUserId(page, size, sort);
+        bookingService.getBookingsOfCustomer(page, size, sort);
 
 
         verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
@@ -3118,7 +3117,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void getBookingsByUserId_InvalidSize_ShouldResetToDefault() {
+    void getBookingsOfCustomer_InvalidSize_ShouldResetToDefault() {
         // Arrange
         int page = 0;
         int size = 200;
@@ -3127,7 +3126,7 @@ class BookingServiceTest {
         when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
 
         // Act
-        bookingService.getBookingsByUserId(page, size, sort);
+        bookingService.getBookingsOfCustomer(page, size, sort);
 
 
         verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
@@ -3136,7 +3135,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void getBookingsByUserId_InvalidSort_ShouldUseDefault() {
+    void getBookingsOfCustomer_InvalidSort_ShouldUseDefault() {
         // Arrange
         int page = 0;
         int size = 10;
@@ -3145,7 +3144,7 @@ class BookingServiceTest {
         when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
 
         // Act
-        bookingService.getBookingsByUserId(page, size, sort);
+        bookingService.getBookingsOfCustomer(page, size, sort);
 
 
         verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
@@ -3163,7 +3162,7 @@ class BookingServiceTest {
         when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
 
         // Act
-        bookingService.getBookingsByUserId(page, size, sort);
+        bookingService.getBookingsOfCustomer(page, size, sort);
 
 
         verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->

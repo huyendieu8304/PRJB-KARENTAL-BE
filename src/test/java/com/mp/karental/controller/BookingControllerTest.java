@@ -178,7 +178,7 @@ class BookingControllerTest {
     void getBookings_Success() throws Exception {
         // Arrange
         Page<BookingThumbnailResponse> mockPage = new PageImpl<>(List.of(new BookingThumbnailResponse()));
-        when(bookingService.getBookingsByUserId(0, 10, "createdAt,DESC")).thenReturn(mockPage);
+        when(bookingService.getBookingsOfCustomer(0, 10, "createdAt,DESC")).thenReturn(mockPage);
 
         // Act & Assert
         mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")  
@@ -190,14 +190,14 @@ class BookingControllerTest {
                 .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.content.length()").value(1));
 
-        verify(bookingService, times(1)).getBookingsByUserId(0, 10, "createdAt,DESC");
+        verify(bookingService, times(1)).getBookingsOfCustomer(0, 10, "createdAt,DESC");
     }
 
     @Test
     void getBookings_EmptyResult() throws Exception {
         // Arrange
         Page<BookingThumbnailResponse> emptyPage = Page.empty();
-        when(bookingService.getBookingsByUserId(0, 10, "createdAt,DESC")).thenReturn(emptyPage);
+        when(bookingService.getBookingsOfCustomer(0, 10, "createdAt,DESC")).thenReturn(emptyPage);
 
         // Act & Assert
         mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")
@@ -208,14 +208,14 @@ class BookingControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").isEmpty());
 
-        verify(bookingService, times(1)).getBookingsByUserId(0, 10, "createdAt,DESC");
+        verify(bookingService, times(1)).getBookingsOfCustomer(0, 10, "createdAt,DESC");
     }
 
     @Test
     void getBookings_DefaultParams() throws Exception {
         // Arrange
         Page<BookingThumbnailResponse> mockPage = new PageImpl<>(List.of(new BookingThumbnailResponse()));
-        when(bookingService.getBookingsByUserId(0, 10, "createdAt,DESC")).thenReturn(mockPage);
+        when(bookingService.getBookingsOfCustomer(0, 10, "createdAt,DESC")).thenReturn(mockPage);
 
         // Act & Assert
         mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")
@@ -223,7 +223,7 @@ class BookingControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").isArray());
 
-        verify(bookingService, times(1)).getBookingsByUserId(0, 10, "createdAt,DESC");
+        verify(bookingService, times(1)).getBookingsOfCustomer(0, 10, "createdAt,DESC");
     }
 
     @Test
