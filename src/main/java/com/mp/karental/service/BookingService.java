@@ -4,7 +4,6 @@ import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.constant.ERole;
-import com.mp.karental.dto.request.booking.BookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.booking.BookingResponse;
@@ -628,6 +627,22 @@ public class BookingService {
     }
 
     /**
+     * this method to get the wallet by account login
+     *
+     * @return wallet of that account
+     */
+    public WalletResponse getWallet() {
+        // Get the current logged-in user's account ID.
+        String accountId = SecurityUtil.getCurrentAccountId();
+        Wallet wallet = walletRepository.findById(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+        return new WalletResponse(
+                wallet.getId(),
+                wallet.getBalance()
+        );
+    }
+
+    /**
      * Retrieves booking details by booking number and ensures the user has access to the booking.
      * This method checks the current logged-in user's account ID and compares it with the booking's account ID
      * to ensure the user has access to the booking details. If the booking is not found or the user does not have
@@ -673,5 +688,62 @@ public class BookingService {
 
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
 
+    }
+
+    /**
+     * Confirms a booking by the car owner and returns updated booking details.
+     *
+     * @return BookingResponse containing updated booking details.
+     * @throws AppException if validation fails.
+     */
+    public BookingResponse confirmBooking(String bookingNumber) {
+        log.info("Car owner {} is confirming booking {}", SecurityUtil.getCurrentAccount().getId(), bookingNumber);
+
+        // Get booking by bookingNumber
+        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+        if (booking == null) {
+            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+        }
+
+        // Get the current logged-in account
+        Account account = SecurityUtil.getCurrentAccount();
+
+        // Ensure the user is a car owner
+        if (!ERole.CAR_OWNER.equals(account.getRole().getName())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // Ensure the booking belongs to the current car owner
+        if (!booking.getCar().getAccount().getId().equals(account.getId())) {
+            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
+        }
+
+        // Ensure the booking status is valid for confirmation
+        if (booking.getStatus() == null || !EBookingStatus.WAITING_CONFIRMED.equals(booking.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+
+        // Ensure the booking has not expired
+        if (booking.getPickUpTime() == null || LocalDateTime.now().isAfter(booking.getPickUpTime())) {
+            throw new AppException(ErrorCode.BOOKING_EXPIRED);
+        }
+
+        // Update the booking status to CONFIRMED
+        booking.setStatus(EBookingStatus.CONFIRMED);
+        bookingRepository.saveAndFlush(booking);
+
+        log.info("Booking {} confirmed successfully by car owner {}", bookingNumber, account.getId());
+
+        // Calculate rental duration in minutes.
+        long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
+        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
+
+        // Convert the booking entity to a response DTO.
+        BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
+        bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(booking.getDriverDrivingLicenseUri()));
+        bookingResponse.setCarId(booking.getCar().getId());
+        bookingResponse.setTotalPrice(booking.getBasePrice() * days);
+
+        return bookingResponse;
     }
 }

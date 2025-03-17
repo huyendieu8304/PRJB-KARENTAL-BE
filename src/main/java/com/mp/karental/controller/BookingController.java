@@ -3,7 +3,6 @@ package com.mp.karental.controller;
 import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.constant.EBookingStatus;
-import com.mp.karental.dto.request.booking.BookingRequest;
 import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
