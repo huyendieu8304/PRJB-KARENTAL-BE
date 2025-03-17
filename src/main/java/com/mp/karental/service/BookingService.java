@@ -552,47 +552,41 @@ public class BookingService {
      * Ensures default values are set if the input is invalid.
      */
     private Pageable createPageable(int page, int size, String sort) {
-        if (size <= 0 || size > 100) {
-            size = 10; // Default page size
-        }
+        // Ensure size is within a reasonable range (default to 10 if invalid)
+        size = (size > 0 && size <= 100) ? size : 10;
 
-        // Ensure page number is non-negative (set to 0 if negative)
-        if (page < 0) {
-            page = 0;
-        }
+        // Ensure page number is non-negative (default to 0 if negative)
+        page = Math.max(page, 0);
 
         // Default sorting values
         String sortField = FIELD_UPDATED_AT;
         Sort.Direction sortDirection = Sort.Direction.DESC;
 
         // Parse sorting parameters if provided
-        // Check if the 'sort' parameter is valid (not null or blank)
         if (sort != null && !sort.isBlank()) {
-            // Split the 'sort' string by commas to extract the sorting field and direction
             String[] sortParams = sort.split(",");
 
-            // Ensure that the 'sort' parameter has exactly two parts: [field_name, sort_direction]
+            // Validate and extract sorting field and direction
             if (sortParams.length == 2) {
-                // Trim any extra spaces from the field name
                 String requestedField = sortParams[0].trim();
-
-                // Convert the sorting direction to uppercase to ensure consistency (e.g., "asc" -> "ASC")
                 String requestedDirection = sortParams[1].trim().toUpperCase();
 
-                // Check if the requested sorting field is valid (only allows "updatedAt" or "basePrice")
-                if (List.of(FIELD_UPDATED_AT, FIELD_BASE_PRICE).contains(requestedField)) {
-                    sortField = requestedField; // Assign the requested sorting field if valid
+                // Validate field name (only allow predefined fields)
+                if (FIELD_UPDATED_AT.equals(requestedField) || FIELD_BASE_PRICE.equals(requestedField)) {
+                    sortField = requestedField;
                 }
 
-                // Validate sorting direction, only allowing "ASC" or "DESC"
-                if (requestedDirection.equals("ASC") || requestedDirection.equals("DESC")) {
-                    sortDirection = Sort.Direction.valueOf(requestedDirection); // Set sorting direction
+                // Validate sorting direction
+                if ("ASC".equals(requestedDirection) || "DESC".equals(requestedDirection)) {
+                    sortDirection = Sort.Direction.valueOf(requestedDirection);
                 }
             }
         }
 
+        // Create and return a pageable object with sorting
         return PageRequest.of(page, size, Sort.by(sortDirection, sortField));
     }
+
 
     /**
      * Converts a status string to an `EBookingStatus` enum.
@@ -720,16 +714,6 @@ public class BookingService {
 
         log.info("Booking {} confirmed successfully by car owner {}", bookingNumber, account.getId());
 
-        // Calculate rental duration in minutes.
-        long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
-        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
-
-        // Convert the booking entity to a response DTO.
-        BookingResponse bookingResponse = bookingMapper.toBookingResponse(booking);
-        bookingResponse.setDriverDrivingLicenseUrl(fileService.getFileUrl(booking.getDriverDrivingLicenseUri()));
-        bookingResponse.setCarId(booking.getCar().getId());
-        bookingResponse.setTotalPrice(booking.getBasePrice() * days);
-
-        return bookingResponse;
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 }
