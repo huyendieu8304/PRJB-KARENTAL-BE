@@ -81,6 +81,100 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+
+
+
+
+    public void sendBookingWaitingForConfirmationEmail(String to, String carName, String bookingNumber) throws MessagingException {
+        String subject = "Your Booking is Pending Confirmation";
+        String htmlContent = String.format(
+                "<p>Dear Customer,</p>"
+                        + "<p>Your booking for the car <strong>%s</strong> has been successfully placed and is now <strong>waiting for the car owner’s confirmation</strong>.</p>"
+                        + "<p>You can check the status of your booking in the system with booking number <strong>%s</strong>.</p>"
+                        + "<p>Thank you!</p>",
+                carName, bookingNumber);
+
+        sendEmail(to, subject, htmlContent);
+    }
+
+    public void sendCarOwnerConfirmationRequestEmail(String to, String carName, String licensePlate) throws MessagingException {
+        String subject = "A New Booking Needs Your Confirmation";
+        String htmlContent = String.format(
+                "<p>Dear Car Owner,</p>"
+                        + "<p>Your car <strong>%s</strong> has been booked by a customer.</p>"
+                        + "<p>Please check your account and confirm the booking with the license plate: <strong>%s</strong>.</p>"
+                        + "<p>If you need assistance, please contact support.</p>"
+                        + "<p>Thank you!</p>",
+                carName, licensePlate);
+
+        sendEmail(to, subject, htmlContent);
+    }
+
+    public void sendSystemCanceledBookingEmail(String to, String carName, String reason) throws MessagingException {
+        String subject = "Your Booking Has Been Cancelled";
+        String htmlContent = String.format(
+                "<p>Dear Customer,</p>"
+                        + "<p>Your booking for the car <strong>%s</strong> has been <strong>cancelled</strong> due to the following reason: <strong>%s</strong>.</p>"
+                        + "<p>If you have any questions, please contact our support team.</p>"
+                        + "<p>Thank you!</p>",
+                carName, reason);
+
+        sendEmail(to, subject, htmlContent);
+    }
+
+    public void sendCustomerBookingCanceledEmail(String to, String carName) throws MessagingException {
+        String subject = "Booking Cancellation Successful";
+        String htmlContent = String.format(
+                "<p>Dear Customer,</p>"
+                        + "<p>Your booking for <strong>%s</strong> has been successfully canceled.</p>"
+                        + "<p>If you have any questions, please contact our support team.</p>"
+                        + "<p>Thank you!</p>",
+                carName);
+
+        sendEmail(to, subject, htmlContent);
+    }
+
+    public void sendCustomerBookingCanceledWithFullRefundEmail(String to, String carName) throws MessagingException {
+        String subject = "Booking Cancellation Successful - Full Refund";
+        String htmlContent = String.format(
+                "<p>Dear Customer,</p>"
+                        + "<p>Your booking for <strong>%s</strong> has been successfully canceled.</p>"
+                        + "<p>Your deposit has been fully refunded.</p>"
+                        + "<p>If you have any questions, please contact our support team.</p>"
+                        + "<p>Thank you!</p>",
+                carName);
+
+        sendEmail(to, subject, htmlContent);
+    }
+
+    public void sendCustomerBookingCanceledWithPartialRefundEmail(String to, String carName) throws MessagingException {
+        String subject = "Booking Cancellation Successful - 70% Refund";
+        String htmlContent = String.format(
+                "<p>Dear Customer,</p>"
+                        + "<p>Your booking for <strong>%s</strong> has been successfully canceled.</p>"
+                        + "<p>You have received a 70%% refund of your deposit.</p>"
+                        + "<p>If you have any questions, please contact our support team.</p>"
+                        + "<p>Thank you!</p>",
+                carName);
+
+        sendEmail(to, subject, htmlContent);
+    }
+
+    public void sendCarOwnerBookingCanceledEmail(String to, String carName) throws MessagingException {
+        String subject = "Booking Cancellation Notification";
+        String htmlContent = String.format(
+                "<p>Dear Car Owner,</p>"
+                        + "<p>The booking for your car <strong>%s</strong> has been canceled by the customer.</p>"
+                        + "<p>The system has retained 30%% of the deposit, and you will receive 22%% of it shortly.</p>"
+                        + "<p>Thank you!</p>",
+                carName);
+
+        sendEmail(to, subject, htmlContent);
+    }
+
+
+
+
     /**
      * Sends an email notification when a car booking is canceled.
      * @param to Recipient's email address.

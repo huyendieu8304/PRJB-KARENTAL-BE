@@ -80,6 +80,7 @@ public enum ErrorCode {
     BOOKING_NOT_FOUND_IN_DB(3018, "The booking is not exist in the system", HttpStatus.NOT_FOUND),
     BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
 
+    BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),
