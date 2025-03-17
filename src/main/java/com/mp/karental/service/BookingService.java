@@ -394,7 +394,7 @@ public class BookingService {
         );
 
         // Count bookings that are waiting for confirmation
-        int totalWaitingConfirmBooking = bookingRepository.countBookingsByStatus(
+        int totalWaitingConfirmBooking = bookingRepository.countBookingsByOwnerAndStatus(
                 currentUserId,
                 EBookingStatus.WAITING_CONFIRMED
         );
