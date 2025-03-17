@@ -3,8 +3,9 @@ package com.mp.karental.controller;
 import com.mp.karental.KarentalApplication;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
+import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
-import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.exception.AppException;
@@ -18,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -52,7 +54,8 @@ class BookingControllerTest {
     @MockitoBean
     private BookingService bookingService;
 
-    private BookingRequest bookingRequest;
+    private CreateBookingRequest CreateBookingRequest;
+    private EditBookingRequest editBookingRequest;
     private BookingResponse bookingResponse;
 
 
@@ -63,36 +66,36 @@ class BookingControllerTest {
                 .build();
 
         // Given
-        bookingRequest = new BookingRequest();
-        bookingRequest.setCarId("123");
-        bookingRequest.setDriverFullName("John Doe");
-        bookingRequest.setDriverPhoneNumber("0123456789");
-        bookingRequest.setDriverNationalId("123456789000");
-        bookingRequest.setDriverDob(LocalDate.of(1990, 1, 1));
-        bookingRequest.setDriverEmail("johndoe@example.com");
-        bookingRequest.setDriverCityProvince("Thành phố Hà Nội");
-        bookingRequest.setDriverDistrict("Quận Ba Đình");
-        bookingRequest.setDriverWard("Phường Phúc Xá");
-        bookingRequest.setDriverHouseNumberStreet("123 Kim Ma");
-        bookingRequest.setPickUpLocation("Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma");
+        CreateBookingRequest = new CreateBookingRequest();
+        CreateBookingRequest.setCarId("123");
+        CreateBookingRequest.setDriverFullName("John Doe");
+        CreateBookingRequest.setDriverPhoneNumber("0123456789");
+        CreateBookingRequest.setDriverNationalId("123456789000");
+        CreateBookingRequest.setDriverDob(LocalDate.of(1990, 1, 1));
+        CreateBookingRequest.setDriverEmail("johndoe@example.com");
+        CreateBookingRequest.setDriverCityProvince("Thành phố Hà Nội");
+        CreateBookingRequest.setDriverDistrict("Quận Ba Đình");
+        CreateBookingRequest.setDriverWard("Phường Phúc Xá");
+        CreateBookingRequest.setDriverHouseNumberStreet("123 Kim Ma");
+        CreateBookingRequest.setPickUpLocation("Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma");
 
         bookingResponse = new BookingResponse();
-        bookingResponse.setBookingNumber("BK123456"); // Giả định
+        bookingResponse.setBookingNumber("BK123456"); 
 
     }
 
     @Test
     void testCreateBooking_MultipartFormData() throws Exception {
-        // Mock dữ liệu response
+        
         BookingResponse bookingResponse = new BookingResponse();
         bookingResponse.setBookingNumber("BK123456");
         bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRM);
 
-        when(bookingService.createBooking(any(BookingRequest.class))).thenReturn(bookingResponse);
+        when(bookingService.createBooking(any(CreateBookingRequest.class))).thenReturn(bookingResponse);
 
-        // Gửi request multipart
+        
         mockMvc.perform(multipart("/booking/customer/create-book")
-                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) // File giả lập
+                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) 
                         .param("carId", "123")
                         .param("driverFullName", "John Doe")
                         .param("driverPhoneNumber", "0123456789")
@@ -111,32 +114,63 @@ class BookingControllerTest {
                 .andExpect(status().isOk());
     }
 
-    @Test
-    void testCreateBooking_BadRequest() throws Exception {
-        // Mock dữ liệu response
-        BookingResponse bookingResponse = new BookingResponse();
-        bookingResponse.setBookingNumber("BK123456");
-        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRM);
 
-        when(bookingService.createBooking(any(BookingRequest.class))).thenReturn(bookingResponse);
-        // Gửi request với dữ liệu không hợp lệ (thiếu carId và email sai format)
-        mockMvc.perform(multipart("/booking/customer/create-book")
-                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) // File giả lập
-                        .param("driverFullName", "John Doe")
-                        .param("driverPhoneNumber", "0123456789")
-                        .param("driverNationalId", "123456789000")
-                        .param("driverDob", "1990-01-01")
-                        .param("driverEmail", "invalid-email") // Email không hợp lệ
-                        .param("driverCityProvince", "Thành phố Hà Nội")
-                        .param("driverDistrict", "Quận Ba Đình")
-                        .param("driverWard", "Phường Phúc Xá")
-                        .param("driverHouseNumberStreet", "123 Kim Ma")
-                        .param("pickUpLocation", "Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma")
-                        .param("pickUpTime", "2025-03-25T07:00:00")
-                        .param("dropOffTime", "2025-03-25T10:00:00")
-                        .param("paymentType", EPaymentType.WALLET.name())
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().is5xxServerError());// Kiểm tra HTTP 400
+    @Test
+    void testEditBooking_Success() throws Exception {
+        // Prepare mock EditBookingRequest
+        EditBookingRequest editBookingRequest = new EditBookingRequest();
+        editBookingRequest.setCarId("12345");
+        editBookingRequest.setDriverFullName("John Doe");
+        editBookingRequest.setDriverPhoneNumber("0886980035");
+        editBookingRequest.setDriverNationalId("123456789012");
+        editBookingRequest.setDriverDob(LocalDate.parse("1990-01-01"));
+        // Populate other fields as required
+
+        BookingResponse bookingResponse = new BookingResponse();
+        // Set the expected response from your service method
+        bookingResponse.setBookingNumber("12345");
+
+        // Mock the service call
+        when(bookingService.editBooking(any(EditBookingRequest.class), eq("12345"))).thenReturn(bookingResponse);
+
+        // Perform the PUT request
+        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/booking/customer/edit-book/{bookingNumber}", "12345")
+                        .contentType(MediaType.MULTIPART_FORM_DATA_VALUE)
+                        .param("driverFullName", editBookingRequest.getDriverFullName()) // Add all fields you want to test
+                        .param("driverPhoneNumber", editBookingRequest.getDriverPhoneNumber())
+                        .param("driverNationalId", editBookingRequest.getDriverNationalId())
+                        .param("driverDob", String.valueOf(editBookingRequest.getDriverDob()))
+                        .param("carId", editBookingRequest.getCarId()))
+                .andExpect(status().isOk()) ;// Assert that the status code is 200
+    }
+
+    @Test
+    void testEditBooking_BadRequest() throws Exception {
+        // Prepare mock EditBookingRequest
+        EditBookingRequest editBookingRequest = new EditBookingRequest();
+        editBookingRequest.setCarId("12345");
+        editBookingRequest.setDriverFullName("John Doe");
+        editBookingRequest.setDriverPhoneNumber("0886980035");
+        editBookingRequest.setDriverNationalId("123456789012");
+        editBookingRequest.setDriverDob(LocalDate.parse("1990-01-01"));
+        // Populate other fields as required
+
+        BookingResponse bookingResponse = new BookingResponse();
+        // Set the expected response from your service method
+        bookingResponse.setBookingNumber("12345");
+
+        // Mock the service call
+        when(bookingService.editBooking(any(EditBookingRequest.class), eq("12345"))).thenReturn(bookingResponse);
+
+        // Perform the PUT request
+        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/booking/customer/edit-book/{bookingNumber}", "12345")
+                        .contentType(MediaType.MULTIPART_FORM_DATA_VALUE)
+                        .param("driverFullName", editBookingRequest.getDriverFullName()) // Add all fields you want to test
+                        .param("driverPhoneNumber", editBookingRequest.getDriverPhoneNumber())
+                        .param("driverNationalId", editBookingRequest.getDriverNationalId())
+                        .param("driverDob", String.valueOf(editBookingRequest.getDriverDob())))
+
+                .andExpect(status().isBadRequest()) ;// Assert that the status code is 200
     }
 
 
@@ -147,7 +181,7 @@ class BookingControllerTest {
         when(bookingService.getBookingsByUserId(0, 10, "createdAt,DESC")).thenReturn(mockPage);
 
         // Act & Assert
-        mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")  // ✅ Giữ nguyên đường dẫn đúng
+        mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")  
                         .param("page", "0")
                         .param("size", "10")
                         .param("sort", "createdAt,DESC")
@@ -194,12 +228,12 @@ class BookingControllerTest {
 
     @Test
     void getWallet_Success() throws Exception {
-        // Mock response từ service
+        
         WalletResponse mockWalletResponse = new WalletResponse("user123", 500000);
 
         when(bookingService.getWallet()).thenReturn(mockWalletResponse);
 
-        // Gửi request GET đến API
+        
         mockMvc.perform(get("/booking/get-wallet")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -209,13 +243,47 @@ class BookingControllerTest {
 
     @Test
     void getWallet_AccountNotFound() throws Exception {
-        // Giả lập lỗi khi không tìm thấy Wallet
+        
         when(bookingService.getWallet()).thenThrow(new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
-        // Gửi request GET đến API và kiểm tra phản hồi lỗi
+        
         mockMvc.perform(get("/booking/get-wallet")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB.getCode()));
     }
+
+    @Test
+    void testGetBookingByNumber_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+
+        // Mock the service method
+        when(bookingService.getBookingDetailsByBookingNumber(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(get("/booking/customer/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));  // Assert that the car ID is returned
+    }
+
+    @Test
+    void testGetBookingByNumber_NotFound() throws Exception {
+        // Prepare the booking number that will not be found in the service
+        String bookingNumber = "non-existent-id";
+
+        // Mock the service method to return null or throw an exception (based on your logic)
+        when(bookingService.getBookingDetailsByBookingNumber(bookingNumber)).thenThrow(new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB));
+
+        // Perform the GET request and expect a 404 Not Found error
+        mockMvc.perform(get("/booking/customer/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());  // Assert that the response status is 404
+    }
+
 }

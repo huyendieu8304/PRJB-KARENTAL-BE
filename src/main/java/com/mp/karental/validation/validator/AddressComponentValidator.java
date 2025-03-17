@@ -1,6 +1,6 @@
 package com.mp.karental.validation.validator;
 
-import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.service.ExcelService;
 import com.mp.karental.validation.ValidAddressComponent;
 import jakarta.validation.ConstraintValidator;
@@ -12,19 +12,22 @@ import org.springframework.util.StringUtils;
  * Validator for individual address components (City, District, Ward).
  */
 @RequiredArgsConstructor
-public class AddressComponentValidator implements ConstraintValidator<ValidAddressComponent, BookingRequest> {
+public class AddressComponentValidator implements ConstraintValidator<ValidAddressComponent, CreateBookingRequest> {
 
     private final ExcelService excelService;
 
     @Override
-    public boolean isValid(BookingRequest bookingRequest, ConstraintValidatorContext context) {
-        if (bookingRequest == null) {
+    public boolean isValid(CreateBookingRequest CreateBookingRequest, ConstraintValidatorContext context) {
+        if (CreateBookingRequest == null) {
             return true; // Ignore validation if object is null
         }
+        if(!CreateBookingRequest.isDriver()){
+            return true;
+        }
 
-        String city = bookingRequest.getDriverCityProvince();
-        String district = bookingRequest.getDriverDistrict();
-        String ward = bookingRequest.getDriverWard();
+        String city = CreateBookingRequest.getDriverCityProvince();
+        String district = CreateBookingRequest.getDriverDistrict();
+        String ward = CreateBookingRequest.getDriverWard();
 
         boolean isValid = true;
 

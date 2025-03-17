@@ -105,7 +105,7 @@ class FileServiceTest {
         // Act
         String actualUrl = fileService.getFileUrl(key);
 
-        // Assert: Kiểm tra URL trả về có bằng expectedUrl không
+        
         assertEquals(expectedUrl, actualUrl);
 
         //Check parameter in GetObjectPresignRequest

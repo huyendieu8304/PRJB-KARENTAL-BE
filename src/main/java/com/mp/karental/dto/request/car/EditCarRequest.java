@@ -1,5 +1,6 @@
 package com.mp.karental.dto.request.car;
 
+import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.validation.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
@@ -46,8 +47,7 @@ public class EditCarRequest {
 
     String termOfUse;
 
-    @ValidStatusEdit(message = "INVALID_STATUS_EDIT")
-    String status;
+    ECarStatus status;
 
     //  MultipartFile**
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")

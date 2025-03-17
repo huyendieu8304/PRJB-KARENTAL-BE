@@ -49,14 +49,15 @@ public enum ErrorCode {
     INVALID_IMAGE_FILE(2021, "Invalid image file type. Accepted formats are .jpg, .jpeg, .png", HttpStatus.BAD_REQUEST),
     INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_NATIONAL_ID(2023, "The national id already existed. Please try another national id", HttpStatus.BAD_REQUEST),
-    INVALID_STATUS_EDIT(2024,"Status can edit only NOT_VERIFIED or STOPPED", HttpStatus.BAD_REQUEST),
+    INVALID_CAR_STATUS_CHANGE(2024,"Allowed transitions: NOT_VERIFIED → STOPPED, STOPPED → NOT_VERIFIED, VERIFIED → STOPPED", HttpStatus.BAD_REQUEST),
     INVALID_DATE_RANGE(2025, "Invalid date range. Pick-up date must be before drop-off date.", HttpStatus.BAD_REQUEST),
     INVALID_BOOKING_TIME(2026,"Invalid booking time", HttpStatus.BAD_REQUEST),
     INVALID_PAYMENT_TYPE(2027,"Payment can only WALLET/CASH/BANK_TRANSFER", HttpStatus.BAD_REQUEST),
     INVALID_ADDRESS_COMPONENT(2028,"Invalid address component", HttpStatus.BAD_REQUEST),
     INVALID_DATE_FORMAT(2029, "Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST),
-
     INVALID_TRANSACTION_TYPE(2030,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_DRIVER_INFO(2031,"Driver's information is different from account holder, but the information is not fulfilled",HttpStatus.BAD_REQUEST),
+
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.SERVICE_UNAVAILABLE),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),
@@ -76,6 +77,9 @@ public enum ErrorCode {
     WALLET_NOT_FOUND_IN_DB(3015, "The wallet is not exist in the system", HttpStatus.NOT_FOUND),
     SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3016, "There was error during sending forgot password email fail, please try again", HttpStatus.SERVICE_UNAVAILABLE),
     TRANSACTION_NOT_FOUND_IN_DB(3017, "The transaction is not exist in the system", HttpStatus.NOT_FOUND),
+    BOOKING_NOT_FOUND_IN_DB(3018, "The booking is not exist in the system", HttpStatus.NOT_FOUND),
+    BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
+
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -91,6 +95,7 @@ public enum ErrorCode {
     INVALID_ONETIME_TOKEN(4011, "The token is invalid or this link has expired or has been used.", HttpStatus.BAD_REQUEST),
     INVALID_FORGOT_PASSWORD_TOKEN(4012, "This link has expired. Please go back to Homepage and try again.", HttpStatus.BAD_REQUEST),
     FORBIDDEN_PROFILE_INCOMPLETE(4013, "Please complete your individual profile to booking", HttpStatus.FORBIDDEN),
+    FORBIDDEN_BOOKING_ACCESS(4014, "Can not view detail/edit booking of another account", HttpStatus.FORBIDDEN),
     ;
 
     /**

@@ -37,7 +37,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     @Query("""
-    SELECT b 
+    SELECT b
     FROM Booking b 
     WHERE b.car.id = :carId
     AND (
@@ -99,5 +99,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 """)
     Page<Booking> findByAccountId(@Param("accountId") String accountId, Pageable pageable);
 
+
+    Booking findBookingByBookingNumber(String bookingNumber);
 
 }
