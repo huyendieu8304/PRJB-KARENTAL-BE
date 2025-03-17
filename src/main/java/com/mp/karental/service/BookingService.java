@@ -2,7 +2,6 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
-import com.mp.karental.dto.request.booking.CancelBookingRequest;
 import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.booking.BookingResponse;
@@ -581,10 +580,10 @@ public class BookingService {
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
-    public BookingResponse cancelBooking(CancelBookingRequest cancelBookingRequest) throws MessagingException {
+    public BookingResponse cancelBooking(String bookingNumber) throws MessagingException {
         String accountId = SecurityUtil.getCurrentAccountId();
         Account accountCustomer = SecurityUtil.getCurrentAccount();
-        Booking booking = bookingRepository.findBookingByBookingNumber(cancelBookingRequest.getBookingNumber());
+        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
         if (booking == null) {
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
         }

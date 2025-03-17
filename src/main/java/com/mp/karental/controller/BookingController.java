@@ -1,6 +1,5 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.booking.CancelBookingRequest;
 import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.*;
@@ -97,10 +96,10 @@ public class BookingController {
                 .build();
     }
 
-    @PutMapping("/customer/cancel-booking")
-    public ApiResponse<BookingResponse> cancelBooking(@RequestBody @Valid CancelBookingRequest cancelBookingRequest) throws MessagingException {
+    @PutMapping("/customer/cancel-booking/{bookingNumber}")
+    public ApiResponse<BookingResponse> cancelBooking(@PathVariable String bookingNumber) throws MessagingException {
         return ApiResponse.<BookingResponse>builder()
-                .data(bookingService.cancelBooking(cancelBookingRequest))
+                .data(bookingService.cancelBooking(bookingNumber))
                 .build();
     }
 }

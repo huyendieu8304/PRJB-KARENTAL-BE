@@ -14,6 +14,7 @@ import com.mp.karental.repository.*;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.service.*;
 import com.mp.karental.util.RedisUtil;
+import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -831,7 +832,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void editBooking_Success_WithNewDriverLicense() throws AppException {
+    void editBooking_Success_WithNewDriverLicense() throws AppException, MessagingException {
         String accountId = "user123";
         String bookingNumber = "BK123";
 
@@ -929,7 +930,7 @@ class BookingServiceTest {
 
 
     @Test
-    void editBooking_Success_WithOldDriverLicense() throws AppException {
+    void editBooking_Success_WithOldDriverLicense() throws AppException, MessagingException {
         String accountId = "user123";
         String bookingNumber = "BK123";
 
@@ -1367,7 +1368,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void editBooking_Success() throws AppException {
+    void editBooking_Success() throws AppException, MessagingException {
         String accountId = "user123";
         String bookingNumber = "BK123";
 
@@ -1441,7 +1442,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void testCreateBooking_WithDriver() throws AppException {
+    void testCreateBooking_WithDriver() throws AppException, MessagingException {
         // Given
         String accountId = "user123";
 
@@ -1605,7 +1606,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void createBooking_Success() throws AppException {
+    void createBooking_Success() throws AppException, MessagingException {
         String accountId = "user123";
 
         CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
@@ -1865,7 +1866,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void createBooking_WhenWalletHasEnoughBalance_ShouldSetStatusWaitingConfirm() {
+    void createBooking_WhenWalletHasEnoughBalance_ShouldSetStatusWaitingConfirm() throws MessagingException {
 
         String accountId = "testAccountId";
         LocalDateTime pickUpTime = LocalDateTime.now().plusDays(1);
@@ -1962,7 +1963,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void createBooking_WhenWalletHasNotEnoughBalance_ShouldSetStatusPendingDeposit() {
+    void createBooking_WhenWalletHasNotEnoughBalance_ShouldSetStatusPendingDeposit() throws MessagingException {
         // Given
         String accountId = "testAccountId";
         LocalDateTime pickUpTime = LocalDateTime.now().plusDays(1);
@@ -2053,7 +2054,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void createBooking_WhenPaymentByCashOrBankTransfer_ShouldSetStatusPendingDeposit() {
+    void createBooking_WhenPaymentByCashOrBankTransfer_ShouldSetStatusPendingDeposit() throws MessagingException {
 
         String accountId = "testAccountId";
         LocalDateTime pickUpTime = LocalDateTime.now();
@@ -2889,7 +2890,7 @@ class BookingServiceTest {
 
 
     @Test
-    void updateStatusBookings_ShouldCancelExpiredBookings() {
+    void updateStatusBookings_ShouldCancelExpiredBookings() throws MessagingException {
         // Given
         LocalDateTime now = LocalDateTime.now();
 
@@ -2908,7 +2909,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void updateStatusBookings_ShouldConfirmBookingIfWalletHasEnoughBalance() {
+    void updateStatusBookings_ShouldConfirmBookingIfWalletHasEnoughBalance() throws MessagingException {
         // Given
         LocalDateTime now = LocalDateTime.now();
 
@@ -2960,7 +2961,7 @@ class BookingServiceTest {
 
 
     @Test
-    void updateStatusBookings_ShouldCancelOverlappingBookings() {
+    void updateStatusBookings_ShouldCancelOverlappingBookings() throws MessagingException {
         // Given
         LocalDateTime now = LocalDateTime.now();
 
@@ -3010,7 +3011,7 @@ class BookingServiceTest {
 
 
     @Test
-    void updateStatusBookings_ShouldNotChangeStatusIfWalletBalanceIsNotEnough() {
+    void updateStatusBookings_ShouldNotChangeStatusIfWalletBalanceIsNotEnough() throws MessagingException {
         // Given
         LocalDateTime now = LocalDateTime.now();
 
