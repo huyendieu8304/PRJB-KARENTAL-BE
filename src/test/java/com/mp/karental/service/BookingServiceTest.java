@@ -1,8 +1,10 @@
 package com.mp.karental.service;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
+import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
+import com.mp.karental.dto.response.booking.BookingListResponse;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
@@ -71,6 +73,8 @@ class BookingServiceTest {
     @Mock
     private MultipartFile mockFile;
 
+    @Mock
+    private AccountRepository accountRepository;
 
     private MockedStatic<SecurityUtil> mockedSecurityUtil;
     private String accountId;
@@ -141,7 +145,7 @@ class BookingServiceTest {
         booking.setPaymentType(EPaymentType.WALLET);
         booking.setDeposit(5000);
         booking.setBasePrice(2000);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         booking.setBookingNumber("BK123");
         booking.setPickUpTime(mockPickUpTime);
         booking.setDropOffTime(mockDropOffTime);
@@ -221,7 +225,7 @@ class BookingServiceTest {
         booking.setPaymentType(EPaymentType.WALLET);
         booking.setDeposit(5000);
         booking.setBasePrice(2000);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         booking.setBookingNumber("BK123");
         booking.setPickUpTime(mockPickUpTime);
         booking.setDropOffTime(mockDropOffTime);
@@ -301,7 +305,7 @@ class BookingServiceTest {
         booking.setPaymentType(EPaymentType.WALLET);
         booking.setDeposit(5000);
         booking.setBasePrice(2000);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         booking.setBookingNumber("BK123");
         booking.setPickUpTime(mockPickUpTime);
         booking.setDropOffTime(mockDropOffTime);
@@ -378,7 +382,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(mockPickUpTime);
         existingBooking.setDropOffTime(mockDropOffTime);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
 
         // Mock repository
@@ -464,7 +468,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(mockPickUpTime);
         existingBooking.setDropOffTime(mockDropOffTime);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
 
         // Mock repository
@@ -551,7 +555,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(mockPickUpTime);
         existingBooking.setDropOffTime(mockDropOffTime);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
 
         // Mock repository
@@ -640,7 +644,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(mockPickUpTime);
         existingBooking.setDropOffTime(mockDropOffTime);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
 
         // Mock repository
@@ -891,7 +895,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(mockPickUpTime);
         existingBooking.setDropOffTime(mockDropOffTime);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
 
         // Mock repository
@@ -981,7 +985,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(mockPickUpTime);
         existingBooking.setDropOffTime(mockDropOffTime);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
 
         // Mock repository
@@ -1069,7 +1073,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(mockPickUpTime);
         existingBooking.setDropOffTime(mockDropOffTime);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("user/license.jpg");
 
         // Mock repository
@@ -1164,7 +1168,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(mockPickUpTime);
         existingBooking.setDropOffTime(mockDropOffTime);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
 
         // Mock repository
@@ -1232,7 +1236,7 @@ class BookingServiceTest {
         Car car = new Car();
         car.setId("car123");
         existingBooking.setCar(car); // Xe cũ
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
 
         // Mock repository
         lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
@@ -1285,7 +1289,7 @@ class BookingServiceTest {
         Car car = new Car();
         car.setId("car123");
         existingBooking.setCar(car);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
 
         // Mock repository
         lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
@@ -1411,7 +1415,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0));
         existingBooking.setDropOffTime(LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0));
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
 
         // Mock repository
@@ -1496,7 +1500,7 @@ class BookingServiceTest {
         booking.setPaymentType(EPaymentType.WALLET);
         booking.setDeposit(5000);
         booking.setBasePrice(2000);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         booking.setBookingNumber("BK123");
         booking.setPickUpTime(mockPickUpTime);
         booking.setDropOffTime(mockDropOffTime);
@@ -1578,7 +1582,7 @@ class BookingServiceTest {
         booking.setPaymentType(EPaymentType.WALLET);
         booking.setDeposit(5000);
         booking.setBasePrice(2000);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         booking.setBookingNumber("BK123");
         booking.setPickUpTime(mockPickUpTime);
         booking.setDropOffTime(mockDropOffTime);
@@ -1654,7 +1658,7 @@ class BookingServiceTest {
         booking.setPaymentType(EPaymentType.WALLET);
         booking.setDeposit(5000);
         booking.setBasePrice(2000);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         booking.setBookingNumber("BK123");
         booking.setPickUpTime(mockPickUpTime);
         booking.setDropOffTime(mockDropOffTime);
@@ -1918,7 +1922,7 @@ class BookingServiceTest {
             mappedBooking.setPickUpTime(request.getPickUpTime());
             mappedBooking.setDropOffTime(request.getDropOffTime());
             mappedBooking.setPaymentType(request.getPaymentType());
-            mappedBooking.setStatus(EBookingStatus.WAITING_CONFIRM);
+            mappedBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
             mappedBooking.setCar(car);
             return mappedBooking;
         });
@@ -1949,7 +1953,7 @@ class BookingServiceTest {
         BookingResponse response = bookingService.createBooking(CreateBookingRequest);
 
         // Then
-        assertEquals(EBookingStatus.WAITING_CONFIRM, response.getStatus());
+        assertEquals(EBookingStatus.WAITING_CONFIRMED, response.getStatus());
         assertEquals(4000L, wallet.getBalance());
         assertEquals(pickUpTime, response.getPickUpTime());
         assertEquals(dropOffTime, response.getDropOffTime());
@@ -2940,7 +2944,7 @@ class BookingServiceTest {
             Booking booking = invocation.getArgument(2);
 
             wallet.setBalance(wallet.getBalance() - deposit);
-            booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+            booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
 
             return null;
         }).when(transactionService).payDeposit(account.getId(), pendingBooking.getDeposit(), pendingBooking);
@@ -2949,7 +2953,7 @@ class BookingServiceTest {
         bookingService.updateStatusBookings();
 
         // Then
-        assertEquals(EBookingStatus.WAITING_CONFIRM, pendingBooking.getStatus());
+        assertEquals(EBookingStatus.WAITING_CONFIRMED, pendingBooking.getStatus());
         assertEquals(1000L, wallet.getBalance());
 
         verify(transactionService).payDeposit(account.getId(), pendingBooking.getDeposit(), pendingBooking);
@@ -3001,7 +3005,7 @@ class BookingServiceTest {
         bookingService.updateStatusBookings();
 
         // Then
-        assertEquals(EBookingStatus.WAITING_CONFIRM, confirmedBooking.getStatus());
+        assertEquals(EBookingStatus.WAITING_CONFIRMED, confirmedBooking.getStatus());
         assertEquals(EBookingStatus.CANCELLED, overlappingBooking.getStatus());
 
         verify(bookingRepository).saveAndFlush(overlappingBooking);
@@ -3032,142 +3036,6 @@ class BookingServiceTest {
         assertEquals(EBookingStatus.PENDING_DEPOSIT, pendingBooking.getStatus());
         verify(walletRepository, never()).save(wallet);
         verify(bookingRepository, never()).save(pendingBooking);
-    }
-
-    @Test
-    void getBookingsOfCustomer_Success() {
-        // Arrange
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
-
-        int page = 0;
-        int size = 10;
-        String sort = "createdAt,DESC";
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-
-        Booking booking = new Booking();
-        booking.setPickUpTime(LocalDateTime.now());
-        booking.setDropOffTime(LocalDateTime.now().plusDays(3));
-        booking.setBasePrice(100);
-
-
-        Car car = new Car();
-        car.setCarImageFront("car_front.jpg");
-        booking.setCar(car);
-
-        Page<Booking> bookingsPage = new PageImpl<>(List.of(booking));
-
-        BookingThumbnailResponse responseMock = new BookingThumbnailResponse();
-        responseMock.setNumberOfDay(3);
-        responseMock.setTotalPrice(300);
-
-        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(bookingsPage);
-        when(bookingMapper.toBookingThumbnailResponse(any())).thenReturn(responseMock);
-        when(fileService.getFileUrl(anyString())).thenReturn("test.jpg");
-
-        // Act
-        Page<BookingThumbnailResponse> result = bookingService.getBookingsOfCustomer(page, size, sort);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getTotalElements());
-        assertEquals(3, result.getContent().get(0).getNumberOfDay());
-        assertEquals(300, result.getContent().get(0).getTotalPrice());
-
-        verify(bookingRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
-
-    }
-
-
-    @Test
-    void getBookingsOfCustomer_EmptyResult() {
-
-        int page = 0;
-        int size = 10;
-        String sort = "createdAt,DESC";
-
-        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
-
-        // Act
-        Page<BookingThumbnailResponse> result = bookingService.getBookingsOfCustomer(page, size, sort);
-
-        // Assert
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
-
-        verify(bookingRepository, times(1)).findByAccountId(eq(accountId), any(Pageable.class));
-    }
-
-    @Test
-    void getBookingsOfCustomer_InvalidPage_ShouldResetToZero() {
-        // Arrange
-        int page = -1;
-
-        int size = 10;
-        String sort = "createdAt,DESC";
-
-        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
-
-        // Act
-        bookingService.getBookingsOfCustomer(page, size, sort);
-
-
-        verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
-                pageable.getPageNumber() == 0
-        ));
-    }
-
-    @Test
-    void getBookingsOfCustomer_InvalidSize_ShouldResetToDefault() {
-        // Arrange
-        int page = 0;
-        int size = 200;
-        String sort = "createdAt,DESC";
-
-        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
-
-        // Act
-        bookingService.getBookingsOfCustomer(page, size, sort);
-
-
-        verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
-                pageable.getPageSize() == 10
-        ));
-    }
-
-    @Test
-    void getBookingsOfCustomer_InvalidSort_ShouldUseDefault() {
-        // Arrange
-        int page = 0;
-        int size = 10;
-        String sort = "invalidSort,DESC";
-
-        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
-
-        // Act
-        bookingService.getBookingsOfCustomer(page, size, sort);
-
-
-        verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
-                pageable.getSort().equals(Sort.by(Sort.Direction.DESC, "createdAt"))
-        ));
-    }
-
-    @Test
-    void getBookingsByUserId_SortByBasePrice() {
-        // Arrange
-        int page = 0;
-        int size = 10;
-        String sort = "basePrice,ASC";
-
-        when(bookingRepository.findByAccountId(eq(accountId), any(Pageable.class))).thenReturn(Page.empty());
-
-        // Act
-        bookingService.getBookingsOfCustomer(page, size, sort);
-
-
-        verify(bookingRepository).findByAccountId(eq(accountId), argThat(pageable ->
-                pageable.getSort().equals(Sort.by(Sort.Direction.ASC, "basePrice"))
-        ));
     }
 
     @Test
@@ -3203,5 +3071,471 @@ class BookingServiceTest {
 
 
         assertThrows(AppException.class, () -> bookingService.getWallet());
+    }
+
+    @Test
+    void getBookingsOfCustomer_WithValidStatus_ReturnsBookingListResponse() {
+        // Given
+        String accountId = "user123";
+        String status = "CONFIRMED";
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "updatedAt"));
+
+        Booking booking = new Booking();
+        booking.setStatus(EBookingStatus.CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now().plusDays(1));
+        booking.setDropOffTime(LocalDateTime.now().plusDays(3));
+        booking.setBasePrice(1000);
+        booking.setCar(new Car());
+
+        Page<Booking> bookingPage = new PageImpl<>(List.of(booking));
+
+        when(bookingRepository.findByAccountIdAndStatus(eq(accountId), eq(EBookingStatus.CONFIRMED), eq(pageable)))
+                .thenReturn(bookingPage);
+        when(bookingMapper.toBookingThumbnailResponse(any())).thenReturn(new BookingThumbnailResponse());
+
+        // When
+        BookingListResponse response = bookingService.getBookingsOfCustomer(0, 10, "updatedAt,DESC", status);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(1, response.getBookings().getTotalElements());
+    }
+
+    @Test
+    void getBookingsOfCustomer_WithInvalidStatus_ReturnsAllBookings() {
+        // Given
+        String accountId = "user123";
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "updatedAt"));
+
+        Booking booking = new Booking();
+        booking.setStatus(EBookingStatus.CONFIRMED);
+        booking.setCar(new Car());
+
+        Page<Booking> bookingPage = new PageImpl<>(List.of(booking));
+
+        when(bookingRepository.findByAccountId(eq(accountId), eq(pageable))).thenReturn(bookingPage);
+        when(bookingMapper.toBookingThumbnailResponse(any())).thenReturn(new BookingThumbnailResponse());
+
+        // When
+        BookingListResponse response = bookingService.getBookingsOfCustomer(0, 10, "updatedAt,DESC", "INVALID_STATUS");
+
+        // Then
+        assertNotNull(response);
+        assertEquals(1, response.getBookings().getTotalElements());
+    }
+
+    @Test
+    void getBookingsOfCarOwner_WithValidStatus_ReturnsBookingListResponse() {
+        // Given
+        String ownerId = "user123";
+        String status = "IN_PROGRESS";
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "updatedAt"));
+
+        Booking booking = new Booking();
+        booking.setStatus(EBookingStatus.IN_PROGRESS);
+        booking.setCar(new Car());
+
+        Page<Booking> bookingPage = new PageImpl<>(List.of(booking));
+
+        when(bookingRepository.findBookingsByCarOwnerIdAndStatus(eq(ownerId), eq(EBookingStatus.IN_PROGRESS),
+                eq(EBookingStatus.PENDING_DEPOSIT), eq(pageable)))
+                .thenReturn(bookingPage);
+        when(bookingMapper.toBookingThumbnailResponse(any())).thenReturn(new BookingThumbnailResponse());
+
+        // When
+        BookingListResponse response = bookingService.getBookingsOfCarOwner(0, 10, "updatedAt,DESC", status);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(1, response.getBookings().getTotalElements());
+    }
+
+    @Test
+    void getBookingsOfCarOwner_WithInvalidStatus_ReturnsAllBookings() {
+        // Given
+        String ownerId = "user123";
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "updatedAt"));
+
+        Booking booking = new Booking();
+        booking.setStatus(EBookingStatus.CONFIRMED);
+        booking.setCar(new Car());
+
+        Page<Booking> bookingPage = new PageImpl<>(List.of(booking));
+
+        when(bookingRepository.findBookingsByCarOwnerId(eq(ownerId), eq(EBookingStatus.PENDING_DEPOSIT), eq(pageable)))
+                .thenReturn(bookingPage);
+        when(bookingMapper.toBookingThumbnailResponse(any())).thenReturn(new BookingThumbnailResponse());
+
+        // When
+        BookingListResponse response = bookingService.getBookingsOfCarOwner(0, 10, "updatedAt,DESC", "INVALID_STATUS");
+
+        // Then
+        assertNotNull(response);
+        assertEquals(1, response.getBookings().getTotalElements());
+    }
+
+    @Test
+    void getBookingDetailsByBookingNumber_AsCarOwner_ReturnsBookingResponse() {
+        // Given
+        String accountId = "user123";
+        String bookingNumber = "BK123";
+        Account mockAccount = new Account();
+        mockAccount.setId(accountId);
+        Role role = new Role();
+        role.setName(ERole.CAR_OWNER);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setCar(new Car());
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+        when(bookingRepository.findBookingByBookingNumberAndOwnerId(eq(bookingNumber), eq(accountId)))
+                .thenReturn(booking);
+        when(bookingMapper.toBookingResponse(any())).thenReturn(new BookingResponse());
+
+        // When
+        BookingResponse response = bookingService.getBookingDetailsByBookingNumber(bookingNumber);
+
+        // Then
+        assertNotNull(response);
+    }
+
+    @Test
+    void confirmBooking_WithValidBooking_UpdatesStatus() {
+        // Given
+        String accountId = "user123";
+        String bookingNumber = "BK123";
+        Account mockAccount = new Account();
+        mockAccount.setId(accountId);
+        Role role = new Role();
+        role.setName(ERole.CAR_OWNER);
+
+        Car mockCar = new Car();
+        mockCar.setAccount(mockAccount);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now().plusDays(1));
+        booking.setCar(mockCar);
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+        when(bookingRepository.findBookingByBookingNumber(eq(bookingNumber))).thenReturn(booking);
+        when(bookingMapper.toBookingResponse(any())).thenReturn(new BookingResponse());
+
+        // When
+        BookingResponse response = bookingService.confirmBooking(bookingNumber);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(EBookingStatus.CONFIRMED, booking.getStatus());
+        verify(bookingRepository, times(1)).saveAndFlush(any());
+    }
+
+    @Test
+    void confirmBooking_WithExpiredBooking_ThrowsException() {
+        // Given
+        String accountId = "user123";
+        String bookingNumber = "BK123";
+        Account mockAccount = new Account();
+        mockAccount.setId(accountId);
+        Role role = new Role();
+        role.setName(ERole.CAR_OWNER);
+
+        Car mockCar = new Car();
+        mockCar.setAccount(mockAccount);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now().minusDays(1));
+        booking.setCar(mockCar);
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+        when(bookingRepository.findBookingByBookingNumber(eq(bookingNumber))).thenReturn(booking);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> bookingService.confirmBooking(bookingNumber));
+        assertEquals(ErrorCode.BOOKING_EXPIRED, exception.getErrorCode());
+        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
+    }
+
+    @Test
+    void parseStatus_WithValidStatus_ReturnsEnum() {
+        // Given
+        String status = "CONFIRMED";
+
+        // When
+        EBookingStatus result = bookingService.parseStatus(status);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(EBookingStatus.CONFIRMED, result);
+    }
+
+    @Test
+    void parseStatus_WithInvalidStatus_ReturnsNull() {
+        // Given
+        String status = "INVALID_STATUS";
+
+        // When
+        EBookingStatus result = bookingService.parseStatus(status);
+
+        // Then
+        assertNull(result);
+    }
+
+    @Test
+    void confirmBooking_shouldThrowForbiddenBookingAccess_whenBookingNotBelongToOwner() {
+        // Given
+        Account owner = new Account();
+        owner.setId("1");
+
+        Account anotherAccount = new Account();
+        anotherAccount.setId("2");
+
+        Car car = new Car();
+        car.setAccount(anotherAccount);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("BK001");
+        booking.setCar(car);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+
+        when(bookingRepository.findBookingByBookingNumber("B100K"));
+        when(accountRepository.findById("1")).thenReturn(Optional.of(owner));
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> {
+            bookingService.confirmBooking("BK001");
+        });
+
+        assertEquals(ErrorCode.FORBIDDEN_BOOKING_ACCESS, exception.getErrorCode());
+    }
+
+    @Test
+    void confirmBooking_shouldThrowInvalidBookingStatus_whenStatusIsNotWaitingConfirmed() {
+        // Given
+        Account owner = new Account();
+        owner.setId("1");
+
+        Car car = new Car();
+        car.setAccount(owner);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("BK001");
+        booking.setCar(car);
+        booking.setStatus(EBookingStatus.CANCELLED);
+
+        when(bookingRepository.findBookingByBookingNumber("BK001"));
+        when(accountRepository.findById("1")).thenReturn(Optional.of(owner));
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> {
+            bookingService.confirmBooking("BK001");
+        });
+
+        assertEquals(ErrorCode.INVALID_BOOKING_STATUS, exception.getErrorCode());
+    }
+
+    @Test
+    void confirmBooking_shouldPass_whenBookingIsValid() {
+        // Given
+        Account owner = new Account();
+        owner.setId("1");
+
+        Car car = new Car();
+        car.setAccount(owner);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("300");
+        booking.setCar(car);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now());
+        booking.setDropOffTime(LocalDateTime.now().plusDays(3));
+
+        when(bookingRepository.findBookingByBookingNumber("300")).thenReturn(booking);
+        when(accountRepository.findById("1")).thenReturn(Optional.of(owner));
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(booking.getAccount());
+
+        // When & Then
+        assertDoesNotThrow(() -> bookingService.confirmBooking("300"));
+    }
+
+    @Test
+    void getBookingDetailsByBookingNumber_shouldReturnBookingResponse_whenUserIsCarOwner() {
+        // Given
+        Account owner = new Account();
+        owner.setId("user123");
+        Role role = new Role();
+        role.setName(ERole.CAR_OWNER);
+        owner.setRole(role);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("BK001");
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(owner);
+        when(bookingRepository.findBookingByBookingNumberAndOwnerId("BK001", "user123")).thenReturn(booking);
+
+        // When
+        BookingResponse response = bookingService.getBookingDetailsByBookingNumber("BK001");
+
+        // Then
+        assertNotNull(response);
+        verify(bookingRepository, times(1)).findBookingByBookingNumberAndOwnerId("BK001", "user123");
+    }
+
+    @Test
+    void getBookingDetailsByBookingNumber_shouldThrowException_whenCarOwnerBookingNotFound() {
+        // Given
+        Account owner = new Account();
+        owner.setId("user123");
+        Role role = new Role();
+        role.setName(ERole.CAR_OWNER);
+        owner.setRole(role);
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(owner);
+        when(bookingRepository.findBookingByBookingNumberAndOwnerId("BK001", "user123")).thenReturn(null);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> bookingService.getBookingDetailsByBookingNumber("BK001"));
+        assertEquals(ErrorCode.BOOKING_NOT_FOUND_IN_DB, exception.getErrorCode());
+    }
+
+    @Test
+    void getBookingDetailsByBookingNumber_shouldReturnBookingResponse_whenUserIsCustomer() {
+        // Given
+        Account customer = new Account();
+        customer.setId("user123");
+        Role role = new Role();
+        role.setName(ERole.CUSTOMER);
+        customer.setRole(role);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("BK001");
+        booking.setAccount(customer);
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(customer);
+        when(bookingRepository.findBookingByBookingNumber("BK001")).thenReturn(booking);
+
+        // When
+        BookingResponse response = bookingService.getBookingDetailsByBookingNumber("BK001");
+
+        // Then
+        assertNotNull(response);
+        verify(bookingRepository, times(1)).findBookingByBookingNumber("BK001");
+    }
+
+    @Test
+    void getBookingDetailsByBookingNumber_shouldThrowException_whenCustomerAccessesOthersBooking() {
+        // Given
+        Account customer = new Account();
+        customer.setId("user123");
+        Role role = new Role();
+        role.setName(ERole.CUSTOMER);
+        customer.setRole(role);
+
+        Account anotherUser = new Account();
+        anotherUser.setId("user456");
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("BK001");
+        booking.setAccount(anotherUser);
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(customer);
+        when(bookingRepository.findBookingByBookingNumber("BK001")).thenReturn(booking);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> bookingService.getBookingDetailsByBookingNumber("BK001"));
+        assertEquals(ErrorCode.FORBIDDEN_BOOKING_ACCESS, exception.getErrorCode());
+    }
+
+    @Test
+    void confirmBooking_shouldConfirmBookingSuccessfully() {
+        // Given
+        Account owner = new Account();
+        owner.setId("user123");
+
+        Car car = new Car();
+        car.setAccount(owner);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("BK001");
+        booking.setCar(car);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now().plusDays(1));
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(owner);
+        when(bookingRepository.findBookingByBookingNumber("BK001")).thenReturn(booking);
+
+        // When
+        BookingResponse response = bookingService.confirmBooking("BK001");
+
+        // Then
+        assertNotNull(response);
+        assertEquals(EBookingStatus.CONFIRMED, booking.getStatus());
+        verify(bookingRepository, times(1)).saveAndFlush(booking);
+    }
+
+    @Test
+    void confirmBooking_shouldThrowException_whenBookingNotFound() {
+        // Given
+        when(bookingRepository.findBookingByBookingNumber("BK001")).thenReturn(null);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> bookingService.confirmBooking("BK001"));
+
+        // Expect BOOKING_NOT_FOUND_IN_DB instead of BOOKING_EXPIRED
+        assertEquals(ErrorCode.BOOKING_NOT_FOUND_IN_DB, exception.getErrorCode());
+    }
+
+
+    @Test
+    void confirmBooking_shouldThrowException_whenBookingNotBelongToOwner() {
+        // Given
+        Account owner = new Account();
+        owner.setId("user123");
+
+        Account anotherOwner = new Account();
+        anotherOwner.setId("user456");
+
+        Car car = new Car();
+        car.setAccount(anotherOwner);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("BK001");
+        booking.setCar(car);
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(owner);
+        when(bookingRepository.findBookingByBookingNumber("BK001")).thenReturn(booking);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> bookingService.confirmBooking("BK001"));
+        assertEquals(ErrorCode.FORBIDDEN_BOOKING_ACCESS, exception.getErrorCode());
+    }
+
+    @Test
+    void confirmBooking_shouldThrowException_whenBookingExpired() {
+        // Given
+        Account owner = new Account();
+        owner.setId("user123");
+
+        Car car = new Car();
+        car.setAccount(owner);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("BK001");
+        booking.setCar(car);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now().minusDays(1));
+
+        when(SecurityUtil.getCurrentAccount()).thenReturn(owner);
+        when(bookingRepository.findBookingByBookingNumber("BK001")).thenReturn(booking);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> bookingService.confirmBooking("BK001"));
+        assertEquals(ErrorCode.BOOKING_EXPIRED, exception.getErrorCode());
+        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
     }
 }
