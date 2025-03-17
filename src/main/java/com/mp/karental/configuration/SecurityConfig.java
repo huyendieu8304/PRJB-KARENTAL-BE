@@ -107,6 +107,8 @@ public class SecurityConfig{
                                 //endpoints for user has role CAR_OWNER
                                 .requestMatchers("/car/car-owner/**").hasRole("CAR_OWNER")
                                 .requestMatchers("/car/customer/**").hasRole("CUSTOMER")
+                                .requestMatchers("/booking/car-owner/**").hasRole("CAR_OWNER")
+                                .requestMatchers("/booking/customer/**").hasRole("CUSTOMER")
                                 .anyRequest().authenticated()
                 );
         http.authenticationProvider(authenticationProvider());

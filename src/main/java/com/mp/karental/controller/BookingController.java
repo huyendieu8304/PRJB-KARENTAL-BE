@@ -1,6 +1,6 @@
 package com.mp.karental.controller;
 
-import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.dto.request.booking.BookingRequest;
@@ -8,7 +8,6 @@ import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
-import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.service.BookingService;
 import com.mp.karental.dto.response.booking.BookingListResponse;
 import jakarta.validation.Valid;
@@ -40,7 +39,7 @@ public class BookingController {
      * @return ApiResponse containing the created booking details
      */
     @PostMapping(value = "/customer/create-book", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid BookingRequest bookingRequest) {
+    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid CreateBookingRequest bookingRequest) {
         log.info("create booking {}", bookingRequest);
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.createBooking(bookingRequest))
@@ -120,7 +119,7 @@ public class BookingController {
      * @return ApiResponse containing the get booking details.
      */
     @GetMapping("/customer/{bookingNumber}")
-    public ApiResponse<BookingResponse> getCarById(@PathVariable String bookingNumber) {
+    public ApiResponse<BookingResponse> getBookingByBookingNumber(@PathVariable String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.getBookingDetailsByBookingNumber(bookingNumber))
                 .build();

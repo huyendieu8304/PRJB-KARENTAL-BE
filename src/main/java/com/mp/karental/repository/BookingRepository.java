@@ -42,7 +42,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     @Query("""
-    SELECT b 
+    SELECT b
     FROM Booking b 
     WHERE b.car.id = :carId
     AND (

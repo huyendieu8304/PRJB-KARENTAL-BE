@@ -1,6 +1,6 @@
 package com.mp.karental.validation.validator;
 
-import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.service.ExcelService;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +52,7 @@ class AddressComponentValidatorTest {
 
     @Test
     void testValidAddressComponent() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setDriverCityProvince("Thành phố Hà Nội");
         request.setDriverDistrict("Quận Ba Đình");
         request.setDriverWard("Phường Phúc Xá");
@@ -63,7 +63,8 @@ class AddressComponentValidatorTest {
 
     @Test
     void testInvalidAddressComponent_MissingCity() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setDriver(true);
         request.setDriverCityProvince("");  
         request.setDriverDistrict("Quận Ba Đình");
         request.setDriverWard("Phường Phúc Xá");
@@ -74,7 +75,8 @@ class AddressComponentValidatorTest {
 
     @Test
     void testInvalidAddressComponent_InvalidDistrict() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setDriver(true);
         request.setDriverCityProvince("Thành phố Hà Nội");
         request.setDriverDistrict("Invalid District");  
         request.setDriverWard("Phường Phúc Xá");
@@ -85,7 +87,8 @@ class AddressComponentValidatorTest {
 
     @Test
     void testInvalidAddressComponent_InvalidWard() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setDriver(true);
         request.setDriverCityProvince("Thành phố Hà Nội");
         request.setDriverDistrict("Quận Ba Đình");
         request.setDriverWard("Invalid Ward");  
@@ -100,7 +103,8 @@ class AddressComponentValidatorTest {
 
     @Test
     void testInvalidAddressComponent_EmptyFields() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setDriver(true);
         request.setDriverCityProvince("");  
         request.setDriverDistrict("");
         request.setDriverWard("");
@@ -109,7 +113,8 @@ class AddressComponentValidatorTest {
     }
     @Test
     void testInvalidAddressComponent_DistrictNotInCity() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setDriver(true);
         request.setDriverCityProvince("Thành phố Hà Nội");
         request.setDriverDistrict("Quận 1"); 
         request.setDriverWard("Phường Phúc Xá");

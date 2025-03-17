@@ -127,6 +127,11 @@ public class CarService {
         Car car = carRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
         ECarStatus currentStatus = car.getStatus();
+        // Update the car's status
+        ECarStatus newStatus = request.getStatus();
+        if (newStatus == null) {
+            newStatus = car.getStatus(); // Keep the existing status if none is provided
+        }
 
         // Ensure that the currently logged-in user is the owner of the car
         // Prevents unauthorized users from modifying someone else's car
@@ -136,12 +141,6 @@ public class CarService {
 
         // Update the car details using the request data
         carMapper.editCar(car, request);
-
-        // Update the car's status
-        ECarStatus newStatus = request.getStatus();
-        if (newStatus == null) {
-            newStatus = car.getStatus(); // Keep the existing status if none is provided
-        }
 
         if (!isValidStatusChange(currentStatus, newStatus)){
             throw new AppException(ErrorCode.INVALID_CAR_STATUS_CHANGE);
@@ -171,19 +170,24 @@ public class CarService {
         return carResponse;
     }
 
+    /**
+     * Checks if the status change from the current status to the new status is valid.
+     *
+     * @param currentStatus The current status of the car.
+     * @param newStatus The new status to be checked.
+     * @return true if the status change is valid, false otherwise.
+     *
+     */
     private boolean isValidStatusChange(ECarStatus currentStatus, ECarStatus newStatus) {
         if(currentStatus == newStatus){
-            return true;
+            return true;  // If the current status and new status are the same, return true (valid).
         }
-        return switch (currentStatus) {
-            case NOT_VERIFIED, VERIFIED -> newStatus == ECarStatus.STOPPED;
-            case STOPPED -> newStatus == ECarStatus.NOT_VERIFIED;
-            default -> false;
+        return switch (currentStatus) {  // Switch statement to handle transitions based on the current status.
+            case NOT_VERIFIED, VERIFIED -> newStatus == ECarStatus.STOPPED;  // Can transition to STOPPED.
+            case STOPPED -> newStatus == ECarStatus.NOT_VERIFIED;  // Can transition to NOT_VERIFIED.
+            default -> false;  // Any other transitions are invalid.
         };
     }
-
-
-
 
     /**
      * Set URLs for car response to avoid duplication.

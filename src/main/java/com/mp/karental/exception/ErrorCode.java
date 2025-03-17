@@ -56,7 +56,7 @@ public enum ErrorCode {
     INVALID_ADDRESS_COMPONENT(2028,"Invalid address component", HttpStatus.BAD_REQUEST),
     INVALID_DATE_FORMAT(2029, "Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST),
     INVALID_TRANSACTION_TYPE(2030,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
-    INVALID_DRIVER_INFO(2031,"Driver's information is different from account holder, but no license provided.",HttpStatus.BAD_REQUEST),
+    INVALID_DRIVER_INFO(2031,"Driver's information is different from account holder, but the information is not fulfilled",HttpStatus.BAD_REQUEST),
 
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.SERVICE_UNAVAILABLE),

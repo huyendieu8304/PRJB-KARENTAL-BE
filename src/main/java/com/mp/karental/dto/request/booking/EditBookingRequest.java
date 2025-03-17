@@ -1,6 +1,7 @@
 package com.mp.karental.dto.request.booking;
 
 import com.mp.karental.validation.RequiredField;
+import com.mp.karental.validation.ValidAge;
 import com.mp.karental.validation.ValidDocument;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -33,21 +34,17 @@ public class EditBookingRequest {
 
     //driver
     //=============================================================
-    @NotBlank(message = "Driver's full name is required")
     String driverFullName;
 
-    @NotBlank(message = "Driver's phone number is required")
     @Pattern(regexp = "\\d{10}", message = "Invalid phone number format")
     String driverPhoneNumber;
 
-    @NotBlank(message = "Driver's national ID is required")
     @Pattern(regexp = "\\d{9,12}", message = "Invalid national ID format")
     String driverNationalId;
 
-    @Past(message = "Driver's date of birth must be in the past")
+    @ValidAge(min = 18)
     LocalDate driverDob;
 
-    @NotBlank(message = "Driver's email is required")
     @Email(message = "Invalid email format")
     String driverEmail;
 
@@ -55,17 +52,14 @@ public class EditBookingRequest {
     MultipartFile driverDrivingLicense;
 
 
-    @NotBlank(message = "City/Province is required")
     String driverCityProvince;
 
-    @NotBlank(message = "District is required")
     String driverDistrict;
 
-    @NotBlank(message = "Ward is required")
     String driverWard;
 
-    @NotBlank(message = "House number and street are required")
     String driverHouseNumberStreet;
 
+    // This variable indicates whether the user is using renter (false) or driver (true) information.
     boolean isDriver;
 }
