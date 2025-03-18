@@ -592,7 +592,7 @@ public class BookingService {
      * Converts a status string to an `EBookingStatus` enum.
      * If the status is invalid or not found, returns `null` (defaulting to all bookings).
      */
-    private EBookingStatus parseStatus(String statusStr) {
+    public EBookingStatus parseStatus(String statusStr) {
         try {
             // Convert the input string to an EBookingStatus enum
             EBookingStatus bookingStatus = EBookingStatus.valueOf(statusStr.toUpperCase());
