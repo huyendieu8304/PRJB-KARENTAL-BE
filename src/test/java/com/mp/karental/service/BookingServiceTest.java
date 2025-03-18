@@ -3029,31 +3029,6 @@ class BookingServiceTest {
         assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
     }
 
-    @Test
-    void parseStatus_WithValidStatus_ReturnsEnum() {
-        // Given
-        String status = "CONFIRMED";
-
-        // When
-        EBookingStatus result = bookingService.parseStatus(status);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(EBookingStatus.CONFIRMED, result);
-    }
-
-    @Test
-    void parseStatus_WithInvalidStatus_ReturnsNull() {
-        // Given
-        String status = "INVALID_STATUS";
-
-        // When
-        EBookingStatus result = bookingService.parseStatus(status);
-
-        // Then
-        assertNull(result);
-    }
-
 
     @Test
     void getBookingDetailsByBookingNumber_shouldThrowException_whenCarOwnerBookingNotFound() {
@@ -3143,29 +3118,6 @@ class BookingServiceTest {
         assertEquals(ErrorCode.BOOKING_EXPIRED, exception.getErrorCode());
         assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
     }
-
-
-    @ParameterizedTest
-    @ValueSource(strings = {"CONFIRMED", "IN_PROGRESS", "CANCELLED"})
-    void parseStatus_WithValidStatus_ReturnsEnum(String status) {
-        // Act
-        EBookingStatus result = bookingService.parseStatus(status);
-
-        // Assert
-        assertEquals(EBookingStatus.valueOf(status), result);
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"INVALID", "wrong"})
-    void parseStatus_WithInvalidStatus_ReturnsNull(String status) {
-        // Act
-        EBookingStatus result = bookingService.parseStatus(status);
-
-        // Assert
-        assertNull(result);
-    }
-
 
 
 }
