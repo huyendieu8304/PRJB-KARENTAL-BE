@@ -4,6 +4,7 @@ import com.mp.karental.KarentalApplication;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
+import com.mp.karental.dto.response.booking.BookingListResponse;
 import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.response.booking.BookingResponse;
@@ -174,41 +175,35 @@ class BookingControllerTest {
 
 
     @Test
-    void getBookings_Success() throws Exception {
-        // Arrange
-        Page<BookingThumbnailResponse> mockPage = new PageImpl<>(List.of(new BookingThumbnailResponse()));
-        when(bookingService.getBookingsByUserId(0, 10, "createdAt,DESC")).thenReturn(mockPage);
+    void testGetBookingsForCustomer_Success() throws Exception {
+        BookingListResponse mockResponse = new BookingListResponse(2, 1, Page.empty());
+        when(bookingService.getBookingsOfCustomer(anyInt(), anyInt(), anyString(), any())).thenReturn(mockResponse);
 
-        // Act & Assert
-        mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")  
+        mockMvc.perform(get("/booking/customer/my-bookings")
                         .param("page", "0")
-                        .param("size", "10")
+                        .param("size", "5")
                         .param("sort", "createdAt,DESC")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content").isArray())
-                .andExpect(jsonPath("$.data.content.length()").value(1));
-
-        verify(bookingService, times(1)).getBookingsByUserId(0, 10, "createdAt,DESC");
+                .andExpect(jsonPath("$.data.totalOnGoingBookings").value(2))
+                .andExpect(jsonPath("$.data.totalWaitingConfirmBooking").value(1));
     }
 
     @Test
-    void getBookings_EmptyResult() throws Exception {
-        // Arrange
-        Page<BookingThumbnailResponse> emptyPage = Page.empty();
-        when(bookingService.getBookingsByUserId(0, 10, "createdAt,DESC")).thenReturn(emptyPage);
+    void testGetBookingsForCarOwner_Success() throws Exception {
+        BookingListResponse mockResponse = new BookingListResponse(3, 2, Page.empty());
+        when(bookingService.getBookingsOfCarOwner(anyInt(), anyInt(), anyString(), any())).thenReturn(mockResponse);
 
-        // Act & Assert
-        mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")
+        mockMvc.perform(get("/booking/car-owner/rentals")
                         .param("page", "0")
-                        .param("size", "10")
-                        .param("sort", "createdAt,DESC")
+                        .param("size", "5")
+                        .param("sort", "updatedAt,DESC")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content").isEmpty());
-
-        verify(bookingService, times(1)).getBookingsByUserId(0, 10, "createdAt,DESC");
+                .andExpect(jsonPath("$.data.totalOnGoingBookings").value(3))
+                .andExpect(jsonPath("$.data.totalWaitingConfirmBooking").value(2));
     }
+
 
     @Test
     void getBookings_DefaultParams() throws Exception {
@@ -253,36 +248,28 @@ class BookingControllerTest {
     }
 
     @Test
-    void testGetBookingByNumber_Success() throws Exception {
-        // Prepare the mock response from bookingService
-        String bookingNumber = "12345";
-        BookingResponse bookingResponse = new BookingResponse();
-        bookingResponse.setBookingNumber(bookingNumber);
-        bookingResponse.setCarId("car-001");
+    void testConfirmBooking_Success() throws Exception {
+        BookingResponse confirmedBooking = new BookingResponse();
+        confirmedBooking.setBookingNumber("BK123456");
+        confirmedBooking.setStatus(EBookingStatus.CONFIRMED);
 
-        // Mock the service method
-        when(bookingService.getBookingDetailsByBookingNumber(bookingNumber)).thenReturn(bookingResponse);
+        when(bookingService.confirmBooking("BK123456")).thenReturn(confirmedBooking);
 
-        // Perform the GET request and assert that the response is correct
-        mockMvc.perform(get("/booking/customer/{bookingNumber}", bookingNumber)
+        mockMvc.perform(MockMvcRequestBuilders.put("/booking/car-owner/{bookingNumber}/confirm", "BK123456")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())  // Assert that the response status is 200 OK
-                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
-                .andExpect(jsonPath("$.data.carId").value("car-001"));  // Assert that the car ID is returned
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bookingNumber").value("BK123456"))
+                .andExpect(jsonPath("$.status").value(EBookingStatus.CONFIRMED.name()));
     }
 
     @Test
-    void testGetBookingByNumber_NotFound() throws Exception {
-        // Prepare the booking number that will not be found in the service
-        String bookingNumber = "non-existent-id";
+    void testConfirmBooking_NotFound() throws Exception {
+        when(bookingService.confirmBooking("INVALID"))
+                .thenThrow(new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB));
 
-        // Mock the service method to return null or throw an exception (based on your logic)
-        when(bookingService.getBookingDetailsByBookingNumber(bookingNumber)).thenThrow(new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB));
-
-        // Perform the GET request and expect a 404 Not Found error
-        mockMvc.perform(get("/booking/customer/{bookingNumber}", bookingNumber)
+        mockMvc.perform(MockMvcRequestBuilders.put("/booking/car-owner/{bookingNumber}/confirm", "INVALID")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());  // Assert that the response status is 404
+                .andExpect(status().isNotFound());
     }
 
     @Test

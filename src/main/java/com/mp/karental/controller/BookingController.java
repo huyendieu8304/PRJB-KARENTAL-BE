@@ -2,18 +2,18 @@ package com.mp.karental.controller;
 
 import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
+import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
-import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.service.BookingService;
 import jakarta.mail.MessagingException;
+import com.mp.karental.dto.response.booking.BookingListResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -60,14 +60,40 @@ public class BookingController {
      * @return a paginated list of bookings wrapped in `ApiResponse<Page<BookingThumbnailResponse>>`
      */
     @GetMapping("/customer/my-bookings")
-    public ApiResponse<Page<BookingThumbnailResponse>> getBookings(
+    public ApiResponse<BookingListResponse> getBookings(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt,DESC") String sort) {
+            @RequestParam(required = false) EBookingStatus status,
+            @RequestParam(defaultValue = "updatedAt,DESC") String sort) {
 
-        Page<BookingThumbnailResponse> bookings = bookingService.getBookingsByUserId(page, size, sort);
-        return ApiResponse.<Page<BookingThumbnailResponse>>builder()
-                .data(bookings)
+        BookingListResponse response = bookingService.getBookingsOfCustomer(page, size, sort,
+                (status != null) ? status.name() : null);
+
+        return ApiResponse.<BookingListResponse>builder()
+                .data(response)
+                .build();
+    }
+
+    /**
+     * API endpoint to retrieve the list of bookings for the current customer.
+     *
+     * @param page the page number (default is 0)
+     * @param size the number of records per page (default is 10)
+     * @param sort sorting field and direction in the format "field,DIRECTION" (default is "updatedAt,DESC")
+     * @return a paginated list of bookings wrapped in `ApiResponse<Page<BookingThumbnailResponse>>`
+     */
+    @GetMapping("/car-owner/rentals")
+    public ApiResponse<BookingListResponse> getBookingsForCarOwner(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) EBookingStatus status,
+            @RequestParam(defaultValue = "updatedAt,DESC") String sort) {
+
+        BookingListResponse response = bookingService.getBookingsOfCarOwner(page, size, sort,
+                (status != null) ? status.name() : null);
+
+        return ApiResponse.<BookingListResponse>builder()
+                .data(response)
                 .build();
     }
 
@@ -96,20 +122,30 @@ public class BookingController {
                 .build();
     }
 
+
     /**
-     * Handles the cancellation of a booking by a customer.
-     * This endpoint allows a customer to cancel their booking based on the provided booking number.
-     * The cancellation process is managed by the {@code cancelBooking} method in {@code BookingService},
-     * which handles refunds, updates the booking status, and sends necessary email notifications.
+     * Handles get an existing booking by booking number.
      *
-     * @param bookingNumber The unique identifier of the booking to be canceled.
-     * @return An {@link ApiResponse} containing the updated {@link BookingResponse} with the booking details.
-     * @throws MessagingException If an error occurs while sending cancellation emails.
+     * @param bookingNumber The unique identifier of the booking to be updated.
+     * @return ApiResponse containing the get booking details.
      */
-    @PutMapping("/customer/cancel-booking/{bookingNumber}")
-    public ApiResponse<BookingResponse> cancelBooking(@PathVariable String bookingNumber) throws MessagingException {
+    @GetMapping("/car-owner/{bookingNumber}")
+    public ApiResponse<BookingResponse> getCustomerBookingDetails(@PathVariable String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
-                .data(bookingService.cancelBooking(bookingNumber))
+                .data(bookingService.getBookingDetailsByBookingNumber(bookingNumber))
                 .build();
     }
+
+    /**
+     * API endpoint for car owners to confirm a booking.
+     *
+     * @param bookingNumber The unique booking number to be confirmed.
+     * @return BookingResponse containing updated booking details.
+     */
+    @PutMapping("/car-owner/{bookingNumber}/confirm")
+    public BookingResponse confirmBooking(@PathVariable String bookingNumber) {
+        return bookingService.confirmBooking(bookingNumber);
+    }
+
+
 }

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * This class encapsulates booking information that is returned to the client,
  * including car details.
  * </p>
- * @author QuangPM20
+ * @author AnhHP9
  *
  * @version 1.0
  */
@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 @Builder
 public class BookingThumbnailResponse {
 
-    LocalDateTime createdAt;
+    LocalDateTime updatedAt;
 
     String bookingNumber;
 
