@@ -349,8 +349,8 @@ public class BookingService {
                     pendingBooking.setStatus(EBookingStatus.CANCELLED);
                     bookingRepository.saveAndFlush(pendingBooking);
                     reason = "Your booking has been canceled because another customer has successfully placed a deposit for this car within the same rental period.";
-                    emailService.sendSystemCanceledBookingEmail(booking.getAccount().getEmail(),
-                            booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                    emailService.sendSystemCanceledBookingEmail(pendingBooking.getAccount().getEmail(),
+                            pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
                             reason);
                 }
 
