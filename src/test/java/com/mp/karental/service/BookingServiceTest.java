@@ -2973,7 +2973,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void getBookingsOfCustomer_WithValidStatus_ReturnsBookingListResponse() {
+    void getBookingsOfCustomer_WithValidStatus_ReturnsBookingListResponse1() {
         // Given
         String accountId = "user123";
         String status = "CONFIRMED";
@@ -3028,32 +3028,6 @@ class BookingServiceTest {
         assertEquals(ErrorCode.BOOKING_EXPIRED, exception.getErrorCode());
         assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
     }
-
-    @Test
-    void parseStatus_WithValidStatus_ReturnsEnum() {
-        // Given
-        String status = "CONFIRMED";
-
-        // When
-        EBookingStatus result = bookingService.parseStatus(status);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(EBookingStatus.CONFIRMED, result);
-    }
-
-    @Test
-    void parseStatus_WithInvalidStatus_ReturnsNull() {
-        // Given
-        String status = "INVALID_STATUS";
-
-        // When
-        EBookingStatus result = bookingService.parseStatus(status);
-
-        // Then
-        assertNull(result);
-    }
-
 
     @Test
     void getBookingDetailsByBookingNumber_shouldThrowException_whenCarOwnerBookingNotFound() {
@@ -3144,28 +3118,257 @@ class BookingServiceTest {
         assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
     }
 
+    @Test
+    void getBookingsOfCustomer_WithValidStatus_ReturnsBookingListResponse() {
+        // Given
+        String status = "CONFIRMED";
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "updatedAt"));
+
+        Booking booking = new Booking();
+        booking.setStatus(EBookingStatus.CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now().plusDays(1));
+        booking.setDropOffTime(LocalDateTime.now().plusDays(3));
+        booking.setBasePrice(1000);
+        booking.setCar(new Car());
+
+        Page<Booking> bookingPage = new PageImpl<>(List.of(booking));
+
+        when(bookingRepository.findByAccountIdAndStatus(eq(accountId), eq(EBookingStatus.CONFIRMED), eq(pageable)))
+                .thenReturn(bookingPage);
+        when(bookingMapper.toBookingThumbnailResponse(any())).thenReturn(new BookingThumbnailResponse());
+
+        // When
+        BookingListResponse response = bookingService.getBookingsOfCustomer(0, 10, "updatedAt,DESC", status);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(1, response.getBookings().getTotalElements());
+        verify(bookingRepository).findByAccountIdAndStatus(eq(accountId), eq(EBookingStatus.CONFIRMED), eq(pageable));
+    }
+
+    @Test
+    void getBookingsOfCustomer_WithInvalidStatus_ReturnsAllBookings() {
+        // Given
+        String status = "INVALID_STATUS"; // Trạng thái không hợp lệ
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "updatedAt"));
+
+        Page<Booking> bookingPage = new PageImpl<>(Collections.emptyList());
+
+        when(bookingRepository.findByAccountId(eq(accountId), eq(pageable)))
+                .thenReturn(bookingPage);
+
+        // When
+        BookingListResponse response = bookingService.getBookingsOfCustomer(0, 10, "updatedAt,DESC", status);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(0, response.getBookings().getTotalElements());
+        verify(bookingRepository).findByAccountId(eq(accountId), eq(pageable)); // Kiểm tra gọi đúng phương thức
+    }
 
     @ParameterizedTest
     @ValueSource(strings = {"CONFIRMED", "IN_PROGRESS", "CANCELLED"})
-    void parseStatus_WithValidStatus_ReturnsEnum(String status) {
-        // Act
-        EBookingStatus result = bookingService.parseStatus(status);
+    void getBookingsOfCustomer_WithMultipleValidStatuses_ReturnsFilteredResults(String status) {
+        // Given
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        Page<Booking> bookingPage = new PageImpl<>(Collections.emptyList());
 
-        // Assert
-        assertEquals(EBookingStatus.valueOf(status), result);
+        when(bookingRepository.findByAccountIdAndStatus(eq(accountId), eq(EBookingStatus.valueOf(status)), eq(pageable)))
+                .thenReturn(bookingPage);
+
+        // When
+        BookingListResponse response = bookingService.getBookingsOfCustomer(0, 10, "updatedAt,DESC", status);
+
+        // Then
+        assertNotNull(response);
+        verify(bookingRepository).findByAccountIdAndStatus(eq(accountId), eq(EBookingStatus.valueOf(status)), eq(pageable));
     }
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"INVALID", "wrong"})
-    void parseStatus_WithInvalidStatus_ReturnsNull(String status) {
-        // Act
-        EBookingStatus result = bookingService.parseStatus(status);
+    @Test
+    void getBookingsOfCarOwner_WithInvalidStatus_ReturnsAllBookingsExceptPendingDeposit() {
+        // Given
+        String status = "INVALID_STATUS";
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "updatedAt"));
 
-        // Assert
-        assertNull(result);
+        Page<Booking> bookingPage = new PageImpl<>(Collections.emptyList());
+
+        when(bookingRepository.findBookingsByCarOwnerId(eq(accountId), eq(EBookingStatus.PENDING_DEPOSIT), eq(pageable)))
+                .thenReturn(bookingPage);
+
+        // When
+        BookingListResponse response = bookingService.getBookingsOfCarOwner(0, 10, "updatedAt,DESC", status);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(0, response.getBookings().getTotalElements());
+        verify(bookingRepository).findBookingsByCarOwnerId(eq(accountId), eq(EBookingStatus.PENDING_DEPOSIT), eq(pageable));
     }
 
 
+    @Test
+    void findBookingByBookingNumber_Success() {
+        // Given
+        String bookingNumber = "BK100";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
 
+        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+
+        // When
+        Booking result = bookingRepository.findBookingByBookingNumber(bookingNumber);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(bookingNumber, result.getBookingNumber());
+    }
+
+    @Test
+    void findBookingByBookingNumberAndOwnerId_Success() {
+        // Given
+        String bookingNumber = "BK200";
+        String ownerId = "owner123";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+
+        when(bookingRepository.findBookingByBookingNumberAndOwnerId(bookingNumber, ownerId)).thenReturn(booking);
+
+        // When
+        Booking result = bookingRepository.findBookingByBookingNumberAndOwnerId(bookingNumber, ownerId);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(bookingNumber, result.getBookingNumber());
+    }
+
+    @Test
+    void existsByCarIdAndAccountIdAndBookingStatusIn_Success() {
+        // Given
+        String carId = "CAR001";
+        String accountId = "user123";
+        List<EBookingStatus> statuses = List.of(EBookingStatus.COMPLETED, EBookingStatus.PENDING_PAYMENT);
+
+        when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, statuses)).thenReturn(true);
+
+        // When
+        boolean result = bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, statuses);
+
+        // Then
+        assertTrue(result);
+    }
+
+
+    @Test
+    void confirmBooking_Success() {
+        // Given
+        String bookingNumber = "BK001";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now().plusDays(1)); // Booking chưa hết hạn
+
+        Car car = new Car();
+        Account owner = new Account();
+        owner.setId(accountId);
+        car.setAccount(owner);
+        booking.setCar(car);
+
+        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+
+        // When
+        BookingResponse response = bookingService.confirmBooking(bookingNumber);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(EBookingStatus.CONFIRMED, booking.getStatus());
+        verify(bookingRepository).saveAndFlush(booking);
+    }
+
+    @Test
+    void confirmBooking_BookingNotFound_ShouldThrowException() {
+        // Given
+        String bookingNumber = "BK001";
+        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(null);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class,
+                () -> bookingService.confirmBooking(bookingNumber)
+        );
+
+        assertEquals(ErrorCode.BOOKING_NOT_FOUND_IN_DB, exception.getErrorCode());
+    }
+
+    @Test
+    void confirmBooking_NotCarOwner_ShouldThrowException() {
+        // Given
+        String bookingNumber = "BK001";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+
+        Car car = new Car();
+        Account owner = new Account();
+        owner.setId("otherUser"); // Không phải chủ xe đang đăng nhập
+        car.setAccount(owner);
+        booking.setCar(car);
+
+        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class,
+                () -> bookingService.confirmBooking(bookingNumber)
+        );
+
+        assertEquals(ErrorCode.FORBIDDEN_BOOKING_ACCESS, exception.getErrorCode());
+    }
+
+    @Test
+    void confirmBooking_InvalidStatus_ShouldThrowException() {
+        // Given
+        String bookingNumber = "BK001";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(EBookingStatus.IN_PROGRESS); // Trạng thái không hợp lệ
+
+        Car car = new Car();
+        Account owner = new Account();
+        owner.setId(accountId);
+        car.setAccount(owner);
+        booking.setCar(car);
+
+        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class,
+                () -> bookingService.confirmBooking(bookingNumber)
+        );
+
+        assertEquals(ErrorCode.INVALID_BOOKING_STATUS, exception.getErrorCode());
+    }
+
+    @Test
+    void confirmBooking_ExpiredBooking_ShouldThrowException() {
+        // Given
+        String bookingNumber = "BK001";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now().minusHours(1)); // Quá hạn
+
+        Car car = new Car();
+        Account owner = new Account();
+        owner.setId(accountId);
+        car.setAccount(owner);
+        booking.setCar(car);
+
+        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class,
+                () -> bookingService.confirmBooking(bookingNumber)
+        );
+
+        assertEquals(ErrorCode.BOOKING_EXPIRED, exception.getErrorCode());
+        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
+        verify(bookingRepository).save(booking);
+    }
 }
