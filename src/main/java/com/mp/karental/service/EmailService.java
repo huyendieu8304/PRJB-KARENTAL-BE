@@ -33,6 +33,7 @@ public class EmailService {
 //    @Value("${spring.mail.username}")
     private static String fromEmail = "childrencaresystemse1874@gmail.com"; // replace with your email
 
+    //REGISTER
     /**
      * Sends a registration confirmation email.
      * @param to Recipient's email address.
@@ -48,6 +49,7 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    //FORGOT PASSWORD
     /**
      * Sends a password reset email.
      * @param to Recipient's email address.
@@ -62,8 +64,7 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
-    //rent car
-
+    //RENT CAR
     /**
      * Sends an email to the customer notifying them that their booking is awaiting confirmation.
      * @param to Recipient email address.
@@ -124,6 +125,7 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    //CANCEL BOOKING
     /**
      * Sends an email to notify the customer that their booking has been successfully canceled.
      * @param to Recipient email address.
@@ -198,6 +200,7 @@ public class EmailService {
         sendEmail(to, subject, htmlContent);
     }
 
+    //RETURN CAR
     /**
      * Sends an email notification when a rented car is returned.
      * @param to Recipient's email address.
@@ -232,6 +235,33 @@ public class EmailService {
                 getCurrentFormattedDateTime(), walletUrl);
         sendEmail(to, subject, htmlContent);
     }
+
+    //APPROVE RENTAL
+    /**
+     * Sends a confirmation email to the customer regarding their car booking pickup.
+     *
+     * @param to            The recipient's email address (customer).
+     * @param carName       The name of the booked car.
+     * @param bookingNumber The unique booking number.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
+    public void sendConfirmPickUpEmail(String to, String carName, String bookingNumber) throws MessagingException {
+        // Email subject including the booking number
+        String subject = "Booking Pickup Confirmation - " + bookingNumber;
+
+        // Email body with booking details and a request for the customer to confirm the pickup
+        String body = "Dear Customer,\n\n"
+                + "Your booking (Booking No: " + bookingNumber + ") for the car " + carName + " has been confirmed.\n"
+                + "When you pick up the car, please confirm it in the system.\n\n"
+                + "Thank you for choosing our service!\n"
+                + "Best regards,\n"
+                + "Your Car Rental Team";
+
+        // Sending the email
+        sendEmail(to, subject, body);
+    }
+
+
 
     /**
      * Helper method to send an email with the given parameters.

@@ -82,8 +82,7 @@ class BookingServiceTest {
     @Mock
     private MultipartFile mockFile;
 
-    @Mock
-    private AccountRepository accountRepository;
+
 
     private MockedStatic<SecurityUtil> mockedSecurityUtil;
     private String accountId;
@@ -184,7 +183,7 @@ class BookingServiceTest {
         booking.setBookingNumber(bookingNumber);
         booking.setAccount(mockAccount);
         booking.setCar(car);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         booking.setPickUpTime(mockPickUpTime);
         booking.setDropOffTime(mockDropOffTime);
         booking.setDriverDrivingLicenseUri("user/abc.jpg");
@@ -253,7 +252,7 @@ class BookingServiceTest {
         booking.setBookingNumber(bookingNumber);
         booking.setAccount(mockAccount);
         booking.setCar(car);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRM);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         booking.setPickUpTime(mockPickUpTime);
         booking.setDropOffTime(mockDropOffTime);
         booking.setDriverDrivingLicenseUri("user/abc.jpg");
@@ -3599,7 +3598,7 @@ class BookingServiceTest {
 
 
     @Test
-    void confirmBooking_Success() {
+    void confirmBooking_Success() throws MessagingException {
         // Given
         String bookingNumber = "BK001";
         Booking booking = new Booking();

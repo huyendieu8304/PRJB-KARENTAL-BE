@@ -84,6 +84,7 @@ public enum ErrorCode {
 
 
     BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
+    BOOKING_CANNOT_PICKUP(3024,"The booking cannot be pickup when status not confirmed, from 30 minutes before the pickup time and before the drop-off time.", HttpStatus.FORBIDDEN),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),

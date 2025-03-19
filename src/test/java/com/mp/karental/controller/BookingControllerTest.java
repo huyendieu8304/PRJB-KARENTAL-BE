@@ -89,7 +89,7 @@ class BookingControllerTest {
         
         BookingResponse bookingResponse = new BookingResponse();
         bookingResponse.setBookingNumber("BK123456");
-        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRM);
+        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED);
 
         when(bookingService.createBooking(any(CreateBookingRequest.class))).thenReturn(bookingResponse);
 
@@ -206,19 +206,45 @@ class BookingControllerTest {
 
 
     @Test
-    void getBookings_DefaultParams() throws Exception {
-        // Arrange
-        Page<BookingThumbnailResponse> mockPage = new PageImpl<>(List.of(new BookingThumbnailResponse()));
-        when(bookingService.getBookingsByUserId(0, 10, "createdAt,DESC")).thenReturn(mockPage);
+    void testGetBookingByBookingNumber_Success() throws Exception {
+        when(bookingService.getBookingDetailsByBookingNumber("BK123456")).thenReturn(bookingResponse);
 
-        // Act & Assert
-        mockMvc.perform(MockMvcRequestBuilders.get("/booking/customer/my-bookings")
+        mockMvc.perform(get("/booking/customer/{bookingNumber}", "BK123456")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content").isArray());
-
-        verify(bookingService, times(1)).getBookingsByUserId(0, 10, "createdAt,DESC");
+                .andExpect(jsonPath("$.data.bookingNumber").value("BK123456"));
     }
+
+    @Test
+    void testGetBookingByBookingNumber_NotFound() throws Exception {
+        when(bookingService.getBookingDetailsByBookingNumber("INVALID"))
+                .thenThrow(new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB));
+
+        mockMvc.perform(get("/booking/customer/{bookingNumber}", "INVALID")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetCustomerBookingDetails_Success() throws Exception {
+        when(bookingService.getBookingDetailsByBookingNumber("BK123456")).thenReturn(bookingResponse);
+
+        mockMvc.perform(get("/booking/car-owner/{bookingNumber}", "BK123456")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.bookingNumber").value("BK123456"));
+    }
+
+    @Test
+    void testGetCustomerBookingDetails_NotFound() throws Exception {
+        when(bookingService.getBookingDetailsByBookingNumber("INVALID"))
+                .thenThrow(new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB));
+
+        mockMvc.perform(get("/booking/car-owner/{bookingNumber}", "INVALID")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
 
     @Test
     void getWallet_Success() throws Exception {
