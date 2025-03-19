@@ -81,6 +81,8 @@ public enum ErrorCode {
     BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
     INVALID_BOOKING_STATUS(3020, "This booking cannot be confirmed due to its current status.", HttpStatus.BAD_REQUEST),
     BOOKING_EXPIRED(3021, "This booking has expired and cannot be confirmed.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_EXPIRED(3022, "Feedback is only allowed within 30 days after drop-off.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_TOO_LONG(3023, "Feedback content must not exceed 250 characters.", HttpStatus.BAD_REQUEST),
 
 
     //range 4xxx
