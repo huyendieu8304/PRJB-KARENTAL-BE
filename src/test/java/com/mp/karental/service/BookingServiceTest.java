@@ -3029,6 +3029,7 @@ class BookingServiceTest {
         assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
     }
 
+
     @Test
     void getBookingDetailsByBookingNumber_shouldThrowException_whenCarOwnerBookingNotFound() {
         // Given
