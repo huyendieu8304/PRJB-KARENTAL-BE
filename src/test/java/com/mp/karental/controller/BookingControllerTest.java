@@ -204,6 +204,42 @@ class BookingControllerTest {
                 .andExpect(jsonPath("$.data.totalWaitingConfirmBooking").value(2));
     }
 
+    @Test
+    void testGetBookingsForCarOwner_WithSpecificStatus() throws Exception {
+        BookingListResponse mockResponse = new BookingListResponse(5, 1, Page.empty());
+        when(bookingService.getBookingsOfCarOwner(0, 10, "updatedAt,DESC", "CONFIRMED")).thenReturn(mockResponse);
+
+        mockMvc.perform(get("/booking/car-owner/rentals")
+                        .param("status", "CONFIRMED")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalOnGoingBookings").value(5))
+                .andExpect(jsonPath("$.data.totalWaitingConfirmBooking").value(1));
+    }
+
+    @Test
+    void testGetBookingsForCustomer_StatusIsProvided() throws Exception {
+        BookingListResponse mockResponse = new BookingListResponse(5, 1, Page.empty());
+        when(bookingService.getBookingsOfCustomer(anyInt(), anyInt(), anyString(), eq("CONFIRMED"))).thenReturn(mockResponse);
+
+        mockMvc.perform(get("/booking/customer/my-bookings")
+                        .param("status", "CONFIRMED")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalOnGoingBookings").value(5))
+                .andExpect(jsonPath("$.data.totalWaitingConfirmBooking").value(1));
+
+        verify(bookingService).getBookingsOfCustomer(0, 10, "updatedAt,DESC", "CONFIRMED");
+    }
+
+    @Test
+    void testGetBookingsForCustomer_InvalidStatus() throws Exception {
+        mockMvc.perform(get("/booking/car-owner/rentals")
+                        .param("status", "INVALID_STATUS")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
 
     @Test
     void testGetBookingByBookingNumber_Success() throws Exception {
@@ -312,6 +348,26 @@ class BookingControllerTest {
 
         // Perform the GET request and assert that the response is correct
         mockMvc.perform(put("/booking/customer/cancel-booking/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
+    @Test
+    void testConfirmPickUpBooking_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.IN_PROGRESS);
+
+        // Mock the service method
+        when(bookingService.confirmPickUp(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/customer/confirm-pick-up/{bookingNumber}", bookingNumber)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())  // Assert that the response status is 200 OK
                 .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
