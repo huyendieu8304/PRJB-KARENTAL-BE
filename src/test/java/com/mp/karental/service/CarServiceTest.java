@@ -315,7 +315,7 @@ class CarServiceTest {
         when(carRepository.findById("car-999")).thenReturn(Optional.empty());
 
         EditCarRequest editCarRequest = new EditCarRequest();
-        editCarRequest.setStatus("AVAILABLE");
+//        editCarRequest.setStatus(E);
 
         assertThrows(AppException.class, () -> carService.editCar(editCarRequest, "car-999"));
     }

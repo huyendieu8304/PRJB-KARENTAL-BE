@@ -65,4 +65,6 @@ public class BookingResponse {
     String driverWard;
 
     String driverHouseNumberStreet;
+
+    boolean isDriver;
 }

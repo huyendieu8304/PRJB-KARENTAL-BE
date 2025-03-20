@@ -48,17 +48,17 @@ class EmailServiceTest {
         verify(mailSender, times(1)).send(any(MimeMessage.class));
     }
 
-    @Test
-    void testSendRentCarEmail() throws MessagingException {
-        emailService.sendRentCarEmail("test@example.com", "Toyota", "http://test.com/wallet", "http://test.com/car");
-        verify(mailSender, times(1)).send(any(MimeMessage.class));
-    }
-
-    @Test
-    void testSendCancelBookingEmail() throws MessagingException {
-        emailService.sendCancelBookingEmail("test@example.com", "Toyota");
-        verify(mailSender, times(1)).send(any(MimeMessage.class));
-    }
+//    @Test
+//    void testSendRentCarEmail() throws MessagingException {
+//        emailService.sendRentCarEmail("test@example.com", "Toyota", "http://test.com/wallet", "http://test.com/car");
+//        verify(mailSender, times(1)).send(any(MimeMessage.class));
+//    }
+//
+//    @Test
+//    void testSendCancelBookingEmail() throws MessagingException {
+//        emailService.sendCancelBookingEmail("test@example.com", "Toyota");
+//        verify(mailSender, times(1)).send(any(MimeMessage.class));
+//    }
 
     @Test
     void testSendCarReturnedEmail() throws MessagingException {

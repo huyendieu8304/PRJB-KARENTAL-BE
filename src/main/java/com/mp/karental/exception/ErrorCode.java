@@ -49,20 +49,21 @@ public enum ErrorCode {
     INVALID_IMAGE_FILE(2021, "Invalid image file type. Accepted formats are .jpg, .jpeg, .png", HttpStatus.BAD_REQUEST),
     INVALID_NATIONAL_ID(2022, "National ID must contain exactly 12 digits.", HttpStatus.BAD_REQUEST),
     NOT_UNIQUE_NATIONAL_ID(2023, "The national id already existed. Please try another national id", HttpStatus.BAD_REQUEST),
-    INVALID_STATUS_EDIT(2024,"Status can edit only NOT_VERIFIED or STOPPED", HttpStatus.BAD_REQUEST),
+    INVALID_CAR_STATUS_CHANGE(2024,"Allowed transitions: NOT_VERIFIED → STOPPED, STOPPED → NOT_VERIFIED, VERIFIED → STOPPED", HttpStatus.BAD_REQUEST),
     INVALID_DATE_RANGE(2025, "Invalid date range. Pick-up date must be before drop-off date.", HttpStatus.BAD_REQUEST),
     INVALID_BOOKING_TIME(2026,"Invalid booking time", HttpStatus.BAD_REQUEST),
     INVALID_PAYMENT_TYPE(2027,"Payment can only WALLET/CASH/BANK_TRANSFER", HttpStatus.BAD_REQUEST),
     INVALID_ADDRESS_COMPONENT(2028,"Invalid address component", HttpStatus.BAD_REQUEST),
     INVALID_DATE_FORMAT(2029, "Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST),
-
     INVALID_TRANSACTION_TYPE(2030,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_DRIVER_INFO(2031,"Driver's information is different from account holder, but the information is not fulfilled",HttpStatus.BAD_REQUEST),
+
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occurred during uploading files. Please try again.", HttpStatus.SERVICE_UNAVAILABLE),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the database.", HttpStatus.BAD_REQUEST),
     ACCOUNT_NOT_FOUND_IN_DB(3003, "The account is not exist in the system.", HttpStatus.BAD_REQUEST),
     MAXIMUM_FILE_UPLOAD_EXCEED(3004, "Maximum file upload exceeded. Each file should not exceed 5Mb", HttpStatus.PAYLOAD_TOO_LARGE),
-    SEND_VERIFY_EMAIL_TO_USER_FAIL(3005, "There was error during sending verify email fail, please try again.", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_VERIFY_EMAIL_TO_USER_FAIL(3005, "There was error during sending verify email, please try again.", HttpStatus.SERVICE_UNAVAILABLE),
     INCORRECT_PASSWORD(3006, "Current password is incorrect.", HttpStatus.BAD_REQUEST),
     CAR_NOT_FOUND_IN_DB(3007, "The car is not exist in the system", HttpStatus.BAD_REQUEST),
     CAR_NOT_VERIFIED(3008, "This car has not been verified and cannot be viewed.", HttpStatus.FORBIDDEN),
@@ -73,11 +74,20 @@ public enum ErrorCode {
     VNPAY_CHECKSUM_FAILED(3012,"VNPAY Checksum sequence has error. ", HttpStatus.BAD_REQUEST),
     VNPAY_PAYMENT_FAILED(3013,"Payment failed by some reasons.", HttpStatus.BAD_REQUEST),
     PAYMENT_FAILED(3014,"Amount is exceeded wallet balance.", HttpStatus.BAD_REQUEST),
-    WALLET_NOT_FOUND_IN_DB(3015, "The wallet is not exist in the system", HttpStatus.BAD_REQUEST),
-    SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3016, "There was error during sending forgot password email fail, please try again.", HttpStatus.SERVICE_UNAVAILABLE),
-    TRANSACTION_NOT_FOUND_IN_DB(3017, "The transaction is not exist in the system", HttpStatus.BAD_REQUEST),
+    WALLET_NOT_FOUND_IN_DB(3015, "The wallet is not exist in the system", HttpStatus.NOT_FOUND),
+    SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3016, "There was error during sending forgot password email, please try again.", HttpStatus.SERVICE_UNAVAILABLE),
+    TRANSACTION_NOT_FOUND_IN_DB(3017, "The transaction is not exist in the system", HttpStatus.NOT_FOUND),
+    BOOKING_NOT_FOUND_IN_DB(3018, "The booking is not exist in the system", HttpStatus.NOT_FOUND),
+    BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
+    INVALID_BOOKING_STATUS(3020, "This booking cannot be confirmed due to its current status.", HttpStatus.BAD_REQUEST),
+    BOOKING_EXPIRED(3021, "This booking has expired and cannot be confirmed.", HttpStatus.BAD_REQUEST),
 
     EMAIL_NOT_USED_BY_ANY_ACCOUNT(3022, "The email address you’ve entered does not exist. Please try again.", HttpStatus.BAD_REQUEST),
+    BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
+    BOOKING_CANNOT_PICKUP(3024,"The booking cannot be pickup when status not confirmed, from 30 minutes before the pickup time and before the drop-off time.", HttpStatus.FORBIDDEN),
+    SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL(3025,"There was error during sending system cancel booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
+
+
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -92,6 +102,8 @@ public enum ErrorCode {
     FORBIDDEN_CAR_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.FORBIDDEN),
     INVALID_ONETIME_TOKEN(4011, "The token is invalid or this link has expired or has been used.", HttpStatus.BAD_REQUEST),
     INVALID_FORGOT_PASSWORD_TOKEN(4012, "This link has expired. Please go back to Homepage and try again.", HttpStatus.BAD_REQUEST),
+    FORBIDDEN_PROFILE_INCOMPLETE(4013, "Please complete your individual profile to booking", HttpStatus.FORBIDDEN),
+    FORBIDDEN_BOOKING_ACCESS(4014, "Can not view detail/edit booking of another account", HttpStatus.FORBIDDEN),
     ;
 
     /**

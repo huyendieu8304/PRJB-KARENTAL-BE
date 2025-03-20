@@ -1,5 +1,5 @@
 package com.mp.karental.validation.validator;
-import com.mp.karental.dto.request.booking.BookingRequest;
+import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusHours(3)); // Hợp lệ vì sau thời gian hiện tại 2 giờ
             request.setDropOffTime(now.plusHours(6)); // Hợp lệ vì sau thời gian lấy xe 4 giờ
 
@@ -44,7 +44,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.minusHours(1)); // Không hợp lệ vì trong quá khứ
             request.setDropOffTime(now.plusHours(6));
 
@@ -58,7 +58,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusHours(5));
             request.setDropOffTime(now.plusHours(3)); // Không hợp lệ vì nhỏ hơn pick-up time
 
@@ -72,7 +72,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusDays(1));
             request.setDropOffTime(now.plusDays(31)); // Không hợp lệ vì vượt quá 30 ngày
 
@@ -82,11 +82,11 @@ class BookingTimeValidatorTest {
 
     @Test
     void testInvalidBookingTime_NullPickUpOrDropOff() {
-        BookingRequest request1 = new BookingRequest();
+        CreateBookingRequest request1 = new CreateBookingRequest();
         request1.setPickUpTime(null);
         request1.setDropOffTime(LocalDateTime.now().plusDays(2));
 
-        BookingRequest request2 = new BookingRequest();
+        CreateBookingRequest request2 = new CreateBookingRequest();
         request2.setPickUpTime(LocalDateTime.now().plusDays(2));
         request2.setDropOffTime(null);
 
@@ -101,7 +101,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusHours(3)); // Hợp lệ: sau 3 giờ
             request.setDropOffTime(now.plusHours(6)); // Hợp lệ: sau pick-up 4 giờ
 
@@ -117,7 +117,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusHours(2)); // Không hợp lệ: trước 06:00 sáng
             request.setDropOffTime(now.plusHours(6));
 
@@ -132,7 +132,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusHours(1)); // Hợp lệ: 06:00 sáng
             request.setDropOffTime(now.plusHours(2)); // Không hợp lệ: trước 08:00 sáng
 
@@ -148,7 +148,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusDays(61)); // Không hợp lệ: vượt quá 60 ngày
             request.setDropOffTime(now.plusDays(62));
 
@@ -162,7 +162,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusMinutes(90)); // Không hợp lệ: dưới 2 giờ
             request.setDropOffTime(now.plusHours(5));
 
@@ -176,7 +176,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusHours(3));
             request.setDropOffTime(now.plusHours(2)); // Không hợp lệ: dưới 4 giờ
 
@@ -190,7 +190,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusDays(1));
             request.setDropOffTime(now.plusDays(30)); // Hợp lệ: đúng 30 ngày
 
@@ -204,7 +204,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusMinutes(30)); // Không hợp lệ: trước 06:00 sáng
             request.setDropOffTime(now.plusHours(5));
 
@@ -218,7 +218,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusHours(2));
 
             assertFalse(bookingTimeValidator.isValid(request, context));
@@ -231,7 +231,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusHours(2)); // Hợp lệ: đúng 06:00 sáng
             request.setDropOffTime(now.plusHours(4));
 
@@ -245,7 +245,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusHours(3));
             request.setDropOffTime(now.plusHours(5)); // Hợp lệ: đúng 08:00 sáng
 
@@ -259,7 +259,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mockedNow = Mockito.mockStatic(LocalDateTime.class)) {
             mockedNow.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusYears(1)); // Không hợp lệ: xa hơn 60 ngày
             request.setDropOffTime(now.plusYears(1).plusDays(1));
 
@@ -274,7 +274,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mocked = Mockito.mockStatic(LocalDateTime.class)) {
             mocked.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.minusHours(1)); // Pick-up time trong quá khứ
             request.setDropOffTime(now.plusDays(1));
 
@@ -284,7 +284,7 @@ class BookingTimeValidatorTest {
 
     @Test
     void testDropOffBeforePickUp_ShouldBeInvalid() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(LocalDateTime.of(2024, 10, 10, 12, 0));
         request.setDropOffTime(LocalDateTime.of(2024, 10, 10, 10, 0)); // Drop-off time trước pick-up
 
@@ -293,7 +293,7 @@ class BookingTimeValidatorTest {
 
     @Test
     void testRentalPeriodExceeds30Days_ShouldBeInvalid() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(LocalDateTime.of(2024, 10, 10, 12, 0));
         request.setDropOffTime(LocalDateTime.of(2024, 11, 15, 12, 0)); // Quá 30 ngày
 
@@ -307,7 +307,7 @@ class BookingTimeValidatorTest {
         try (MockedStatic<LocalDateTime> mocked = Mockito.mockStatic(LocalDateTime.class)) {
             mocked.when(LocalDateTime::now).thenReturn(now);
 
-            BookingRequest request = new BookingRequest();
+            CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusMinutes(30)); // Chỉ sau 30 phút, không đủ 2 giờ
             request.setDropOffTime(now.plusHours(5));
 
@@ -317,7 +317,7 @@ class BookingTimeValidatorTest {
 
     @Test
     void testDropOffTooSoon_ShouldBeInvalid() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(LocalDateTime.of(2024, 10, 10, 12, 0));
         request.setDropOffTime(LocalDateTime.of(2024, 10, 10, 13, 30)); // Chưa đủ 4 giờ
 
@@ -326,7 +326,7 @@ class BookingTimeValidatorTest {
 
     @Test
     void testPickUpBetween20hAnd4h_ShouldBeAfter6AM() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(LocalDateTime.of(2024, 10, 10, 2, 0)); // Đặt vào lúc 2h sáng
         request.setDropOffTime(LocalDateTime.of(2024, 10, 10, 10, 0));
 
@@ -335,7 +335,7 @@ class BookingTimeValidatorTest {
 
     @Test
     void testDropOffBetween20hAnd4h_ShouldBeAfter8AM() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(LocalDateTime.of(2024, 10, 9, 22, 0)); // Đặt xe lúc 22h
         request.setDropOffTime(LocalDateTime.of(2024, 10, 10, 6, 30)); // Drop-off trước 8h sáng
 
@@ -348,7 +348,7 @@ class BookingTimeValidatorTest {
         // Giả sử bây giờ là 21:00
         LocalDateTime now = LocalDateTime.now().with(LocalTime.of(21, 0));
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(now.plusDays(1).with(LocalTime.of(6, 0))); // 06:00 sáng ngày hôm sau
         request.setDropOffTime(now.plusDays(1).with(LocalTime.of(8, 0))); // 08:00 sáng ngày hôm sau
 
@@ -359,7 +359,7 @@ class BookingTimeValidatorTest {
     void testInvalidPickUpTime6AM() {
         LocalDateTime now = LocalDateTime.now().with(LocalTime.of(21, 0)); // 21:00
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(now.plusDays(1).with(LocalTime.of(6, 0))); // 05:00 sáng ngày hôm sau (không hợp lệ)
         request.setDropOffTime(now.plusDays(1).with(LocalTime.of(9, 0)));
 
@@ -370,7 +370,7 @@ class BookingTimeValidatorTest {
     void testDropOff8AM() {
         LocalDateTime now = LocalDateTime.now().with(LocalTime.of(22, 0)); // 22:00
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(now.plusDays(1).with(LocalTime.of(6, 0))); // Hợp lệ
         request.setDropOffTime(now.plusDays(1).with(LocalTime.of(8, 0))); // Không hợp lệ (trước 08:00)
 
@@ -384,7 +384,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = now.plusDays(1).with(LocalTime.of(6, 30)); // Hợp lệ (sau 06:00)
         LocalDateTime dropOff = now.plusDays(1).with(LocalTime.of(8, 30)); // Hợp lệ (sau 08:00)
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
 
@@ -397,7 +397,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = now.plusDays(61).with(LocalTime.of(6, 30)); // Không hợp lệ (> 60 ngày)
         LocalDateTime dropOff = now.plusDays(62).with(LocalTime.of(9, 0)); // Hợp lệ
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
 
@@ -411,7 +411,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = now.plusDays(1).with(LocalTime.of(6, 30)); // Hợp lệ
         LocalDateTime dropOff = now.plusDays(31).with(LocalTime.of(9, 0)); // Không hợp lệ (> 30 ngày)
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
 
@@ -425,7 +425,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = now.plusDays(1).with(LocalTime.of(7, 0)); // Hợp lệ (sau 06:00)
         LocalDateTime dropOff = now.plusDays(2).with(LocalTime.of(9, 0)); // Hợp lệ (sau 08:00)
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
 
@@ -457,7 +457,7 @@ class BookingTimeValidatorTest {
 
     @Test
     void testNullPickUpOrDropOff() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
 
         // Trường hợp pickUpTime null
         request.setPickUpTime(null);
@@ -480,7 +480,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = LocalDateTime.of(2024, 3, 10, 10, 0);
         LocalDateTime dropOffInvalid = pickUp.plusDays(31); // > 30 ngày
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOffInvalid);
 
@@ -497,7 +497,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUpInvalid = today.plusDays(1).atTime(5, 30);
         LocalDateTime dropOffValid = today.plusDays(1).atTime(9, 0);
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUpInvalid);
         request.setDropOffTime(dropOffValid);
 
@@ -506,7 +506,7 @@ class BookingTimeValidatorTest {
 
     @Test
     void testPickUpOrDropOffNull() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
 
         request.setPickUpTime(null);
         request.setDropOffTime(LocalDateTime.now().plusDays(1));
@@ -567,7 +567,7 @@ class BookingTimeValidatorTest {
 
     @Test
     void testBookingBefore20PM_InvalidPickUpBeforeSixAM() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         LocalDate today = LocalDate.now();
 
         LocalDateTime now = today.atTime(19, 30); // Đặt xe lúc 19:30
@@ -585,7 +585,7 @@ class BookingTimeValidatorTest {
 
     @Test
     void testBookingAfter20PM_InvalidPickUpBeforeSixAM() {
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         LocalDate today = LocalDate.now();
 
         LocalDateTime now = today.atTime(22, 30); // Đặt xe lúc 22:30
@@ -608,7 +608,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = today.atTime(6, 30); // Pick-up hợp lệ (06:30 AM)
         LocalDateTime dropOff = today.atTime(7, 59); // Drop-off trước 08:00 AM
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
         boolean result = bookingTimeValidator.isValid(request, null);
@@ -623,7 +623,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = today.atTime(5, 59); // Pick-up trước 06:00 AM
         LocalDateTime dropOff = today.atTime(10, 0); // Drop-off hợp lệ
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
         boolean result = bookingTimeValidator.isValid(request, null);
@@ -637,7 +637,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = today.atTime(6, 30); // Pick-up hợp lệ
         LocalDateTime dropOff = today.atTime(7, 59); // Drop-off trước 8:00 AM
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
         boolean result = bookingTimeValidator.isValid(request, null);
@@ -651,7 +651,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = today.plusDays(61).atTime(6, 30); // Pick-up sau 60 ngày
         LocalDateTime dropOff = today.plusDays(62).atTime(10, 0); // Drop-off hợp lệ
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
         boolean result = bookingTimeValidator.isValid(request, null);
@@ -665,7 +665,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = today.plusDays(1).atTime(6, 30); // Pick-up hợp lệ
         LocalDateTime dropOff = today.plusDays(31).atTime(10, 0); // Drop-off sau 30 ngày
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
         boolean result = bookingTimeValidator.isValid(request, null);
@@ -679,7 +679,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = today.plusDays(1).atTime(6, 30); // Pick-up hợp lệ
         LocalDateTime dropOff = today.plusDays(1).atTime(10, 0); // Drop-off hợp lệ
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
         boolean result = bookingTimeValidator.isValid(request, null);
@@ -693,7 +693,7 @@ class BookingTimeValidatorTest {
         LocalDateTime pickUp = today.plusDays(1).atTime(6, 0); // Pick-up đúng 6:00 AM
         LocalDateTime dropOff = today.plusDays(1).atTime(10, 0); // Drop-off hợp lệ
 
-        BookingRequest request = new BookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
         request.setDropOffTime(dropOff);
         boolean result = bookingTimeValidator.isValid(request, null);
