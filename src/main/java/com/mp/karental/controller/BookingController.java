@@ -171,5 +171,11 @@ public class BookingController {
                 .build();
     }
 
+    @PutMapping("/customer/return-car/{bookingNumber}")
+    public ApiResponse<BookingResponse> returnCar(@PathVariable String bookingNumber) throws MessagingException {
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.returnCar(bookingNumber))
+                .build();
+    }
 
 }

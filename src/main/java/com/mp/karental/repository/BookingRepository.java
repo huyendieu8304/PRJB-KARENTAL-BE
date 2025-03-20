@@ -51,25 +51,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startRange") LocalDateTime startRange,
             @Param("endRange") LocalDateTime endRange
     );
-
-    @Query("""
-    SELECT COUNT(b) 
-    FROM Booking b 
-    WHERE b.car.id = :carId 
-    AND b.status <> :cancelledStatus 
-    AND (
-        :startRange BETWEEN b.pickUpTime AND b.dropOffTime 
-        OR :endRange BETWEEN b.pickUpTime AND b.dropOffTime
-        OR (b.pickUpTime <= :startRange AND b.dropOffTime >= :endRange)
-    )
-""")
-    long countActiveBookingsInTimeRange(@Param("carId") String carId,
-                                        @Param("startRange") LocalDateTime startRange,
-                                        @Param("endRange") LocalDateTime endRange,
-                                        @Param("cancelledStatus") EBookingStatus cancelledStatus);
-
-
-
     @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' " +
             "AND b.paymentType = 'WALLET' " +
             "AND b.createdAt <= :expiredTime " +
@@ -91,6 +72,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' AND b.createdAt > :threshold")
     List<Booking> findPendingDepositBookings(@Param("threshold") LocalDateTime threshold);
 
+    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_PAYMENT' AND b.createdAt > :threshold")
+    List<Booking> findPendingPaymentBookings(@Param("threshold") LocalDateTime threshold);
 
     @Query("""
     SELECT b FROM Booking b
@@ -167,4 +150,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("bookingNumber") String bookingNumber,
             @Param("ownerId") String ownerId
     );
+
+
 }

@@ -1,5 +1,6 @@
 package com.mp.karental.service;
 
+import com.mp.karental.entity.Account;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.AccessLevel;
@@ -258,6 +259,55 @@ public class EmailService {
                 + "Your Car Rental Team";
 
         // Sending the email
+        sendEmail(to, subject, body);
+    }
+
+    //RETURN CAR
+    public void sendCustomerDepositRefundEmail(String to, String bookingNumber, long refundAmount) throws MessagingException {
+        String subject = "Car Returned - Payment Complete (Booking No: " + bookingNumber + ")";
+        String body = "Dear Customer,\n\n"
+                + "Your car return for Booking No: " + bookingNumber + " has been processed successfully.\n"
+                + "Your total payment has been covered by the deposit. An excess amount of $" + refundAmount + " has been refunded to your wallet.\n\n"
+                + "Thank you for choosing our service!\n"
+                + "Best regards,\n"
+                + "Your Car Rental Team";
+
+        sendEmail(to, subject, body);
+    }
+    public void sendCustomerWalletDeductionEmail(String to, String bookingNumber, long deductedAmount) throws MessagingException {
+        String subject = "Car Returned - Payment Deducted (Booking No: " + bookingNumber + ")";
+        String body = "Dear Customer,\n\n"
+                + "Your car return for Booking No: " + bookingNumber + " has been processed successfully.\n"
+                + "Since your deposit was insufficient, an additional amount of $" + deductedAmount + " has been deducted from your wallet.\n\n"
+                + "Thank you for choosing our service!\n"
+                + "Best regards,\n"
+                + "Your Car Rental Team";
+
+        sendEmail(to, subject, body);
+    }
+    public void sendCustomerPendingPaymentEmail(String to, String bookingNumber, long remainingAmount) throws MessagingException {
+        String subject = "Car Returned - Payment Due (Booking No: " + bookingNumber + ")";
+        String body = "Dear Customer,\n\n"
+                + "Your car return for Booking No: " + bookingNumber + " has been processed.\n"
+                + "However, you have an outstanding balance of $" + remainingAmount + ".\n"
+                + "Please complete the payment within 1 hour to avoid penalties.\n\n"
+                + "Thank you for choosing our service!\n"
+                + "Best regards,\n"
+                + "Your Car Rental Team";
+
+        sendEmail(to, subject, body);
+    }
+
+
+    public void sendCarOwnerCompletedPaymentEmail(String to, String bookingNumber, long amountReceived) throws MessagingException {
+        String subject = "Car Returned - Payment Processed (Booking No: " + bookingNumber + ")";
+        String body = "Dear Car Owner,\n\n"
+                + "Your car has been returned for Booking No: " + bookingNumber + ".\n"
+                + "You have received $" + amountReceived + " (92% of the total rental fee).\n\n"
+                + "Thank you for listing your car with us!\n"
+                + "Best regards,\n"
+                + "Your Car Rental Team";
+
         sendEmail(to, subject, body);
     }
 
