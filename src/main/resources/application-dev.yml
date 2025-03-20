@@ -12,3 +12,6 @@ application:
       /swagger-config,
       /swagger-resources/**
       "
+springdoc:
+  swagger-ui:
+    enabled: true

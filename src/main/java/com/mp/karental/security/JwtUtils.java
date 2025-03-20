@@ -43,7 +43,7 @@ public class JwtUtils {
      * get the jwt SecretKey from secret key in environment variable
      * @return SecretKey object which is used in generate and decode token
      */
-    private SecretKey getScretKey(String secretKey) {
+    private SecretKey getSecretKey(String secretKey) {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -71,7 +71,7 @@ public class JwtUtils {
                 .issuer("${spring.application.name}")
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration)) //set expiration date for token
-                .signWith(getScretKey(secretKey)) //the algorithm is automatically determine by the api of jjwt
+                .signWith(getSecretKey(secretKey)) //the algorithm is automatically determine by the api of jjwt
                 .compact();
     }
 
@@ -88,7 +88,7 @@ public class JwtUtils {
     public boolean validateJwtAccessToken(String accessToken) {
         try {
             Jwts.parser()
-                    .verifyWith(getScretKey(accessTokenSecretKey))
+                    .verifyWith(getSecretKey(accessTokenSecretKey))
                     .build()
                     .parse(accessToken);
             return true;
@@ -114,7 +114,7 @@ public class JwtUtils {
     public boolean validateJwtRefreshToken(String refreshToken) {
         try {
             Jwts.parser()
-                    .verifyWith(getScretKey(refreshTokenSecretKey))
+                    .verifyWith(getSecretKey(refreshTokenSecretKey))
                     .build()
                     .parse(refreshToken);
             return true;
@@ -141,7 +141,7 @@ public class JwtUtils {
      */
     public String getUserEmailFromAccessToken(String accessToken) {
         return Jwts.parser()
-                .verifyWith(getScretKey(accessTokenSecretKey))
+                .verifyWith(getSecretKey(accessTokenSecretKey))
                 .build()
                 .parseSignedClaims(accessToken)
                 .getPayload()
@@ -150,7 +150,7 @@ public class JwtUtils {
 
     public String getUserAccountIdFromRefreshToken(String refreshToken) {
         return Jwts.parser()
-                .verifyWith(getScretKey(refreshTokenSecretKey))
+                .verifyWith(getSecretKey(refreshTokenSecretKey))
                 .build()
                 .parseSignedClaims(refreshToken)
                 .getPayload()
@@ -159,7 +159,7 @@ public class JwtUtils {
 
     public Instant getExpirationAtFromAccessToken(String accessToken) {
         return Jwts.parser()
-                .verifyWith(getScretKey(accessTokenSecretKey))
+                .verifyWith(getSecretKey(accessTokenSecretKey))
                 .build()
                 .parseSignedClaims(accessToken)
                 .getPayload()
@@ -169,7 +169,7 @@ public class JwtUtils {
 
     public Instant getExpirationAtFromRefreshToken(String refreshToken) {
         return Jwts.parser()
-                .verifyWith(getScretKey(refreshTokenSecretKey))
+                .verifyWith(getSecretKey(refreshTokenSecretKey))
                 .build()
                 .parseSignedClaims(refreshToken)
                 .getPayload()

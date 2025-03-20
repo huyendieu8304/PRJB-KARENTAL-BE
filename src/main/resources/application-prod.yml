@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:mysql://database-1-karental.cbsocu2qk2qz.ap-southeast-1.rds.amazonaws.com:3306/karental
+    driverClassName: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
