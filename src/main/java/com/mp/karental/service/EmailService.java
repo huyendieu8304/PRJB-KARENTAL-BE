@@ -1,5 +1,7 @@
 package com.mp.karental.service;
 
+import com.mp.karental.constant.EBookingStatus;
+import com.mp.karental.constant.ERole;
 import com.mp.karental.entity.Account;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -66,176 +68,106 @@ public class EmailService {
     }
 
     //RENT CAR
-    /**
-     * Sends an email to the customer notifying them that their booking is awaiting confirmation.
-     * @param to Recipient email address.
-     * @param carName Name of the booked car.
-     * @param bookingNumber Booking reference number.
-     * @throws MessagingException If email sending fails.
-     */
-    public void sendBookingWaitingForConfirmationEmail(String to, String carName, String bookingNumber) throws MessagingException {
-        // Email content
-        String subject = "Your Booking is Pending Confirmation";
-        String htmlContent = String.format(
-                "<p>Dear Customer,</p>"
-                        + "<p>Your booking for the car <strong>%s</strong> has been successfully placed and is now <strong>waiting for the car owner’s confirmation</strong>.</p>"
-                        + "<p>You can check the status of your booking in the system with booking number <strong>%s</strong>.</p>"
-                        + "<p>Thank you!</p>",
-                carName, bookingNumber);
+    public void sendBookingEmail(EBookingStatus status, ERole role, String to, String carName, String detail) throws MessagingException {
+        String subject = "", body = "";
 
-        sendEmail(to, subject, htmlContent);
+        switch (status) {
+            case WAITING_CONFIRMED:
+                if (role == ERole.CUSTOMER) {
+                    subject = "Your Booking is Pending Confirmation";
+                    body = String.format(
+                            "<p>Dear Customer,</p>"
+                                    + "<p>Your booking for the car <strong>%s</strong> is <strong>waiting for the car owner’s confirmation</strong>.</p>"
+                                    + "<p>Booking number: <strong>%s</strong>.</p>"
+                                    + "<p>Thank you!</p>",
+                            carName, detail);
+                } else {
+                    subject = "A New Booking Needs Your Confirmation";
+                    body = String.format(
+                            "<p>Dear Car Owner,</p>"
+                                    + "<p>Your car <strong>%s</strong> has been booked.</p>"
+                                    + "<p>Please check your account and confirm the booking with the license plate: <strong>%s</strong>.</p>"
+                                    + "<p>If you need assistance, please contact support.</p>"
+                                    + "<p>Thank you!</p>",
+                            carName, detail);
+                }
+                break;
+            case CANCELLED:
+                subject = "Your Booking Has Been Cancelled";
+                body = String.format(
+                        "<p>Dear Customer,</p>"
+                                + "<p>Your booking for the car <strong>%s</strong> has been <strong>cancelled</strong> due to: <strong>%s</strong>.</p>"
+                                + "<p>Thank you!</p>",
+                        carName, detail);
+                break;
+
+            default:
+                return; // No email needed for other statuses
+        }
+
+        sendEmail(to, subject, body);
     }
 
-    /**
-     * Sends an email to the car owner requesting confirmation for a booking.
-     * @param to Recipient email address.
-     * @param carName Name of the booked car.
-     * @param licensePlate License plate of the car.
-     * @throws MessagingException If email sending fails.
-     */
-    public void sendCarOwnerConfirmationRequestEmail(String to, String carName, String licensePlate) throws MessagingException {
-        // Email content
-        String subject = "A New Booking Needs Your Confirmation";
-        String htmlContent = String.format(
-                "<p>Dear Car Owner,</p>"
-                        + "<p>Your car <strong>%s</strong> has been booked by a customer.</p>"
-                        + "<p>Please check your account and confirm the booking with the license plate: <strong>%s</strong>.</p>"
-                        + "<p>If you need assistance, please contact support.</p>"
-                        + "<p>Thank you!</p>",
-                carName, licensePlate);
 
-        sendEmail(to, subject, htmlContent);
-    }
-
-    /**
-     * Sends an email to notify the customer that their booking has been canceled by the system.
-     * @param to Recipient email address.
-     * @param carName Name of the booked car.
-     * @param reason Reason for cancellation.
-     * @throws MessagingException If email sending fails.
-     */
-    public void sendSystemCanceledBookingEmail(String to, String carName, String reason) throws MessagingException {
-        String subject = "Your Booking Has Been Cancelled";
-        String htmlContent = String.format(
-                "<p>Dear Customer,</p>"
-                        + "<p>Your booking for the car <strong>%s</strong> has been <strong>cancelled</strong> due to the following reason: <strong>%s</strong>.</p>"
-                        + "<p>If you have any questions, please contact our support team.</p>"
-                        + "<p>Thank you!</p>",
-                carName, reason);
-
-        sendEmail(to, subject, htmlContent);
-    }
 
     //CANCEL BOOKING
-    /**
-     * Sends an email to notify the customer that their booking has been successfully canceled.
-     * @param to Recipient email address.
-     * @param carName Name of the booked car.
-     * @throws MessagingException If email sending fails.
-     */
-    public void sendCustomerBookingCanceledEmail(String to, String carName) throws MessagingException {
-        String subject = "Booking Cancellation Successful";
-        String htmlContent = String.format(
-                "<p>Dear Customer,</p>"
-                        + "<p>Your booking for <strong>%s</strong> has been successfully canceled.</p>"
-                        + "<p>If you have any questions, please contact our support team.</p>"
-                        + "<p>Thank you!</p>",
-                carName);
+    public void sendBookingCancellationEmail(String to, ERole role, EBookingStatus bookingStatus, String carName) throws MessagingException {
+        String subject = "";
+        String body = "";
 
-        sendEmail(to, subject, htmlContent);
+        if (role.equals(ERole.CUSTOMER)) {
+            subject = "Booking Cancellation Successful";
+
+            switch (bookingStatus) {
+                case PENDING_DEPOSIT: // No Refund
+                    body = String.format(
+                            "<p>Dear Customer,</p>"
+                                    + "<p>Your booking for <strong>%s</strong> has been successfully canceled.</p>"
+                                    + "<p>If you have any questions, please contact our support team.</p>"
+                                    + "<p>Thank you!</p>",
+                            carName);
+                    break;
+
+                case WAITING_CONFIRMED: // Full Refund
+                    subject += " - Full Refund";
+                    body = String.format(
+                            "<p>Dear Customer,</p>"
+                                    + "<p>Your booking for <strong>%s</strong> has been successfully canceled.</p>"
+                                    + "<p>Your deposit has been fully refunded.</p>"
+                                    + "<p>If you have any questions, please contact our support team.</p>"
+                                    + "<p>Thank you!</p>",
+                            carName);
+                    break;
+
+                case CONFIRMED: // Partial Refund (70%)
+                    subject += " - 70% Refund";
+                    body = String.format(
+                            "<p>Dear Customer,</p>"
+                                    + "<p>Your booking for <strong>%s</strong> has been successfully canceled.</p>"
+                                    + "<p>You have received a 70%% refund of your deposit.</p>"
+                                    + "<p>If you have any questions, please contact our support team.</p>"
+                                    + "<p>Thank you!</p>",
+                            carName);
+                    break;
+
+                default:
+                    return; // Do nothing for other statuses
+            }
+
+        }
+        else if (role.equals(ERole.CAR_OWNER)) {
+            subject = "Booking Cancellation Notification";
+            body = String.format(
+                    "<p>Dear Car Owner,</p>"
+                            + "<p>The booking for your car <strong>%s</strong> has been canceled by the customer.</p>"
+                            + "<p>The system has retained 30%% of the deposit, and you will receive 22%% of it shortly.</p>"
+                            + "<p>Thank you!</p>",
+                    carName);
+        }
+
+        sendEmail(to, subject, body);
     }
 
-    /**
-     * Sends an email to notify the customer that their booking has been canceled with a full refund.
-     * @param to Recipient email address.
-     * @param carName Name of the booked car.
-     * @throws MessagingException If email sending fails.
-     */
-    public void sendCustomerBookingCanceledWithFullRefundEmail(String to, String carName) throws MessagingException {
-        String subject = "Booking Cancellation Successful - Full Refund";
-        String htmlContent = String.format(
-                "<p>Dear Customer,</p>"
-                        + "<p>Your booking for <strong>%s</strong> has been successfully canceled.</p>"
-                        + "<p>Your deposit has been fully refunded.</p>"
-                        + "<p>If you have any questions, please contact our support team.</p>"
-                        + "<p>Thank you!</p>",
-                carName);
-
-        sendEmail(to, subject, htmlContent);
-    }
-
-    /**
-     * Sends an email to notify the customer that their booking has been canceled with a 70% refund.
-     * @param to Recipient email address.
-     * @param carName Name of the booked car.
-     * @throws MessagingException If email sending fails.
-     */
-    public void sendCustomerBookingCanceledWithPartialRefundEmail(String to, String carName) throws MessagingException {
-        String subject = "Booking Cancellation Successful - 70% Refund";
-        String htmlContent = String.format(
-                "<p>Dear Customer,</p>"
-                        + "<p>Your booking for <strong>%s</strong> has been successfully canceled.</p>"
-                        + "<p>You have received a 70%% refund of your deposit.</p>"
-                        + "<p>If you have any questions, please contact our support team.</p>"
-                        + "<p>Thank you!</p>",
-                carName);
-
-        sendEmail(to, subject, htmlContent);
-    }
-
-    /**
-     * Sends an email to notify the car owner that a booking has been canceled.
-     * @param to Recipient email address.
-     * @param carName Name of the booked car.
-     * @throws MessagingException If email sending fails.
-     */
-    public void sendCarOwnerBookingCanceledEmail(String to, String carName) throws MessagingException {
-        String subject = "Booking Cancellation Notification";
-        String htmlContent = String.format(
-                "<p>Dear Car Owner,</p>"
-                        + "<p>The booking for your car <strong>%s</strong> has been canceled by the customer.</p>"
-                        + "<p>The system has retained 30%% of the deposit, and you will receive 22%% of it shortly.</p>"
-                        + "<p>Thank you!</p>",
-                carName);
-
-        sendEmail(to, subject, htmlContent);
-    }
-
-    //RETURN CAR
-    /**
-     * Sends an email notification when a rented car is returned.
-     * @param to Recipient's email address.
-     * @param carName Name of the returned car.
-     * @param walletUrl URL to check the remaining payment.
-     * @param carDetailsUrl URL to confirm payment details.
-     * @throws MessagingException If an error occurs while sending the email.
-     */
-    public void sendCarReturnedEmail(String to, String carName, String walletUrl, String carDetailsUrl) throws MessagingException {
-        String subject = "Your car has been returned";
-        String htmlContent = String.format(
-                "<p>Please be informed that your car <strong>%s</strong> has been returned at <strong>%s</strong>.</p>"
-                        + "<p>Please go to your <a href=\"%s\">wallet</a> to check if the remaining payment has been paid "
-                        + "and go to your <a href=\"%s\">car’s details page</a> to confirm the payment.</p>"
-                        + "<p>Thank you!</p>",
-                carName, getCurrentFormattedDateTime(), walletUrl, carDetailsUrl);
-        sendEmail(to, subject, htmlContent);
-    }
-
-    /**
-     * Sends an email notification when the wallet balance is updated.
-     * @param to Recipient's email address.
-     * @param walletUrl URL to view the wallet balance and transactions.
-     * @throws MessagingException If an error occurs while sending the email.
-     */
-    public void sendWalletUpdateEmail(String to, String walletUrl) throws MessagingException {
-        String subject = "There’s an update to your wallet";
-        String htmlContent = String.format(
-                "<p>Please be informed that your wallet’s balance has been updated at <strong>%s</strong>.</p>"
-                        + "<p>Please go to your <a href=\"%s\">wallet</a> and view the transactions for more details.</p>"
-                        + "<p>Thank you!</p>",
-                getCurrentFormattedDateTime(), walletUrl);
-        sendEmail(to, subject, htmlContent);
-    }
 
     //APPROVE RENTAL
     /**
@@ -263,53 +195,68 @@ public class EmailService {
     }
 
     //RETURN CAR
-    public void sendCustomerDepositRefundEmail(String to, String bookingNumber, long refundAmount) throws MessagingException {
-        String subject = "Car Returned - Payment Complete (Booking No: " + bookingNumber + ")";
-        String body = "Dear Customer,\n\n"
-                + "Your car return for Booking No: " + bookingNumber + " has been processed successfully.\n"
-                + "Your total payment has been covered by the deposit. An excess amount of $" + refundAmount + " has been refunded to your wallet.\n\n"
-                + "Thank you for choosing our service!\n"
-                + "Best regards,\n"
-                + "Your Car Rental Team";
+    public void sendPaymentEmail(String to, ERole role, String bookingNumber, long amount, String paymentStatus) throws MessagingException {
+        String subject = "";
+        String body = "";
+
+        if (role == ERole.CUSTOMER) {
+            switch (paymentStatus.toUpperCase()) {
+                case "REFUND": // Deposit refunded
+                    subject = "Car Returned - Payment Complete (Booking No: " + bookingNumber + ")";
+                    body = String.format(
+                            "Dear Customer,\n\n"
+                                    + "Your car return for Booking No: %s has been processed successfully.\n"
+                                    + "Your total payment has been covered by the deposit. An excess amount of $%d has been refunded to your wallet.\n\n"
+                                    + "Thank you for choosing our service!\n"
+                                    + "Best regards,\n"
+                                    + "Your Car Rental Team",
+                            bookingNumber, amount);
+                    break;
+
+                case "DEDUCT": // Wallet deduction
+                    subject = "Car Returned - Payment Deducted (Booking No: " + bookingNumber + ")";
+                    body = String.format(
+                            "Dear Customer,\n\n"
+                                    + "Your car return for Booking No: %s has been processed successfully.\n"
+                                    + "Since your deposit was insufficient, an additional amount of $%d has been deducted from your wallet.\n\n"
+                                    + "Thank you for choosing our service!\n"
+                                    + "Best regards,\n"
+                                    + "Your Car Rental Team",
+                            bookingNumber, amount);
+                    break;
+
+                case "PENDING_PAYMENT": // Customer needs to pay remaining balance
+                    subject = "Car Returned - Payment Due (Booking No: " + bookingNumber + ")";
+                    body = String.format(
+                            "Dear Customer,\n\n"
+                                    + "Your car return for Booking No: %s has been processed.\n"
+                                    + "However, you have an outstanding balance of $%d.\n"
+                                    + "Please complete the payment within 1 hour to avoid penalties.\n\n"
+                                    + "Thank you for choosing our service!\n"
+                                    + "Best regards,\n"
+                                    + "Your Car Rental Team",
+                            bookingNumber, amount);
+                    break;
+
+                default:
+                    return; // No action for other statuses
+            }
+
+        } else if (role == ERole.CAR_OWNER && paymentStatus.equalsIgnoreCase("COMPLETED")) {
+            subject = "Car Returned - Payment Processed (Booking No: " + bookingNumber + ")";
+            body = String.format(
+                    "Dear Car Owner,\n\n"
+                            + "Your car has been returned for Booking No: %s.\n"
+                            + "You have received $%d (92%% of the total rental fee).\n\n"
+                            + "Thank you for listing your car with us!\n"
+                            + "Best regards,\n"
+                            + "Your Car Rental Team",
+                    bookingNumber, amount);
+        }
 
         sendEmail(to, subject, body);
     }
-    public void sendCustomerWalletDeductionEmail(String to, String bookingNumber, long deductedAmount) throws MessagingException {
-        String subject = "Car Returned - Payment Deducted (Booking No: " + bookingNumber + ")";
-        String body = "Dear Customer,\n\n"
-                + "Your car return for Booking No: " + bookingNumber + " has been processed successfully.\n"
-                + "Since your deposit was insufficient, an additional amount of $" + deductedAmount + " has been deducted from your wallet.\n\n"
-                + "Thank you for choosing our service!\n"
-                + "Best regards,\n"
-                + "Your Car Rental Team";
 
-        sendEmail(to, subject, body);
-    }
-    public void sendCustomerPendingPaymentEmail(String to, String bookingNumber, long remainingAmount) throws MessagingException {
-        String subject = "Car Returned - Payment Due (Booking No: " + bookingNumber + ")";
-        String body = "Dear Customer,\n\n"
-                + "Your car return for Booking No: " + bookingNumber + " has been processed.\n"
-                + "However, you have an outstanding balance of $" + remainingAmount + ".\n"
-                + "Please complete the payment within 1 hour to avoid penalties.\n\n"
-                + "Thank you for choosing our service!\n"
-                + "Best regards,\n"
-                + "Your Car Rental Team";
-
-        sendEmail(to, subject, body);
-    }
-
-
-    public void sendCarOwnerCompletedPaymentEmail(String to, String bookingNumber, long amountReceived) throws MessagingException {
-        String subject = "Car Returned - Payment Processed (Booking No: " + bookingNumber + ")";
-        String body = "Dear Car Owner,\n\n"
-                + "Your car has been returned for Booking No: " + bookingNumber + ".\n"
-                + "You have received $" + amountReceived + " (92% of the total rental fee).\n\n"
-                + "Thank you for listing your car with us!\n"
-                + "Best regards,\n"
-                + "Your Car Rental Team";
-
-        sendEmail(to, subject, body);
-    }
 
 
 
@@ -328,6 +275,23 @@ public class EmailService {
         helper.setSubject(subject);
         helper.setText(htmlContent, true);
         mailSender.send(mimeMessage);
+    }
+
+    //WALLET
+    /**
+     * Sends an email notification when the wallet balance is updated.
+     * @param to Recipient's email address.
+     * @param walletUrl URL to view the wallet balance and transactions.
+     * @throws MessagingException If an error occurs while sending the email.
+     */
+    public void sendWalletUpdateEmail(String to, String walletUrl) throws MessagingException {
+        String subject = "There’s an update to your wallet";
+        String htmlContent = String.format(
+                "<p>Please be informed that your wallet’s balance has been updated at <strong>%s</strong>.</p>"
+                        + "<p>Please go to your <a href=\"%s\">wallet</a> and view the transactions for more details.</p>"
+                        + "<p>Thank you!</p>",
+                getCurrentFormattedDateTime(), walletUrl);
+        sendEmail(to, subject, htmlContent);
     }
 
     /**

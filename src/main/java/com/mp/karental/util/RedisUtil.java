@@ -21,6 +21,7 @@ public class RedisUtil {
     RedisTemplate<String, String> redisTemplate;
 
     private static final String BOOKING_SEQUENCE_KEY = "booking-sequence";
+    private static final String PENDING_DEPOSIT_BOOKING_KEY = "booking:";
     private static final String VERIFY_EMAIL_TOKEN_PREFIX = "verify-email-tk:";
     private static final String FORGOT_PASSWORD_TOKEN_PREFIX = "forgot-password-tk:";
 
@@ -77,6 +78,17 @@ public class RedisUtil {
 
    public void deleteForgotPasswordToken(String token){
         String key = FORGOT_PASSWORD_TOKEN_PREFIX + token;
+        redisTemplate.delete(key);
+   }
+
+   public void cachePendingDepositBooking(String bookingNumber){
+        String key = PENDING_DEPOSIT_BOOKING_KEY + bookingNumber;
+       redisTemplate.opsForValue().set(key, key, 1, TimeUnit.HOURS);
+//       redisTemplate.opsForValue().set(key, key, 20, TimeUnit.SECONDS);
+   }
+
+   public void removeCachePendingDepositBooking(String bookingNumber){
+        String key = PENDING_DEPOSIT_BOOKING_KEY + bookingNumber;
         redisTemplate.delete(key);
    }
 

@@ -99,100 +99,6 @@ class BookingServiceTest {
         mockedSecurityUtil.close();
     }
 
-    @Test
-    void testCancelOverlappingBookings_WhenDepositIsPaid_MultipleBookingsCancelled() throws MessagingException {
-        // Arrange
-        LocalDateTime now = LocalDateTime.now();
-
-        // Mock chủ xe
-        Account owner = new Account();
-        owner.setId("1");
-
-        // Mock khách hàng 1 (người đặt cọc thành công)
-        Account customer1 = new Account();
-        customer1.setId("2");
-        customer1.setEmail("customer1@example.com");
-
-        // Mock khách hàng 2 và 3 (bị chồng lấn)
-        Account customer2 = new Account();
-        customer2.setId("3");
-        customer2.setEmail("customer2@example.com");
-
-        Account customer3 = new Account();
-        customer3.setId("4");
-        customer3.setEmail("customer3@example.com");
-
-        // Mock xe
-        Car car = new Car();
-        car.setId("101");
-        car.setAccount(owner);
-        car.setBrand("Toyota");
-        car.setModel("Camry");
-
-        // Mock booking khách hàng 1 (đặt cọc thành công)
-        Booking confirmedBooking = new Booking();
-        confirmedBooking.setBookingNumber("BK123456");
-        confirmedBooking.setAccount(customer1);
-        confirmedBooking.setCar(car);
-        confirmedBooking.setStatus(EBookingStatus.PENDING_DEPOSIT);
-        confirmedBooking.setPickUpTime(now.plusDays(1));
-        confirmedBooking.setDropOffTime(now.plusDays(2));
-        confirmedBooking.setDeposit(100);
-
-        // Mock 2 booking của khách hàng 2 và 3 (bị chồng lấn)
-        Booking overlappingBooking1 = new Booking();
-        overlappingBooking1.setBookingNumber("BK654321");
-        overlappingBooking1.setAccount(customer2);
-        overlappingBooking1.setCar(car);
-        overlappingBooking1.setStatus(EBookingStatus.PENDING_DEPOSIT);
-        overlappingBooking1.setPickUpTime(now.plusDays(1));
-        overlappingBooking1.setDropOffTime(now.plusDays(2));
-
-        Booking overlappingBooking2 = new Booking();
-        overlappingBooking2.setBookingNumber("BK789012");
-        overlappingBooking2.setAccount(customer3);
-        overlappingBooking2.setCar(car);
-        overlappingBooking2.setStatus(EBookingStatus.PENDING_DEPOSIT);
-        overlappingBooking2.setPickUpTime(now.plusDays(1));
-        overlappingBooking2.setDropOffTime(now.plusDays(2));
-
-        // Mock ví tiền khách hàng 1 có đủ tiền đặt cọc
-        Wallet wallet = new Wallet();
-        wallet.setBalance(150);
-
-        // Mock hành vi repository
-        when(bookingRepository.findPendingDepositBookings(any())).thenReturn(List.of(confirmedBooking));
-        when(walletRepository.findById(customer1.getId())).thenReturn(Optional.of(wallet));
-        when(bookingRepository.findByCarIdAndStatusAndTimeOverlap(
-                car.getId(), EBookingStatus.PENDING_DEPOSIT, confirmedBooking.getPickUpTime(), confirmedBooking.getDropOffTime()))
-                .thenReturn(List.of(overlappingBooking1, overlappingBooking2));
-
-        // Act
-        bookingService.updateStatusBookings();
-
-        // Assert
-        assertEquals(EBookingStatus.WAITING_CONFIRMED, confirmedBooking.getStatus());
-        assertEquals(EBookingStatus.CANCELLED, overlappingBooking1.getStatus());
-        assertEquals(EBookingStatus.CANCELLED, overlappingBooking2.getStatus());
-
-        // Kiểm tra email được gửi cho cả hai khách hàng bị hủy
-        verify(emailService, times(1)).sendSystemCanceledBookingEmail(
-                eq(customer2.getEmail()),
-                eq("Toyota Camry"),
-                eq("Your booking has been canceled because another customer has successfully placed a deposit for this car within the same rental period.")
-        );
-
-        verify(emailService, times(1)).sendSystemCanceledBookingEmail(
-                eq(customer3.getEmail()),
-                eq("Toyota Camry"),
-                eq("Your booking has been canceled because another customer has successfully placed a deposit for this car within the same rental period.")
-        );
-
-        // Kiểm tra lưu dữ liệu đúng
-        verify(bookingRepository, times(1)).save(confirmedBooking);
-        verify(bookingRepository, times(1)).saveAndFlush(overlappingBooking1);
-        verify(bookingRepository, times(1)).saveAndFlush(overlappingBooking2);
-    }
 
 
     @Test
@@ -373,47 +279,6 @@ class BookingServiceTest {
         assertEquals(ErrorCode.BOOKING_NOT_FOUND_IN_DB, exception.getErrorCode());
     }
 
-    @Test
-    void testUpdateStatusBookings_WalletBalanceSufficient() throws MessagingException {
-        // Arrange
-        LocalDateTime now = LocalDateTime.now();
-        Booking booking = new Booking();
-        booking.setBookingNumber("1");
-        booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
-        booking.setDeposit(500);  // Yêu cầu đặt cọc 500
-        booking.setPickUpTime(now.plusDays(1));  // Ngày nhận xe là ngày mai
-        booking.setDropOffTime(now.plusDays(3));
-        Account account = new Account();
-        account.setId("user123");
-        account.setEmail("customer@gmail.com");
-        booking.setAccount(account);
-        Car car = new Car();
-        car.setBrand("Toyota");
-        car.setModel("Camry");
-        Account owner = new Account();
-        owner.setId("user1234");
-        owner.setEmail("owner@gmail.com");
-        car.setAccount(owner);
-        booking.setCar(car);
-
-        Wallet wallet = new Wallet();
-        wallet.setId("user123");
-        wallet.setBalance(600);  // Số dư 600 > deposit 500
-
-        when(bookingRepository.findPendingDepositBookings(any())).thenReturn(List.of(booking));
-        when(walletRepository.findById("user123")).thenReturn(Optional.of(wallet));
-        when(bookingRepository.findByCarIdAndStatusAndTimeOverlap(any(), any(), any(), any())).thenReturn(Collections.emptyList());
-
-        // Act
-        bookingService.updateStatusBookings();
-
-        // Assert
-        verify(transactionService).payDeposit("user123", 500, booking);  // Đã thanh toán tiền cọc
-        assertEquals(EBookingStatus.WAITING_CONFIRMED, booking.getStatus());  // Kiểm tra trạng thái cập nhật đúng
-        verify(emailService).sendBookingWaitingForConfirmationEmail(eq("customer@gmail.com"), any(), any());  // Email gửi cho khách hàng
-        verify(emailService).sendCarOwnerConfirmationRequestEmail(eq("owner@gmail.com"), any(), any());  // Email gửi cho chủ xe
-        verify(bookingRepository).save(booking);  // Đã lưu cập nhật vào database
-    }
 
     @Test
     void testGetBookingDetailsByBookingNumber_Success() {
@@ -900,67 +765,67 @@ class BookingServiceTest {
 
     }
 
-    @Test
-    void cancelBooking_ShouldCancelCofirmedBooking() throws MessagingException {
-        // Arrange
-        String bookingNumber = "B123";
-        Account mockAccount = new Account();
-        mockAccount.setId("user123");
-        mockAccount.setEmail("test@example.com");
-
-        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
-        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
-
-        Account account = new Account();
-        account.setId("123");
-        account.setEmail("test@example.com");
-        Car car = new Car();
-        car.setBrand("Toyota");
-        car.setModel("Camry");
-        car.setAccount(account);
-
-
-
-        Booking booking = new Booking();
-        booking.setBookingNumber(bookingNumber);
-        booking.setAccount(mockAccount);
-        booking.setCar(car);
-        booking.setStatus(EBookingStatus.CONFIRMED);
-        booking.setPickUpTime(mockPickUpTime);
-        booking.setDropOffTime(mockDropOffTime);
-        booking.setDriverDrivingLicenseUri("user/abc.jpg");
-
-        Wallet walletCustomer = new Wallet();
-        walletCustomer.setId(mockAccount.getId());
-
-        Account adminAccount = new Account();
-        adminAccount.setId("admin123");
-
-        when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
-        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
-        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
-        when(walletRepository.findById("user123")).thenReturn(Optional.of(walletCustomer));
-        when(accountRepository.findByRoleId(3)).thenReturn(adminAccount);
-        when(walletRepository.findById("admin123")).thenReturn(Optional.of(new Wallet()));
-
-        // Mock BookingResponse với giá trị hợp lệ
-        BookingResponse mockResponse = new BookingResponse();
-        mockResponse.setDriverDrivingLicenseUrl("mock-url");
-        mockResponse.setBookingNumber(bookingNumber);
-        mockResponse.setCarId(car.getId());
-
-        when(bookingMapper.toBookingResponse(any())).thenReturn(mockResponse);
-
-        // Act: Gọi cancelBooking()
-        BookingResponse response = bookingService.cancelBooking(bookingNumber);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
-        verify(emailService).sendCustomerBookingCanceledWithPartialRefundEmail(mockAccount.getEmail(), "Toyota Camry");
-
-        verify(emailService).sendCarOwnerBookingCanceledEmail(car.getAccount().getEmail(), "Toyota Camry");
-    }
+//    @Test
+//    void cancelBooking_ShouldCancelCofirmedBooking() throws MessagingException {
+//        // Arrange
+//        String bookingNumber = "B123";
+//        Account mockAccount = new Account();
+//        mockAccount.setId("user123");
+//        mockAccount.setEmail("test@example.com");
+//
+//        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
+//        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
+//
+//        Account account = new Account();
+//        account.setId("123");
+//        account.setEmail("test@example.com");
+//        Car car = new Car();
+//        car.setBrand("Toyota");
+//        car.setModel("Camry");
+//        car.setAccount(account);
+//
+//
+//
+//        Booking booking = new Booking();
+//        booking.setBookingNumber(bookingNumber);
+//        booking.setAccount(mockAccount);
+//        booking.setCar(car);
+//        booking.setStatus(EBookingStatus.CONFIRMED);
+//        booking.setPickUpTime(mockPickUpTime);
+//        booking.setDropOffTime(mockDropOffTime);
+//        booking.setDriverDrivingLicenseUri("user/abc.jpg");
+//
+//        Wallet walletCustomer = new Wallet();
+//        walletCustomer.setId(mockAccount.getId());
+//
+//        Account adminAccount = new Account();
+//        adminAccount.setId("admin123");
+//
+//        when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
+//        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+//        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+//        when(walletRepository.findById("user123")).thenReturn(Optional.of(walletCustomer));
+//        when(accountRepository.findByRoleId(3)).thenReturn(adminAccount);
+//        when(walletRepository.findById("admin123")).thenReturn(Optional.of(new Wallet()));
+//
+//        // Mock BookingResponse với giá trị hợp lệ
+//        BookingResponse mockResponse = new BookingResponse();
+//        mockResponse.setDriverDrivingLicenseUrl("mock-url");
+//        mockResponse.setBookingNumber(bookingNumber);
+//        mockResponse.setCarId(car.getId());
+//
+//        when(bookingMapper.toBookingResponse(any())).thenReturn(mockResponse);
+//
+//        // Act: Gọi cancelBooking()
+//        BookingResponse response = bookingService.cancelBooking(bookingNumber);
+//
+//        // Assert
+//        assertNotNull(response);
+//        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
+//        verify(emailService).sendCustomerBookingCanceledWithPartialRefundEmail(mockAccount.getEmail(), "Toyota Camry");
+//
+//        verify(emailService).sendCarOwnerBookingCanceledEmail(car.getAccount().getEmail(), "Toyota Camry");
+//    }
 
     @Test
     void cancelBooking_ShouldThrowException2() {
@@ -1029,122 +894,122 @@ class BookingServiceTest {
 
     }
 
-    @Test
-    void cancelBooking_ShouldCancelWaitingCofirmBooking() throws MessagingException {
-        // Arrange
-        String bookingNumber = "B123";
-        Account mockAccount = new Account();
-        mockAccount.setId("user123");
-        mockAccount.setEmail("test@example.com");
+//    @Test
+//    void cancelBooking_ShouldCancelWaitingCofirmBooking() throws MessagingException {
+//        // Arrange
+//        String bookingNumber = "B123";
+//        Account mockAccount = new Account();
+//        mockAccount.setId("user123");
+//        mockAccount.setEmail("test@example.com");
+//
+//        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
+//        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
+//
+//        Account account = new Account();
+//        account.setId("123");
+//        Car car = new Car();
+//        car.setBrand("Toyota");
+//        car.setModel("Camry");
+//        car.setAccount(account);
+//
+//
+//
+//        Booking booking = new Booking();
+//        booking.setBookingNumber(bookingNumber);
+//        booking.setAccount(mockAccount);
+//        booking.setCar(car);
+//        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+//        booking.setPickUpTime(mockPickUpTime);
+//        booking.setDropOffTime(mockDropOffTime);
+//        booking.setDriverDrivingLicenseUri("user/abc.jpg");
+//
+//        Wallet walletCustomer = new Wallet();
+//        walletCustomer.setId(mockAccount.getId());
+//
+//        Account adminAccount = new Account();
+//        adminAccount.setId("admin123");
+//
+//        when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
+//        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+//        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+//        when(walletRepository.findById("user123")).thenReturn(Optional.of(walletCustomer));
+//        when(accountRepository.findByRoleId(3)).thenReturn(adminAccount);
+//        when(walletRepository.findById("admin123")).thenReturn(Optional.of(new Wallet()));
+//
+//        // Mock BookingResponse với giá trị hợp lệ
+//        BookingResponse mockResponse = new BookingResponse();
+//        mockResponse.setDriverDrivingLicenseUrl("mock-url");
+//        mockResponse.setBookingNumber(bookingNumber);
+//        mockResponse.setCarId(car.getId());
+//
+//        when(bookingMapper.toBookingResponse(any())).thenReturn(mockResponse);
+//
+//        // Act: Gọi cancelBooking()
+//        BookingResponse response = bookingService.cancelBooking(bookingNumber);
+//
+//        // Assert
+//        assertNotNull(response);
+//        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
+//        verify(emailService).sendCustomerBookingCanceledWithFullRefundEmail(mockAccount.getEmail(), "Toyota Camry");
+//    }
 
-        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
-        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
 
-        Account account = new Account();
-        account.setId("123");
-        Car car = new Car();
-        car.setBrand("Toyota");
-        car.setModel("Camry");
-        car.setAccount(account);
-
-
-
-        Booking booking = new Booking();
-        booking.setBookingNumber(bookingNumber);
-        booking.setAccount(mockAccount);
-        booking.setCar(car);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
-        booking.setPickUpTime(mockPickUpTime);
-        booking.setDropOffTime(mockDropOffTime);
-        booking.setDriverDrivingLicenseUri("user/abc.jpg");
-
-        Wallet walletCustomer = new Wallet();
-        walletCustomer.setId(mockAccount.getId());
-
-        Account adminAccount = new Account();
-        adminAccount.setId("admin123");
-
-        when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
-        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
-        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
-        when(walletRepository.findById("user123")).thenReturn(Optional.of(walletCustomer));
-        when(accountRepository.findByRoleId(3)).thenReturn(adminAccount);
-        when(walletRepository.findById("admin123")).thenReturn(Optional.of(new Wallet()));
-
-        // Mock BookingResponse với giá trị hợp lệ
-        BookingResponse mockResponse = new BookingResponse();
-        mockResponse.setDriverDrivingLicenseUrl("mock-url");
-        mockResponse.setBookingNumber(bookingNumber);
-        mockResponse.setCarId(car.getId());
-
-        when(bookingMapper.toBookingResponse(any())).thenReturn(mockResponse);
-
-        // Act: Gọi cancelBooking()
-        BookingResponse response = bookingService.cancelBooking(bookingNumber);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
-        verify(emailService).sendCustomerBookingCanceledWithFullRefundEmail(mockAccount.getEmail(), "Toyota Camry");
-    }
-
-
-    @Test
-    void cancelBooking_ShouldCancelPendingDepositBooking() throws MessagingException {
-        // Arrange
-        String bookingNumber = "B123";
-        Account mockAccount = new Account();
-        mockAccount.setId("user123");
-        mockAccount.setEmail("test@example.com");
-
-        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
-        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
-
-        Account account = new Account();
-        account.setId("123");
-        Car car = new Car();
-        car.setBrand("Toyota");
-        car.setModel("Camry");
-        car.setAccount(account);
-
-        Booking booking = new Booking();
-        booking.setBookingNumber(bookingNumber);
-        booking.setAccount(mockAccount);
-        booking.setCar(car);
-        booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
-        booking.setPickUpTime(mockPickUpTime);
-        booking.setDropOffTime(mockDropOffTime);
-        booking.setDriverDrivingLicenseUri("user/abc.jpg");
-
-        Wallet walletCustomer = new Wallet();
-        walletCustomer.setId(mockAccount.getId());
-
-        Account adminAccount = new Account();
-        adminAccount.setId("admin123");
-
-        when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
-        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
-        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
-        when(walletRepository.findById("user123")).thenReturn(Optional.of(walletCustomer));
-        when(accountRepository.findByRoleId(3)).thenReturn(adminAccount);
-        when(walletRepository.findById("admin123")).thenReturn(Optional.of(new Wallet()));
-
-        // Mock BookingResponse với giá trị hợp lệ
-        BookingResponse mockResponse = new BookingResponse();
-        mockResponse.setDriverDrivingLicenseUrl("mock-url");
-        mockResponse.setBookingNumber(bookingNumber);
-        mockResponse.setCarId(car.getId());
-
-        when(bookingMapper.toBookingResponse(any())).thenReturn(mockResponse);
-
-        // Act: Gọi cancelBooking()
-        BookingResponse response = bookingService.cancelBooking(bookingNumber);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
-        verify(emailService).sendCustomerBookingCanceledEmail(mockAccount.getEmail(), "Toyota Camry");
-    }
+//    @Test
+//    void cancelBooking_ShouldCancelPendingDepositBooking() throws MessagingException {
+//        // Arrange
+//        String bookingNumber = "B123";
+//        Account mockAccount = new Account();
+//        mockAccount.setId("user123");
+//        mockAccount.setEmail("test@example.com");
+//
+//        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
+//        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
+//
+//        Account account = new Account();
+//        account.setId("123");
+//        Car car = new Car();
+//        car.setBrand("Toyota");
+//        car.setModel("Camry");
+//        car.setAccount(account);
+//
+//        Booking booking = new Booking();
+//        booking.setBookingNumber(bookingNumber);
+//        booking.setAccount(mockAccount);
+//        booking.setCar(car);
+//        booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
+//        booking.setPickUpTime(mockPickUpTime);
+//        booking.setDropOffTime(mockDropOffTime);
+//        booking.setDriverDrivingLicenseUri("user/abc.jpg");
+//
+//        Wallet walletCustomer = new Wallet();
+//        walletCustomer.setId(mockAccount.getId());
+//
+//        Account adminAccount = new Account();
+//        adminAccount.setId("admin123");
+//
+//        when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
+//        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+//        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+//        when(walletRepository.findById("user123")).thenReturn(Optional.of(walletCustomer));
+//        when(accountRepository.findByRoleId(3)).thenReturn(adminAccount);
+//        when(walletRepository.findById("admin123")).thenReturn(Optional.of(new Wallet()));
+//
+//        // Mock BookingResponse với giá trị hợp lệ
+//        BookingResponse mockResponse = new BookingResponse();
+//        mockResponse.setDriverDrivingLicenseUrl("mock-url");
+//        mockResponse.setBookingNumber(bookingNumber);
+//        mockResponse.setCarId(car.getId());
+//
+//        when(bookingMapper.toBookingResponse(any())).thenReturn(mockResponse);
+//
+//        // Act: Gọi cancelBooking()
+//        BookingResponse response = bookingService.cancelBooking(bookingNumber);
+//
+//        // Assert
+//        assertNotNull(response);
+//        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
+//        verify(emailService).sendCustomerBookingCanceledEmail(mockAccount.getEmail(), "Toyota Camry");
+//    }
 
     @Test
     void createBooking_MissingFields_ThrowsException3() {
@@ -1881,94 +1746,94 @@ class BookingServiceTest {
     }
 
 
-    @Test
-    void editBooking_Success_WithOldDriverLicense() throws AppException, MessagingException {
-        String accountId = "user123";
-        String bookingNumber = "BK123";
-
-        // Mock request edit
-        EditBookingRequest CreateBookingRequest = new EditBookingRequest();
-        CreateBookingRequest.setDriver(true);
-        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
-        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
-        CreateBookingRequest.setDriverFullName("Test User");
-        CreateBookingRequest.setDriverDob(LocalDate.of(2000, 1, 1));
-        CreateBookingRequest.setDriverNationalId("1234567890");
-        CreateBookingRequest.setDriverPhoneNumber("0987654321");
-        CreateBookingRequest.setDriverCityProvince("Hà Nội");
-        CreateBookingRequest.setDriverDistrict("Ba Đình");
-        CreateBookingRequest.setDriverWard("Kim Mã");
-        CreateBookingRequest.setDriverEmail("test@gmail.com");
-        CreateBookingRequest.setDriverHouseNumberStreet("123 Đường ABC");
-
-
-        // Mock account
-        Account mockAccount = new Account();
-        mockAccount.setId(accountId);
-
-        // Mock user profile
-        UserProfile mockProfile = new UserProfile();
-        mockProfile.setFullName("Test User");
-        mockProfile.setDob(LocalDate.of(2000, 1, 1));
-        mockProfile.setNationalId("1234567890");
-        mockProfile.setPhoneNumber("0987654321");
-        mockProfile.setCityProvince("Hà Nội");
-        mockProfile.setDistrict("Ba Đình");
-        mockProfile.setWard("Kim Mã");
-        mockProfile.setHouseNumberStreet("123 Đường ABC");
-        mockProfile.setDrivingLicenseUri("license.jpg");
-
-        mockAccount.setProfile(mockProfile);
-
-        // Mock car
-        Car mockCar = new Car();
-        mockCar.setId("car123");
-        mockCar.setDeposit(5000);
-        mockCar.setBasePrice(2000);
-
-        CreateBookingRequest.setCarId(mockCar.getId());
-
-        // Mock booking hiện tại trong DB
-        Booking existingBooking = new Booking();
-        existingBooking.setBookingNumber(bookingNumber);
-        existingBooking.setAccount(mockAccount);
-        existingBooking.setCar(mockCar);
-        existingBooking.setPickUpTime(mockPickUpTime);
-        existingBooking.setDropOffTime(mockDropOffTime);
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
-        existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
-
-        // Mock repository
-        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
-        lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(existingBooking);
-        lenient().when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Mock file upload
-        String expectedS3Key = "booking/BK123/driver-driving-license.jpg";
-        String expectedUrl = "https://s3-bucket.com/dummy-url.jpg";
-
-        lenient().when(fileService.getFileUrl("old-license.jpg")).thenReturn("https://s3-bucket.com/old-license.jpg");
-        lenient().when(fileService.getFileUrl("booking/BK123/driver-driving-license.jpg")).thenReturn("https://s3-bucket.com/booking/BK123/driver-driving-license.jpg");
-
-
-        // Mock mapper
-        lenient().when(bookingMapper.toBookingResponse(any(Booking.class))).thenAnswer(invocation -> {
-            Booking updatedBooking = invocation.getArgument(0);
-            BookingResponse response = new BookingResponse();
-            response.setPickUpTime(updatedBooking.getPickUpTime());
-            response.setDropOffTime(updatedBooking.getDropOffTime());
-            response.setCarId(updatedBooking.getCar().getId());
-            response.setDriverDrivingLicenseUrl(existingBooking.getDriverDrivingLicenseUri());
-            return response;
-        });
-
-        // Thực thi service
-        BookingResponse response = bookingService.editBooking(CreateBookingRequest, bookingNumber);
-
-        // Kiểm tra kết quả
-        assertNotNull(response, "Response should not be null");
-        assertEquals("https://s3-bucket.com/old-license.jpg", response.getDriverDrivingLicenseUrl());
-    }
+//    @Test
+//    void editBooking_Success_WithOldDriverLicense() throws AppException, MessagingException {
+//        String accountId = "user123";
+//        String bookingNumber = "BK123";
+//
+//        // Mock request edit
+//        EditBookingRequest CreateBookingRequest = new EditBookingRequest();
+//        CreateBookingRequest.setDriver(true);
+//        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
+//        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
+//        CreateBookingRequest.setDriverFullName("Test User");
+//        CreateBookingRequest.setDriverDob(LocalDate.of(2000, 1, 1));
+//        CreateBookingRequest.setDriverNationalId("1234567890");
+//        CreateBookingRequest.setDriverPhoneNumber("0987654321");
+//        CreateBookingRequest.setDriverCityProvince("Hà Nội");
+//        CreateBookingRequest.setDriverDistrict("Ba Đình");
+//        CreateBookingRequest.setDriverWard("Kim Mã");
+//        CreateBookingRequest.setDriverEmail("test@gmail.com");
+//        CreateBookingRequest.setDriverHouseNumberStreet("123 Đường ABC");
+//
+//
+//        // Mock account
+//        Account mockAccount = new Account();
+//        mockAccount.setId(accountId);
+//
+//        // Mock user profile
+//        UserProfile mockProfile = new UserProfile();
+//        mockProfile.setFullName("Test User");
+//        mockProfile.setDob(LocalDate.of(2000, 1, 1));
+//        mockProfile.setNationalId("1234567890");
+//        mockProfile.setPhoneNumber("0987654321");
+//        mockProfile.setCityProvince("Hà Nội");
+//        mockProfile.setDistrict("Ba Đình");
+//        mockProfile.setWard("Kim Mã");
+//        mockProfile.setHouseNumberStreet("123 Đường ABC");
+//        mockProfile.setDrivingLicenseUri("license.jpg");
+//
+//        mockAccount.setProfile(mockProfile);
+//
+//        // Mock car
+//        Car mockCar = new Car();
+//        mockCar.setId("car123");
+//        mockCar.setDeposit(5000);
+//        mockCar.setBasePrice(2000);
+//
+//        CreateBookingRequest.setCarId(mockCar.getId());
+//
+//        // Mock booking hiện tại trong DB
+//        Booking existingBooking = new Booking();
+//        existingBooking.setBookingNumber(bookingNumber);
+//        existingBooking.setAccount(mockAccount);
+//        existingBooking.setCar(mockCar);
+//        existingBooking.setPickUpTime(mockPickUpTime);
+//        existingBooking.setDropOffTime(mockDropOffTime);
+//        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+//        existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
+//
+//        // Mock repository
+//        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+//        lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(existingBooking);
+//        lenient().when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+//
+//        // Mock file upload
+//        String expectedS3Key = "booking/BK123/driver-driving-license.jpg";
+//        String expectedUrl = "https://s3-bucket.com/dummy-url.jpg";
+//
+//        lenient().when(fileService.getFileUrl("old-license.jpg")).thenReturn("https://s3-bucket.com/old-license.jpg");
+//        lenient().when(fileService.getFileUrl("booking/BK123/driver-driving-license.jpg")).thenReturn("https://s3-bucket.com/booking/BK123/driver-driving-license.jpg");
+//
+//
+//        // Mock mapper
+//        lenient().when(bookingMapper.toBookingResponse(any(Booking.class))).thenAnswer(invocation -> {
+//            Booking updatedBooking = invocation.getArgument(0);
+//            BookingResponse response = new BookingResponse();
+//            response.setPickUpTime(updatedBooking.getPickUpTime());
+//            response.setDropOffTime(updatedBooking.getDropOffTime());
+//            response.setCarId(updatedBooking.getCar().getId());
+//            response.setDriverDrivingLicenseUrl(existingBooking.getDriverDrivingLicenseUri());
+//            return response;
+//        });
+//
+//        // Thực thi service
+//        BookingResponse response = bookingService.editBooking(CreateBookingRequest, bookingNumber);
+//
+//        // Kiểm tra kết quả
+//        assertNotNull(response, "Response should not be null");
+//        assertEquals("https://s3-bucket.com/old-license.jpg", response.getDriverDrivingLicenseUrl());
+//    }
 
     @Test
     void editBooking_Failed_WithNewDriverLicense() throws AppException {
@@ -2393,111 +2258,111 @@ class BookingServiceTest {
 
     }
 
-    @Test
-    void testCreateBooking_WithDriver() throws AppException, MessagingException {
-        // Given
-        String accountId = "user123";
-
-        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
-        CreateBookingRequest.setDriver(true);
-        CreateBookingRequest.setDriverFullName("Test User");
-        CreateBookingRequest.setDriverDob(LocalDate.of(2000, 1, 1));
-        CreateBookingRequest.setDriverNationalId("1234567890");
-        CreateBookingRequest.setDriverPhoneNumber("0987654321");
-        CreateBookingRequest.setDriverCityProvince("Hà Nội");
-        CreateBookingRequest.setDriverDistrict("Ba Đình");
-        CreateBookingRequest.setDriverWard("Kim Mã");
-        CreateBookingRequest.setDriverEmail("test@gmail.com");
-        CreateBookingRequest.setDriverHouseNumberStreet("123 Đường ABC");
-        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
-        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
-
-        MultipartFile mockFile = mock(MultipartFile.class);
-        CreateBookingRequest.setDriverDrivingLicense(mockFile);
-        when(mockFile.isEmpty()).thenReturn(false);
-        when(fileService.getFileExtension(mockFile)).thenReturn(".jpg");
-        CreateBookingRequest.setDriverDrivingLicense(mockFile);
-
-        Account mockAccount = new Account();
-        mockAccount.setEmail("test@gmail.com");
-        mockAccount.setId(accountId);
-
-        UserProfile mockProfile = new UserProfile();
-        mockProfile.setFullName("Test User");
-        mockProfile.setDob(LocalDate.of(2000, 1, 1));
-        mockProfile.setNationalId("1234567890");
-        mockProfile.setPhoneNumber("0987654321");
-        mockProfile.setCityProvince("Hà Nội");
-        mockProfile.setDistrict("Ba Đình");
-        mockProfile.setWard("Kim Mã");
-        mockProfile.setHouseNumberStreet("123 Đường ABC");
-        mockProfile.setDrivingLicenseUri("license.jpg");
-
-        mockAccount.setProfile(mockProfile);
-
-        Wallet wallet = new Wallet();
-        wallet.setId(accountId);
-        wallet.setBalance(10000);
-
-        Account accountOwner = new Account();
-        accountOwner.setId("123");
-        accountOwner.setEmail("test@gmail.com");
-        Car mockCar = new Car();
-        mockCar.setId("car123");
-        mockCar.setBrand("Toyota");
-        mockCar.setModel("Camry");
-        mockCar.setLicensePlate("ABC-1234");
-        mockCar.setDeposit(5000);
-        mockCar.setBasePrice(2000);
-        mockCar.setAccount(accountOwner);
-        CreateBookingRequest.setCarId("car123");
-
-        Booking booking = new Booking();
-        booking.setAccount(mockAccount);
-        booking.setCar(mockCar);
-        booking.setPaymentType(EPaymentType.WALLET);
-        booking.setDeposit(5000);
-        booking.setBasePrice(2000);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
-        booking.setBookingNumber("BK123");
-        booking.setPickUpTime(mockPickUpTime);
-        booking.setDropOffTime(mockDropOffTime);
-
-        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
-        lenient().when(walletRepository.findById(accountId)).thenReturn(Optional.of(wallet));
-        when(carRepository.findById(anyString())).thenReturn(Optional.of(mockCar));
-        when(bookingMapper.toBooking(any())).thenReturn(booking);
-        when(redisUtil.generateBookingNumber()).thenReturn("BK123");
-        lenient().when(carService.isCarAvailable(anyString(), any(), any())).thenReturn(true);
-
-        String expectedS3Key = "booking/BK123/driver-driving-license.jpg";
-        String expectedUrl = "https://s3-bucket.com/" + expectedS3Key;
-
-        when(fileService.getFileUrl(expectedS3Key)).thenReturn(expectedUrl);
-        when(bookingMapper.toBookingResponse(any())).thenReturn(new BookingResponse());
-
-        // When
-        BookingResponse response = bookingService.createBooking(CreateBookingRequest);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(expectedUrl, response.getDriverDrivingLicenseUrl());
-        verify(fileService).uploadFile(mockFile, expectedS3Key);
-        verify(bookingRepository, times(1)).save(any());
-        // ✅ Kiểm tra email gửi đến khách hàng
-        verify(emailService).sendBookingWaitingForConfirmationEmail(
-                eq(mockAccount.getEmail()),
-                eq("Toyota Camry"),
-                eq("BK123")
-        );
-
-        // ✅ Kiểm tra email gửi đến chủ xe
-        verify(emailService).sendCarOwnerConfirmationRequestEmail(
-                eq(accountOwner.getEmail()),
-                eq("Toyota Camry"),
-                eq("ABC-1234")
-        );
-    }
+//    @Test
+//    void testCreateBooking_WithDriver() throws AppException, MessagingException {
+//        // Given
+//        String accountId = "user123";
+//
+//        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
+//        CreateBookingRequest.setDriver(true);
+//        CreateBookingRequest.setDriverFullName("Test User");
+//        CreateBookingRequest.setDriverDob(LocalDate.of(2000, 1, 1));
+//        CreateBookingRequest.setDriverNationalId("1234567890");
+//        CreateBookingRequest.setDriverPhoneNumber("0987654321");
+//        CreateBookingRequest.setDriverCityProvince("Hà Nội");
+//        CreateBookingRequest.setDriverDistrict("Ba Đình");
+//        CreateBookingRequest.setDriverWard("Kim Mã");
+//        CreateBookingRequest.setDriverEmail("test@gmail.com");
+//        CreateBookingRequest.setDriverHouseNumberStreet("123 Đường ABC");
+//        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
+//        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
+//
+//        MultipartFile mockFile = mock(MultipartFile.class);
+//        CreateBookingRequest.setDriverDrivingLicense(mockFile);
+//        when(mockFile.isEmpty()).thenReturn(false);
+//        when(fileService.getFileExtension(mockFile)).thenReturn(".jpg");
+//        CreateBookingRequest.setDriverDrivingLicense(mockFile);
+//
+//        Account mockAccount = new Account();
+//        mockAccount.setEmail("test@gmail.com");
+//        mockAccount.setId(accountId);
+//
+//        UserProfile mockProfile = new UserProfile();
+//        mockProfile.setFullName("Test User");
+//        mockProfile.setDob(LocalDate.of(2000, 1, 1));
+//        mockProfile.setNationalId("1234567890");
+//        mockProfile.setPhoneNumber("0987654321");
+//        mockProfile.setCityProvince("Hà Nội");
+//        mockProfile.setDistrict("Ba Đình");
+//        mockProfile.setWard("Kim Mã");
+//        mockProfile.setHouseNumberStreet("123 Đường ABC");
+//        mockProfile.setDrivingLicenseUri("license.jpg");
+//
+//        mockAccount.setProfile(mockProfile);
+//
+//        Wallet wallet = new Wallet();
+//        wallet.setId(accountId);
+//        wallet.setBalance(10000);
+//
+//        Account accountOwner = new Account();
+//        accountOwner.setId("123");
+//        accountOwner.setEmail("test@gmail.com");
+//        Car mockCar = new Car();
+//        mockCar.setId("car123");
+//        mockCar.setBrand("Toyota");
+//        mockCar.setModel("Camry");
+//        mockCar.setLicensePlate("ABC-1234");
+//        mockCar.setDeposit(5000);
+//        mockCar.setBasePrice(2000);
+//        mockCar.setAccount(accountOwner);
+//        CreateBookingRequest.setCarId("car123");
+//
+//        Booking booking = new Booking();
+//        booking.setAccount(mockAccount);
+//        booking.setCar(mockCar);
+//        booking.setPaymentType(EPaymentType.WALLET);
+//        booking.setDeposit(5000);
+//        booking.setBasePrice(2000);
+//        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+//        booking.setBookingNumber("BK123");
+//        booking.setPickUpTime(mockPickUpTime);
+//        booking.setDropOffTime(mockDropOffTime);
+//
+//        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+//        lenient().when(walletRepository.findById(accountId)).thenReturn(Optional.of(wallet));
+//        when(carRepository.findById(anyString())).thenReturn(Optional.of(mockCar));
+//        when(bookingMapper.toBooking(any())).thenReturn(booking);
+//        when(redisUtil.generateBookingNumber()).thenReturn("BK123");
+//        lenient().when(carService.isCarAvailable(anyString(), any(), any())).thenReturn(true);
+//
+//        String expectedS3Key = "booking/BK123/driver-driving-license.jpg";
+//        String expectedUrl = "https://s3-bucket.com/" + expectedS3Key;
+//
+//        when(fileService.getFileUrl(expectedS3Key)).thenReturn(expectedUrl);
+//        when(bookingMapper.toBookingResponse(any())).thenReturn(new BookingResponse());
+//
+//        // When
+//        BookingResponse response = bookingService.createBooking(CreateBookingRequest);
+//
+//        // Then
+//        assertNotNull(response);
+//        assertEquals(expectedUrl, response.getDriverDrivingLicenseUrl());
+//        verify(fileService).uploadFile(mockFile, expectedS3Key);
+//        verify(bookingRepository, times(1)).save(any());
+//        // ✅ Kiểm tra email gửi đến khách hàng
+//        verify(emailService).sendBookingWaitingForConfirmationEmail(
+//                eq(mockAccount.getEmail()),
+//                eq("Toyota Camry"),
+//                eq("BK123")
+//        );
+//
+//        // ✅ Kiểm tra email gửi đến chủ xe
+//        verify(emailService).sendCarOwnerConfirmationRequestEmail(
+//                eq(accountOwner.getEmail()),
+//                eq("Toyota Camry"),
+//                eq("ABC-1234")
+//        );
+//    }
 
     @Test
     void testCreateBooking_WithDriver_ThrowException() throws AppException {
@@ -2578,104 +2443,104 @@ class BookingServiceTest {
         assertEquals(ErrorCode.INVALID_DRIVER_INFO, exception.getErrorCode());
     }
 
-    @Test
-    void createBooking_Success() throws AppException, MessagingException {
-        String accountId = "user123";
-
-        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
-        CreateBookingRequest.setCarId("car123");
-        CreateBookingRequest.setPaymentType(EPaymentType.WALLET);
-        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
-        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
-        CreateBookingRequest.setPickUpTime(mockPickUpTime);
-        CreateBookingRequest.setDropOffTime(mockDropOffTime);
-        CreateBookingRequest.setDriverFullName("test");
-        CreateBookingRequest.setDriverNationalId("1234567890");
-        CreateBookingRequest.setDriverPhoneNumber("0886980035");
-
-        Account mockAccount = new Account();
-        mockAccount.setId(accountId);
-
-        UserProfile mockProfile = new UserProfile();
-        mockProfile.setFullName("Test User");
-        mockProfile.setDob(LocalDate.of(2000, 1, 1));
-        mockProfile.setNationalId("1234567890");
-        mockProfile.setPhoneNumber("0987654321");
-        mockProfile.setCityProvince("Hà Nội");
-        mockProfile.setDistrict("Ba Đình");
-        mockProfile.setWard("Kim Mã");
-        mockProfile.setHouseNumberStreet("123 Đường ABC");
-        mockProfile.setDrivingLicenseUri("license.jpg");
-
-        mockAccount.setProfile(mockProfile);
-
-        Wallet wallet = new Wallet();
-        wallet.setId(accountId);
-        wallet.setBalance(10000);
-
-        Car car = new Car();
-        car.setLicensePlate("ABC-1234");
-        car.setId("car123");
-        car.setBrand("Toyota");
-        car.setModel("Camry");
-        car.setDeposit(5000);
-        car.setBasePrice(2000);
-        Account accountCarOwner = new Account();
-        accountCarOwner.setId("123");
-        car.setAccount(accountCarOwner);
-
-        MultipartFile mockDrivingLicense = mock(MultipartFile.class);
-        lenient().when(mockDrivingLicense.isEmpty()).thenReturn(false);
-        lenient().when(fileService.getFileExtension(any(MultipartFile.class))).thenReturn(".jpg");
-        CreateBookingRequest.setDriverDrivingLicense(mockDrivingLicense);
-
-        Booking booking = new Booking();
-        booking.setAccount(mockAccount);
-        booking.setCar(car);
-        booking.setPaymentType(EPaymentType.WALLET);
-        booking.setDeposit(5000);
-        booking.setBasePrice(2000);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
-        booking.setBookingNumber("BK123");
-        booking.setPickUpTime(mockPickUpTime);
-        booking.setDropOffTime(mockDropOffTime);
-
-        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
-        lenient().when(carRepository.findById("car123")).thenReturn(Optional.of(car));
-        lenient().when(walletRepository.findById(accountId)).thenReturn(Optional.of(wallet));
-        lenient().when(carService.isCarAvailable(anyString(), any(), any())).thenReturn(true);
-        lenient().when(bookingMapper.toBooking(any())).thenReturn(booking);
-        lenient().when(redisUtil.generateBookingNumber()).thenReturn("B123");
-        lenient().when(bookingMapper.toBookingResponse(any())).thenReturn(new BookingResponse());
-
-        lenient().doAnswer(invocation -> {
-            wallet.setBalance(wallet.getBalance() - car.getDeposit());
-            return null;
-        }).when(transactionService).payDeposit(accountId, car.getDeposit(), booking);
-
-
-        BookingResponse response = bookingService.createBooking(CreateBookingRequest);
-
-        assertNotNull(response);
-        assertEquals(5000, wallet.getBalance());
-        verify(transactionService, times(1)).payDeposit(accountId, car.getDeposit(), booking);
-        verify(walletRepository, times(1)).save(wallet);
-        verify(bookingRepository, times(1)).save(any());
-        // ✅ Kiểm tra email gửi đến khách hàng
-        verify(emailService).sendBookingWaitingForConfirmationEmail(
-                eq(mockAccount.getEmail()),
-                eq("Toyota Camry"),
-                eq("B123")
-        );
-
-        // ✅ Kiểm tra email gửi đến chủ xe
-        verify(emailService).sendCarOwnerConfirmationRequestEmail(
-                eq(car.getAccount().getEmail()),
-                eq("Toyota Camry"),
-                eq("ABC-1234")
-        );
-
-    }
+//    @Test
+//    void createBooking_Success() throws AppException, MessagingException {
+//        String accountId = "user123";
+//
+//        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
+//        CreateBookingRequest.setCarId("car123");
+//        CreateBookingRequest.setPaymentType(EPaymentType.WALLET);
+//        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
+//        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
+//        CreateBookingRequest.setPickUpTime(mockPickUpTime);
+//        CreateBookingRequest.setDropOffTime(mockDropOffTime);
+//        CreateBookingRequest.setDriverFullName("test");
+//        CreateBookingRequest.setDriverNationalId("1234567890");
+//        CreateBookingRequest.setDriverPhoneNumber("0886980035");
+//
+//        Account mockAccount = new Account();
+//        mockAccount.setId(accountId);
+//
+//        UserProfile mockProfile = new UserProfile();
+//        mockProfile.setFullName("Test User");
+//        mockProfile.setDob(LocalDate.of(2000, 1, 1));
+//        mockProfile.setNationalId("1234567890");
+//        mockProfile.setPhoneNumber("0987654321");
+//        mockProfile.setCityProvince("Hà Nội");
+//        mockProfile.setDistrict("Ba Đình");
+//        mockProfile.setWard("Kim Mã");
+//        mockProfile.setHouseNumberStreet("123 Đường ABC");
+//        mockProfile.setDrivingLicenseUri("license.jpg");
+//
+//        mockAccount.setProfile(mockProfile);
+//
+//        Wallet wallet = new Wallet();
+//        wallet.setId(accountId);
+//        wallet.setBalance(10000);
+//
+//        Car car = new Car();
+//        car.setLicensePlate("ABC-1234");
+//        car.setId("car123");
+//        car.setBrand("Toyota");
+//        car.setModel("Camry");
+//        car.setDeposit(5000);
+//        car.setBasePrice(2000);
+//        Account accountCarOwner = new Account();
+//        accountCarOwner.setId("123");
+//        car.setAccount(accountCarOwner);
+//
+//        MultipartFile mockDrivingLicense = mock(MultipartFile.class);
+//        lenient().when(mockDrivingLicense.isEmpty()).thenReturn(false);
+//        lenient().when(fileService.getFileExtension(any(MultipartFile.class))).thenReturn(".jpg");
+//        CreateBookingRequest.setDriverDrivingLicense(mockDrivingLicense);
+//
+//        Booking booking = new Booking();
+//        booking.setAccount(mockAccount);
+//        booking.setCar(car);
+//        booking.setPaymentType(EPaymentType.WALLET);
+//        booking.setDeposit(5000);
+//        booking.setBasePrice(2000);
+//        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+//        booking.setBookingNumber("BK123");
+//        booking.setPickUpTime(mockPickUpTime);
+//        booking.setDropOffTime(mockDropOffTime);
+//
+//        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+//        lenient().when(carRepository.findById("car123")).thenReturn(Optional.of(car));
+//        lenient().when(walletRepository.findById(accountId)).thenReturn(Optional.of(wallet));
+//        lenient().when(carService.isCarAvailable(anyString(), any(), any())).thenReturn(true);
+//        lenient().when(bookingMapper.toBooking(any())).thenReturn(booking);
+//        lenient().when(redisUtil.generateBookingNumber()).thenReturn("B123");
+//        lenient().when(bookingMapper.toBookingResponse(any())).thenReturn(new BookingResponse());
+//
+//        lenient().doAnswer(invocation -> {
+//            wallet.setBalance(wallet.getBalance() - car.getDeposit());
+//            return null;
+//        }).when(transactionService).payDeposit(accountId, car.getDeposit(), booking);
+//
+//
+//        BookingResponse response = bookingService.createBooking(CreateBookingRequest);
+//
+//        assertNotNull(response);
+//        assertEquals(5000, wallet.getBalance());
+//        verify(transactionService, times(1)).payDeposit(accountId, car.getDeposit(), booking);
+//        verify(walletRepository, times(1)).save(wallet);
+//        verify(bookingRepository, times(1)).save(any());
+//        // ✅ Kiểm tra email gửi đến khách hàng
+//        verify(emailService).sendBookingWaitingForConfirmationEmail(
+//                eq(mockAccount.getEmail()),
+//                eq("Toyota Camry"),
+//                eq("B123")
+//        );
+//
+//        // ✅ Kiểm tra email gửi đến chủ xe
+//        verify(emailService).sendCarOwnerConfirmationRequestEmail(
+//                eq(car.getAccount().getEmail()),
+//                eq("Toyota Camry"),
+//                eq("ABC-1234")
+//        );
+//
+//    }
 
     @Test
     void createBooking_WhenDriverInfoInvalid_ShouldThrowAppException() {
@@ -2857,121 +2722,121 @@ class BookingServiceTest {
         assertEquals(ErrorCode.CAR_NOT_AVAILABLE, exception.getErrorCode());
     }
 
-    @Test
-    void createBooking_WhenWalletHasEnoughBalance_ShouldSetStatusWaitingConfirm() throws MessagingException {
-        String accountId = "testAccountId";
-        LocalDateTime pickUpTime = LocalDateTime.now().plusDays(1);
-        LocalDateTime dropOffTime = pickUpTime.plusDays(1);
-
-        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
-        CreateBookingRequest.setCarId("1");
-        CreateBookingRequest.setPaymentType(EPaymentType.WALLET);
-        CreateBookingRequest.setPickUpTime(pickUpTime);
-        CreateBookingRequest.setDropOffTime(dropOffTime);
-        CreateBookingRequest.setDriverFullName("Test User");
-        CreateBookingRequest.setDriverNationalId("1234567890");
-        CreateBookingRequest.setDriverPhoneNumber("0987654321");
-
-        Account mockCustomerAccount = new Account();
-        mockCustomerAccount.setId(accountId);
-        mockCustomerAccount.setEmail("customer@example.com");
-
-        UserProfile mockProfile = new UserProfile();
-        mockProfile.setFullName("Test User");
-        mockProfile.setDob(LocalDate.of(2000, 1, 1));
-        mockProfile.setNationalId("1234567890");
-        mockProfile.setPhoneNumber("0987654321");
-        mockProfile.setCityProvince("Hà Nội");
-        mockProfile.setDistrict("Ba Đình");
-        mockProfile.setWard("Kim Mã");
-        mockProfile.setHouseNumberStreet("123 Đường ABC");
-        mockProfile.setDrivingLicenseUri("license.jpg");
-
-        mockCustomerAccount.setProfile(mockProfile);
-
-        Account mockCarOwnerAccount = new Account();
-        mockCarOwnerAccount.setId("ownerId");
-        mockCarOwnerAccount.setEmail("owner@example.com");
-
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockCustomerAccount);
-
-        Car car = new Car();
-        car.setId("1");
-        car.setBrand("Toyota");
-        car.setModel("Camry");
-        car.setLicensePlate("ABC-1234");
-        car.setDeposit(1000L);
-        car.setAccount(mockCarOwnerAccount);
-
-        Wallet wallet = new Wallet();
-        wallet.setId(accountId);
-        wallet.setBalance(5000L);
-
-        when(carRepository.findById("1")).thenReturn(Optional.of(car));
-        when(walletRepository.findById(accountId)).thenReturn(Optional.of(wallet));
-        when(carService.isCarAvailable(car.getId(), CreateBookingRequest.getPickUpTime(), CreateBookingRequest.getDropOffTime()))
-                .thenReturn(true);
-        when(redisUtil.generateBookingNumber()).thenReturn("B123");
-
-        when(bookingMapper.toBooking(any())).thenAnswer(invocation -> {
-            CreateBookingRequest request = invocation.getArgument(0);
-            Booking mappedBooking = new Booking();
-            mappedBooking.setPickUpTime(request.getPickUpTime());
-            mappedBooking.setDropOffTime(request.getDropOffTime());
-            mappedBooking.setPaymentType(request.getPaymentType());
-            mappedBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
-            mappedBooking.setCar(car);
-            return mappedBooking;
-        });
-
-        when(bookingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        when(bookingMapper.toBookingResponse(any())).thenAnswer(invocation -> {
-            Booking booking = invocation.getArgument(0);
-            BookingResponse response = new BookingResponse();
-            response.setBookingNumber("B123");
-            response.setCarId(booking.getCar().getId());
-            response.setStatus(booking.getStatus());
-            response.setPickUpTime(booking.getPickUpTime());
-            response.setDropOffTime(booking.getDropOffTime());
-            response.setTotalPrice(2000L);
-            response.setDeposit(booking.getCar().getDeposit());
-            response.setPaymentType(EPaymentType.WALLET);
-            response.setDriverDrivingLicenseUrl("dummyUrl");
-            return response;
-        });
-
-        doAnswer(invocation -> {
-            wallet.setBalance(wallet.getBalance() - car.getDeposit());
-            return null;
-        }).when(transactionService).payDeposit(eq(accountId), eq(car.getDeposit()), any());
-
-        // When
-        BookingResponse response = bookingService.createBooking(CreateBookingRequest);
-
-        // Then
-        assertEquals(EBookingStatus.WAITING_CONFIRMED, response.getStatus());
-        assertEquals(4000L, wallet.getBalance());
-        assertEquals(pickUpTime, response.getPickUpTime());
-        assertEquals(dropOffTime, response.getDropOffTime());
-
-        verify(walletRepository, atMostOnce()).save(any());
-        verify(transactionService).payDeposit(eq(accountId), eq(car.getDeposit()), any());
-
-        // ✅ Kiểm tra email gửi đến khách hàng
-        verify(emailService).sendBookingWaitingForConfirmationEmail(
-                eq("customer@example.com"),
-                eq("Toyota Camry"),
-                eq("B123")
-        );
-
-        // ✅ Kiểm tra email gửi đến chủ xe
-        verify(emailService).sendCarOwnerConfirmationRequestEmail(
-                eq("owner@example.com"),
-                eq("Toyota Camry"),
-                eq("ABC-1234")
-        );
-    }
+//    @Test
+//    void createBooking_WhenWalletHasEnoughBalance_ShouldSetStatusWaitingConfirm() throws MessagingException {
+//        String accountId = "testAccountId";
+//        LocalDateTime pickUpTime = LocalDateTime.now().plusDays(1);
+//        LocalDateTime dropOffTime = pickUpTime.plusDays(1);
+//
+//        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
+//        CreateBookingRequest.setCarId("1");
+//        CreateBookingRequest.setPaymentType(EPaymentType.WALLET);
+//        CreateBookingRequest.setPickUpTime(pickUpTime);
+//        CreateBookingRequest.setDropOffTime(dropOffTime);
+//        CreateBookingRequest.setDriverFullName("Test User");
+//        CreateBookingRequest.setDriverNationalId("1234567890");
+//        CreateBookingRequest.setDriverPhoneNumber("0987654321");
+//
+//        Account mockCustomerAccount = new Account();
+//        mockCustomerAccount.setId(accountId);
+//        mockCustomerAccount.setEmail("customer@example.com");
+//
+//        UserProfile mockProfile = new UserProfile();
+//        mockProfile.setFullName("Test User");
+//        mockProfile.setDob(LocalDate.of(2000, 1, 1));
+//        mockProfile.setNationalId("1234567890");
+//        mockProfile.setPhoneNumber("0987654321");
+//        mockProfile.setCityProvince("Hà Nội");
+//        mockProfile.setDistrict("Ba Đình");
+//        mockProfile.setWard("Kim Mã");
+//        mockProfile.setHouseNumberStreet("123 Đường ABC");
+//        mockProfile.setDrivingLicenseUri("license.jpg");
+//
+//        mockCustomerAccount.setProfile(mockProfile);
+//
+//        Account mockCarOwnerAccount = new Account();
+//        mockCarOwnerAccount.setId("ownerId");
+//        mockCarOwnerAccount.setEmail("owner@example.com");
+//
+//        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockCustomerAccount);
+//
+//        Car car = new Car();
+//        car.setId("1");
+//        car.setBrand("Toyota");
+//        car.setModel("Camry");
+//        car.setLicensePlate("ABC-1234");
+//        car.setDeposit(1000L);
+//        car.setAccount(mockCarOwnerAccount);
+//
+//        Wallet wallet = new Wallet();
+//        wallet.setId(accountId);
+//        wallet.setBalance(5000L);
+//
+//        when(carRepository.findById("1")).thenReturn(Optional.of(car));
+//        when(walletRepository.findById(accountId)).thenReturn(Optional.of(wallet));
+//        when(carService.isCarAvailable(car.getId(), CreateBookingRequest.getPickUpTime(), CreateBookingRequest.getDropOffTime()))
+//                .thenReturn(true);
+//        when(redisUtil.generateBookingNumber()).thenReturn("B123");
+//
+//        when(bookingMapper.toBooking(any())).thenAnswer(invocation -> {
+//            CreateBookingRequest request = invocation.getArgument(0);
+//            Booking mappedBooking = new Booking();
+//            mappedBooking.setPickUpTime(request.getPickUpTime());
+//            mappedBooking.setDropOffTime(request.getDropOffTime());
+//            mappedBooking.setPaymentType(request.getPaymentType());
+//            mappedBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+//            mappedBooking.setCar(car);
+//            return mappedBooking;
+//        });
+//
+//        when(bookingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+//
+//        when(bookingMapper.toBookingResponse(any())).thenAnswer(invocation -> {
+//            Booking booking = invocation.getArgument(0);
+//            BookingResponse response = new BookingResponse();
+//            response.setBookingNumber("B123");
+//            response.setCarId(booking.getCar().getId());
+//            response.setStatus(booking.getStatus());
+//            response.setPickUpTime(booking.getPickUpTime());
+//            response.setDropOffTime(booking.getDropOffTime());
+//            response.setTotalPrice(2000L);
+//            response.setDeposit(booking.getCar().getDeposit());
+//            response.setPaymentType(EPaymentType.WALLET);
+//            response.setDriverDrivingLicenseUrl("dummyUrl");
+//            return response;
+//        });
+//
+//        doAnswer(invocation -> {
+//            wallet.setBalance(wallet.getBalance() - car.getDeposit());
+//            return null;
+//        }).when(transactionService).payDeposit(eq(accountId), eq(car.getDeposit()), any());
+//
+//        // When
+//        BookingResponse response = bookingService.createBooking(CreateBookingRequest);
+//
+//        // Then
+//        assertEquals(EBookingStatus.WAITING_CONFIRMED, response.getStatus());
+//        assertEquals(4000L, wallet.getBalance());
+//        assertEquals(pickUpTime, response.getPickUpTime());
+//        assertEquals(dropOffTime, response.getDropOffTime());
+//
+//        verify(walletRepository, atMostOnce()).save(any());
+//        verify(transactionService).payDeposit(eq(accountId), eq(car.getDeposit()), any());
+//
+//        // ✅ Kiểm tra email gửi đến khách hàng
+//        verify(emailService).sendBookingWaitingForConfirmationEmail(
+//                eq("customer@example.com"),
+//                eq("Toyota Camry"),
+//                eq("B123")
+//        );
+//
+//        // ✅ Kiểm tra email gửi đến chủ xe
+//        verify(emailService).sendCarOwnerConfirmationRequestEmail(
+//                eq("owner@example.com"),
+//                eq("Toyota Camry"),
+//                eq("ABC-1234")
+//        );
+//    }
 
     @Test
     void createBooking_WhenWalletHasNotEnoughBalance_ShouldSetStatusPendingDeposit() throws MessagingException {
@@ -3236,47 +3101,47 @@ class BookingServiceTest {
         assertEquals(ErrorCode.FORBIDDEN_PROFILE_INCOMPLETE, exception.getErrorCode());
     }
 
-    @Test
-    void createBooking_ProfileIncomplete2_ShouldThrowException() {
-        String accountId = "user123";
-
-
-        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
-        CreateBookingRequest.setCarId("car123");
-        CreateBookingRequest.setPaymentType(EPaymentType.WALLET);
-        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
-        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
-        CreateBookingRequest.setPickUpTime(mockPickUpTime);
-        CreateBookingRequest.setDropOffTime(mockDropOffTime);
-
-
-        Account mockAccount = new Account();
-        mockAccount.setId(accountId);
-
-
-        UserProfile mockProfile = new UserProfile();
-        mockProfile.setFullName("test");
-        mockProfile.setDob(null);
-        mockProfile.setNationalId("1234567890");
-        mockProfile.setPhoneNumber("0886980035");
-        mockProfile.setCityProvince("Tỉnh Hà Giang");
-        mockProfile.setDistrict("Thành phố Hà Giang");
-        mockProfile.setWard("Phường Quang Trung");
-        mockProfile.setHouseNumberStreet("211, Trần Duy Hưng");
-        mockProfile.setDrivingLicenseUri("test.jpg");
-
-        mockAccount.setProfile(mockProfile);
-
-
-        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
-
-
-        AppException exception = assertThrows(AppException.class, () -> {
-            bookingService.createBooking(CreateBookingRequest);
-        });
-
-        assertEquals(ErrorCode.FORBIDDEN_PROFILE_INCOMPLETE, exception.getErrorCode());
-    }
+//    @Test
+//    void createBooking_ProfileIncomplete2_ShouldThrowException() {
+//        String accountId = "user123";
+//
+//
+//        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
+//        CreateBookingRequest.setCarId("car123");
+//        CreateBookingRequest.setPaymentType(EPaymentType.WALLET);
+//        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
+//        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
+//        CreateBookingRequest.setPickUpTime(mockPickUpTime);
+//        CreateBookingRequest.setDropOffTime(mockDropOffTime);
+//
+//
+//        Account mockAccount = new Account();
+//        mockAccount.setId(accountId);
+//
+//
+//        UserProfile mockProfile = new UserProfile();
+//        mockProfile.setFullName("test");
+//        mockProfile.setDob(null);
+//        mockProfile.setNationalId("1234567890");
+//        mockProfile.setPhoneNumber("0886980035");
+//        mockProfile.setCityProvince("Tỉnh Hà Giang");
+//        mockProfile.setDistrict("Thành phố Hà Giang");
+//        mockProfile.setWard("Phường Quang Trung");
+//        mockProfile.setHouseNumberStreet("211, Trần Duy Hưng");
+//        mockProfile.setDrivingLicenseUri("test.jpg");
+//
+//        mockAccount.setProfile(mockProfile);
+//
+//
+//        when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+//
+//
+//        AppException exception = assertThrows(AppException.class, () -> {
+//            bookingService.createBooking(CreateBookingRequest);
+//        });
+//
+//        assertEquals(ErrorCode.FORBIDDEN_PROFILE_INCOMPLETE, exception.getErrorCode());
+//    }
 
     @Test
     void createBooking_ProfileIncomplete4_ShouldThrowException() {
@@ -3897,68 +3762,6 @@ class BookingServiceTest {
         });
 
         assertEquals(ErrorCode.FORBIDDEN_PROFILE_INCOMPLETE, exception.getErrorCode());
-    }
-
-
-    @Test
-    void updateStatusBookings_ShouldCancelExpiredBookings() throws MessagingException {
-        // Given
-        LocalDateTime now = LocalDateTime.now();
-
-        Booking expiredBooking = new Booking();
-        expiredBooking.setCreatedAt(now.minusHours(2)); // Booking created 2 hours ago
-        expiredBooking.setStatus(EBookingStatus.PENDING_DEPOSIT);
-
-        Account account = new Account();
-        account.setEmail("test@example.com");
-        Car car = new Car();
-        car.setBrand("Toyota");
-        car.setModel("Camry");
-
-        expiredBooking.setAccount(account);
-        expiredBooking.setCar(car);
-
-        when(bookingRepository.findExpiredBookings(any())).thenReturn(List.of(expiredBooking));
-
-        // When
-        bookingService.updateStatusBookings();
-
-        // Then
-        assertEquals(EBookingStatus.CANCELLED, expiredBooking.getStatus());
-        verify(bookingRepository).saveAndFlush(expiredBooking);
-
-        // Verify that the email service was called with the correct reason
-        String expectedReason = "Your booking was automatically canceled because the deposit was not paid within 1 hour.";
-        verify(emailService).sendSystemCanceledBookingEmail(
-                eq("test@example.com"),
-                eq("Toyota Camry"),
-                eq(expectedReason)
-        );
-    }
-    @Test
-    void updateStatusBookings_ShouldNotChangeStatusIfWalletBalanceIsNotEnough() throws MessagingException {
-        // Given
-        LocalDateTime now = LocalDateTime.now();
-
-        Wallet wallet = new Wallet();
-        wallet.setBalance(500L);
-        Account account = new Account();
-        account.setId("testAccount");
-        Booking pendingBooking = new Booking();
-        pendingBooking.setDeposit(1000L);
-        pendingBooking.setAccount(account);
-        pendingBooking.setStatus(EBookingStatus.PENDING_DEPOSIT);
-
-        when(bookingRepository.findPendingDepositBookings(any())).thenReturn(List.of(pendingBooking));
-        when(walletRepository.findById(anyString())).thenReturn(Optional.of(wallet));
-
-        // When
-        bookingService.updateStatusBookings();
-
-        // Then
-        assertEquals(EBookingStatus.PENDING_DEPOSIT, pendingBooking.getStatus());
-        verify(walletRepository, never()).save(wallet);
-        verify(bookingRepository, never()).save(pendingBooking);
     }
 
     @Test

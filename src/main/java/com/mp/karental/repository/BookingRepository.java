@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository interface for performing CRUD operations on Booking entities.
@@ -151,5 +152,5 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("ownerId") String ownerId
     );
 
-
+    Optional<Booking> findByBookingNumber(String bookingNumber);
 }
