@@ -21,5 +21,5 @@ import lombok.Getter;
 public enum ERole {
     ADMIN,
     CAR_OWNER,
-    CUSTOMER
+    CUSTOMER,
 }

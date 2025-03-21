@@ -6,7 +6,6 @@ import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.ListTransactionResponse;
 import com.mp.karental.dto.response.TransactionPaymentURLResponse;
 import com.mp.karental.dto.response.TransactionResponse;
-import com.mp.karental.entity.Transaction;
 import com.mp.karental.service.TransactionService;
 import com.mp.karental.util.RequestUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,13 +15,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -59,7 +55,7 @@ public class TransactionController {
         log.info("Transaction Request: {}", transactionRequest);
         transactionRequest.setType(ETransactionType.TOP_UP);
         return ApiResponse.<TransactionPaymentURLResponse>builder()
-                .data(transactionService.createTransaction(transactionRequest))
+                .data(transactionService.createTransactionTopUp(transactionRequest))
                 .build();
     }
     @PostMapping("/withdraw")
@@ -69,7 +65,7 @@ public class TransactionController {
         log.info("Transaction Request: {}", transactionRequest);
         transactionRequest.setType(ETransactionType.WITHDRAW);
         return ApiResponse.<TransactionPaymentURLResponse>builder()
-                .data(transactionService.createTransaction(transactionRequest))
+                .data(transactionService.createTransactionTopUp(transactionRequest))
                 .build();
     }
     @GetMapping("{transactionId}/status")
