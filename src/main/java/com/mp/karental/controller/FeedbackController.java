@@ -86,7 +86,7 @@ public class FeedbackController {
      * @return ApiResponse containing the feedback report, including the list of feedback
      *         details and the average rating for the owner's cars.
      */
-    @GetMapping("/car-owner/my-reports")
+    @GetMapping("/car-owner/my-feedbacks")
     public ApiResponse<FeedbackReportResponse> getOwnerFeedbackReport(
             @RequestParam(defaultValue = "0") int ratingFilter,
             @RequestParam(defaultValue = "0") int page,
