@@ -2,6 +2,7 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.ECarStatus;
+import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.car.AddCarRequest;
 import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
@@ -18,6 +19,8 @@ import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
 import com.mp.karental.security.SecurityUtil;
+import com.mp.karental.util.RedisUtil;
+import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -50,6 +53,8 @@ public class CarService {
     CarMapper carMapper;
     FileService fileService;
     BookingRepository bookingRepository;
+    EmailService emailService;
+    RedisUtil redisUtil;
 
     // Define constant field names to avoid repetition
     private static final String FIELD_PRODUCTION_YEAR = "productionYear";
@@ -142,11 +147,15 @@ public class CarService {
         // Update the car details using the request data
         carMapper.editCar(car, request);
 
-        if (!isValidStatusChange(currentStatus, newStatus)){
+        if (!isValidStatusChange(currentStatus, newStatus, car.getId(), accountId)){
             throw new AppException(ErrorCode.INVALID_CAR_STATUS_CHANGE);
         }
 
         car.setStatus(newStatus); // Convert status to uppercase for consistency
+        // when new status is stopped, all bookings of the car in status pending-deposit is cancelled
+        if (newStatus == ECarStatus.STOPPED) {
+            cancelPendingDepositsForStoppedCar(car.getId());
+        }
 
         // Update the car's address details
         setCarAddress(request, car);
@@ -178,15 +187,63 @@ public class CarService {
      * @return true if the status change is valid, false otherwise.
      *
      */
-    private boolean isValidStatusChange(ECarStatus currentStatus, ECarStatus newStatus) {
+    private boolean isValidStatusChange(ECarStatus currentStatus, ECarStatus newStatus, String carId, String accountId) {
         if(currentStatus == newStatus){
             return true;  // If the current status and new status are the same, return true (valid).
+        }
+        //check if car is booked, can not stopped the car
+        if (newStatus == ECarStatus.STOPPED && isCarBooked(carId, accountId)) {
+            return false; // Cannot stop a car that has active bookings.
         }
         return switch (currentStatus) {  // Switch statement to handle transitions based on the current status.
             case NOT_VERIFIED, VERIFIED -> newStatus == ECarStatus.STOPPED;  // Can transition to STOPPED.
             case STOPPED -> newStatus == ECarStatus.NOT_VERIFIED;  // Can transition to NOT_VERIFIED.
             default -> false;  // Any other transitions are invalid.
         };
+    }
+    /**
+     * Cancels all pending deposit bookings for a car that has been stopped.
+     * Updates the status of affected bookings, notifies customers via email,
+     * and removes cached pending deposit bookings.
+     *
+     * @param carId The ID of the car that has been stopped.
+     * @throws AppException If an error occurs while sending cancellation emails.
+     */
+    private void cancelPendingDepositsForStoppedCar(String carId) {
+        // Fetch only pending deposit bookings for this specific car
+        List<Booking> pendingDeposits = bookingRepository.findByCarIdAndStatus(carId, EBookingStatus.PENDING_DEPOSIT);
+
+        // If no pending deposits exist, log and return
+        if (pendingDeposits.isEmpty()) {
+            log.info("No pending deposit bookings found for car ID: {}", carId);
+            return;
+        }
+
+        // Process each pending deposit booking
+        for (Booking booking : pendingDeposits) {
+            // Update booking status to cancelled
+            booking.setStatus(EBookingStatus.CANCELLED);
+            bookingRepository.save(booking); // ✅ Persist changes
+
+            // Prepare cancellation reason message
+            String reason = "Your booking " + booking.getBookingNumber() + " was automatically canceled because the car was stopped. Please choose another car.";
+
+            // Send cancellation email to the customer
+            try {
+                emailService.sendBookingEmail(EBookingStatus.CANCELLED, ERole.CUSTOMER,
+                        booking.getAccount().getEmail(),
+                        booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                        reason);
+            } catch (MessagingException e) {
+                throw new AppException(ErrorCode.SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL);
+            }
+
+            // Remove the cached pending deposit booking from Redis
+            redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
+
+            // Log the cancellation
+            log.info("Booking {} has been cancelled due to car {} being stopped.", booking.getBookingNumber(), carId);
+        }
     }
 
     /**
@@ -479,7 +536,8 @@ public class CarService {
                 EBookingStatus.CONFIRMED,
                 EBookingStatus.IN_PROGRESS,
                 EBookingStatus.PENDING_PAYMENT,
-                EBookingStatus.COMPLETED
+                EBookingStatus.COMPLETED,
+                EBookingStatus.WAITING_CONFIRMED
         );
 
         return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);

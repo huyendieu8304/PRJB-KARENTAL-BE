@@ -39,7 +39,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("""
     SELECT b
-    FROM Booking b 
+    FROM Booking b
     WHERE b.car.id = :carId
     AND (
         (:startRange BETWEEN b.pickUpTime AND b.dropOffTime)
@@ -52,11 +52,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startRange") LocalDateTime startRange,
             @Param("endRange") LocalDateTime endRange
     );
-    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' " +
-            "AND b.paymentType = 'WALLET' " +
-            "AND b.createdAt <= :expiredTime " +
-            "ORDER BY b.createdAt")
-    List<Booking> findExpiredBookings(@Param("expiredTime") LocalDateTime expiredTime);
 
     @Query("SELECT b FROM Booking b WHERE b.car.id = :carId AND b.status = :status " +
             "AND ((b.pickUpTime BETWEEN :pickUpTime AND :dropOffTime) OR " +
@@ -70,11 +65,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("dropOffTime") LocalDateTime dropOffTime
     );
 
-    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' AND b.createdAt > :threshold")
-    List<Booking> findPendingDepositBookings(@Param("threshold") LocalDateTime threshold);
+    @Query("SELECT b FROM Booking b WHERE b.car.id = :carId AND b.status = :status")
+    List<Booking> findByCarIdAndStatus(@Param("carId") String carId, @Param("status") EBookingStatus status);
 
-    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_PAYMENT' AND b.createdAt > :threshold")
-    List<Booking> findPendingPaymentBookings(@Param("threshold") LocalDateTime threshold);
 
     @Query("""
     SELECT b FROM Booking b
@@ -94,8 +87,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                            Pageable pageable);
 
     @Query("""
-    SELECT COUNT(b) FROM Booking b 
-    WHERE b.car.account.id = :ownerId 
+    SELECT COUNT(b) FROM Booking b
+    WHERE b.car.account.id = :ownerId
     AND (:statuses IS NULL OR b.status IN :statuses)
 """)
     int countOngoingBookingsByCar(
@@ -104,8 +97,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     @Query("""
-    SELECT COUNT(b) FROM Booking b 
-    WHERE b.car.account.id = :ownerId 
+    SELECT COUNT(b) FROM Booking b
+    WHERE b.car.account.id = :ownerId
     AND b.status = :status
 """)
     int countBookingsByOwnerAndStatus(@Param("ownerId") String ownerId,

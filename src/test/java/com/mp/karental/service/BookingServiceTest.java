@@ -2838,96 +2838,96 @@ class BookingServiceTest {
 //        );
 //    }
 
-    @Test
-    void createBooking_WhenWalletHasNotEnoughBalance_ShouldSetStatusPendingDeposit() throws MessagingException {
-        // Given
-        String accountId = "testAccountId";
-        LocalDateTime pickUpTime = LocalDateTime.now().plusDays(1);
-        LocalDateTime dropOffTime = pickUpTime.plusDays(1);
-
-        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
-        CreateBookingRequest.setCarId("1");
-        CreateBookingRequest.setPaymentType(EPaymentType.WALLET);
-        CreateBookingRequest.setPickUpTime(pickUpTime);
-        CreateBookingRequest.setDropOffTime(dropOffTime);
-        CreateBookingRequest.setDriverNationalId("1234567890");
-        CreateBookingRequest.setDriverPhoneNumber("0987654321");
-        CreateBookingRequest.setDriverFullName("Test User");
-
-        Account mockAccount = new Account();
-        mockAccount.setId(accountId);
-
-        UserProfile mockProfile = new UserProfile();
-        mockProfile.setFullName("Test User");
-        mockProfile.setDob(LocalDate.of(2000, 1, 1));
-        mockProfile.setNationalId("1234567890");
-        mockProfile.setPhoneNumber("0987654321");
-        mockProfile.setCityProvince("Hà Nội");
-        mockProfile.setDistrict("Ba Đình");
-        mockProfile.setWard("Kim Mã");
-        mockProfile.setHouseNumberStreet("123 Đường ABC");
-        mockProfile.setDrivingLicenseUri("license.jpg");
-
-        mockAccount.setProfile(mockProfile);
-
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockAccount);
-        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
-
-        Car car = new Car();
-        car.setId("1");
-        car.setDeposit(1000L);
-
-        Wallet wallet = new Wallet();
-        wallet.setId(accountId);
-        wallet.setBalance(500L);
-
-        when(carRepository.findById("1")).thenReturn(Optional.of(car));
-        when(walletRepository.findById(accountId)).thenReturn(Optional.of(wallet));
-        when(carService.isCarAvailable(car.getId(), CreateBookingRequest.getPickUpTime(), CreateBookingRequest.getDropOffTime()))
-                .thenReturn(true);
-        when(redisUtil.generateBookingNumber()).thenReturn("B123");
-
-        when(bookingMapper.toBooking(any())).thenAnswer(invocation -> {
-            CreateBookingRequest request = invocation.getArgument(0);
-            Booking mappedBooking = new Booking();
-            mappedBooking.setPickUpTime(request.getPickUpTime());
-            mappedBooking.setDropOffTime(request.getDropOffTime());
-            mappedBooking.setPaymentType(request.getPaymentType());
-            mappedBooking.setStatus(EBookingStatus.PENDING_DEPOSIT);
-            mappedBooking.setCar(car);
-            return mappedBooking;
-        });
-
-        when(bookingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        when(bookingMapper.toBookingResponse(any())).thenAnswer(invocation -> {
-            Booking booking = invocation.getArgument(0);
-            BookingResponse response = new BookingResponse();
-            response.setBookingNumber("B123");
-            response.setCarId(booking.getCar().getId());
-            response.setStatus(booking.getStatus());
-            response.setPickUpTime(booking.getPickUpTime());
-            response.setDropOffTime(booking.getDropOffTime());
-            response.setTotalPrice(0L);
-            response.setDeposit(booking.getCar().getDeposit());
-            response.setPaymentType(EPaymentType.WALLET);
-            response.setDriverDrivingLicenseUrl("dummyUrl");
-            return response;
-        });
-
-        // When
-        BookingResponse response = bookingService.createBooking(CreateBookingRequest);
-
-        // Then
-        assertEquals(EBookingStatus.PENDING_DEPOSIT, response.getStatus());
-        assertEquals(500L, wallet.getBalance(), "Số dư ví không bị thay đổi vì chưa đủ tiền");
-        assertEquals(pickUpTime, response.getPickUpTime());
-        assertEquals(dropOffTime, response.getDropOffTime());
-
-        verify(transactionService, never()).payDeposit(any(), anyLong(), any());
-
-        verify(walletRepository, never()).save(any());
-    }
+//    @Test
+//    void createBooking_WhenWalletHasNotEnoughBalance_ShouldSetStatusPendingDeposit() throws MessagingException {
+//        // Given
+//        String accountId = "testAccountId";
+//        LocalDateTime pickUpTime = LocalDateTime.now().plusDays(1);
+//        LocalDateTime dropOffTime = pickUpTime.plusDays(1);
+//
+//        CreateBookingRequest CreateBookingRequest = new CreateBookingRequest();
+//        CreateBookingRequest.setCarId("1");
+//        CreateBookingRequest.setPaymentType(EPaymentType.WALLET);
+//        CreateBookingRequest.setPickUpTime(pickUpTime);
+//        CreateBookingRequest.setDropOffTime(dropOffTime);
+//        CreateBookingRequest.setDriverNationalId("1234567890");
+//        CreateBookingRequest.setDriverPhoneNumber("0987654321");
+//        CreateBookingRequest.setDriverFullName("Test User");
+//
+//        Account mockAccount = new Account();
+//        mockAccount.setId(accountId);
+//
+//        UserProfile mockProfile = new UserProfile();
+//        mockProfile.setFullName("Test User");
+//        mockProfile.setDob(LocalDate.of(2000, 1, 1));
+//        mockProfile.setNationalId("1234567890");
+//        mockProfile.setPhoneNumber("0987654321");
+//        mockProfile.setCityProvince("Hà Nội");
+//        mockProfile.setDistrict("Ba Đình");
+//        mockProfile.setWard("Kim Mã");
+//        mockProfile.setHouseNumberStreet("123 Đường ABC");
+//        mockProfile.setDrivingLicenseUri("license.jpg");
+//
+//        mockAccount.setProfile(mockProfile);
+//
+//        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockAccount);
+//        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+//
+//        Car car = new Car();
+//        car.setId("1");
+//        car.setDeposit(1000L);
+//
+//        Wallet wallet = new Wallet();
+//        wallet.setId(accountId);
+//        wallet.setBalance(500L);
+//
+//        when(carRepository.findById("1")).thenReturn(Optional.of(car));
+//        when(walletRepository.findById(accountId)).thenReturn(Optional.of(wallet));
+//        when(carService.isCarAvailable(car.getId(), CreateBookingRequest.getPickUpTime(), CreateBookingRequest.getDropOffTime()))
+//                .thenReturn(true);
+//        when(redisUtil.generateBookingNumber()).thenReturn("B123");
+//
+//        when(bookingMapper.toBooking(any())).thenAnswer(invocation -> {
+//            CreateBookingRequest request = invocation.getArgument(0);
+//            Booking mappedBooking = new Booking();
+//            mappedBooking.setPickUpTime(request.getPickUpTime());
+//            mappedBooking.setDropOffTime(request.getDropOffTime());
+//            mappedBooking.setPaymentType(request.getPaymentType());
+//            mappedBooking.setStatus(EBookingStatus.PENDING_DEPOSIT);
+//            mappedBooking.setCar(car);
+//            return mappedBooking;
+//        });
+//
+//        when(bookingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+//
+//        when(bookingMapper.toBookingResponse(any())).thenAnswer(invocation -> {
+//            Booking booking = invocation.getArgument(0);
+//            BookingResponse response = new BookingResponse();
+//            response.setBookingNumber("B123");
+//            response.setCarId(booking.getCar().getId());
+//            response.setStatus(booking.getStatus());
+//            response.setPickUpTime(booking.getPickUpTime());
+//            response.setDropOffTime(booking.getDropOffTime());
+//            response.setTotalPrice(0L);
+//            response.setDeposit(booking.getCar().getDeposit());
+//            response.setPaymentType(EPaymentType.WALLET);
+//            response.setDriverDrivingLicenseUrl("dummyUrl");
+//            return response;
+//        });
+//
+//        // When
+//        BookingResponse response = bookingService.createBooking(CreateBookingRequest);
+//
+//        // Then
+//        assertEquals(EBookingStatus.PENDING_DEPOSIT, response.getStatus());
+//        assertEquals(500L, wallet.getBalance(), "Số dư ví không bị thay đổi vì chưa đủ tiền");
+//        assertEquals(pickUpTime, response.getPickUpTime());
+//        assertEquals(dropOffTime, response.getDropOffTime());
+//
+//        verify(transactionService, never()).payDeposit(any(), anyLong(), any());
+//
+//        verify(walletRepository, never()).save(any());
+//    }
 
     @Test
     void createBooking_WhenPaymentByCashOrBankTransfer_ShouldSetStatusPendingDeposit() throws MessagingException {

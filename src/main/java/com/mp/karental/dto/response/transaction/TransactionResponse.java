@@ -2,6 +2,7 @@ package com.mp.karental.dto.response.transaction;
 
 import com.mp.karental.constant.ETransactionStatus;
 import com.mp.karental.constant.ETransactionType;
+import com.mp.karental.payment.dto.response.InitPaymentResponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;

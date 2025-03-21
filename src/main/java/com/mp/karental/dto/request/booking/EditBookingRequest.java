@@ -60,6 +60,6 @@ public class EditBookingRequest {
 
     String driverHouseNumberStreet;
 
-    // This variable indicates whether the user is using renter (false) or driver (true) information.
+    // is the driver of the booking is different from the renter(true) or renter is driver of this booking (false)
     boolean isDriver;
 }
