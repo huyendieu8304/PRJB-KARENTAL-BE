@@ -109,6 +109,8 @@ public class SecurityConfig{
                                 .requestMatchers("/car/customer/**").hasRole("CUSTOMER")
                                 .requestMatchers("/booking/car-owner/**").hasRole("CAR_OWNER")
                                 .requestMatchers("/booking/customer/**").hasRole("CUSTOMER")
+                                .requestMatchers("/feedback/car-owner/**").hasRole("CAR_OWNER")
+                                .requestMatchers("/feedback/customer/**").hasRole("CUSTOMER")
                                 .anyRequest().authenticated()
                 );
         http.authenticationProvider(authenticationProvider());

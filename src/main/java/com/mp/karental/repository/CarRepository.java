@@ -30,8 +30,6 @@ import java.util.Optional;
 public interface CarRepository extends JpaRepository<Car, String> {
     Optional<Car> findByLicensePlate(String licensePlate);
 
-    boolean existsByLicensePlate(String licensePlate);
-
     @Query("SELECT c FROM Car c WHERE c.account.id = :accountId")
     Page<Car> findByAccountId(String accountId, Pageable pageable);
 
@@ -45,7 +43,8 @@ public interface CarRepository extends JpaRepository<Car, String> {
                                         @Param("address") String address,
                                         Pageable pageable);
 
-
+    @Query("SELECT c.id FROM Car c WHERE c.account.id = :ownerId")
+    List<String> findCarIdsByOwnerId(@Param("ownerId") String ownerId);
 
 }
 

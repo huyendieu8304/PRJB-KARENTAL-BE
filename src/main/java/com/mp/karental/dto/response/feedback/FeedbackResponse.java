@@ -2,14 +2,13 @@ package com.mp.karental.dto.response.feedback;
 
 import lombok.Builder;
 import lombok.Data;
-import lombok.Setter;
-import lombok.Value;
 
 import java.time.LocalDateTime;
 
 /**
  * DTO for returning feedback details in API responses.
- * This class is immutable and built using Lombok's @Value and @Builder annotations.
+ * This class represents the feedback left by a customer after completing a booking.
+ * It includes rating, comment, and reviewer details.
  *
  * @author AnhHP9
  * @version 1.0
@@ -22,4 +21,6 @@ public class FeedbackResponse {
     int rating;
     String comment;
     LocalDateTime createdAt;
+    String reviewerName;
+
 }
