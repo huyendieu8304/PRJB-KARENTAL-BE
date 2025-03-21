@@ -56,7 +56,8 @@ public class SecurityConfig{
      * Allow request from other origins below
      */
     private final List<String> ALLOWED_CORS_URL = List.of(new String[]{
-            "http://localhost:3000" //TODO: replace this with the endpoint of deployed front end
+            "http://localhost:3000", //TODO: replace this with the endpoint of deployed front end
+            "https://nhun231.github.io/karental"
     });
 
 

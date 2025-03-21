@@ -60,7 +60,7 @@ public class VNPayService implements PaymentService{
         var createdDate = DateUtils.formatVnTime(vnCalendar);
         vnCalendar.add(Calendar.MINUTE, paymentTimeout);
         var expiredDate = DateUtils.formatVnTime(vnCalendar);    // 4. expiredDate for secure
-        var orderInfo ="";
+        var orderInfo =String.format("Top-Up transaction %s", request.getTxnRef())      ;
         var ipAddress = request.getIpAddress();
         var requestId = request.getRequestId();
 
@@ -68,29 +68,6 @@ public class VNPayService implements PaymentService{
 
         params.put(VNPayParams.VERSION, VERSION);
         params.put(VNPayParams.COMMAND, "pay");
-        switch (request.getTransactionType()) {
-            case TOP_UP:
-
-                orderInfo =  String.format("Top-Up transaction %s", request.getTxnRef())      ;
-                break;
-            case WITHDRAW:
-//                params.put(VNPayParams.COMMAND, "refund");
-//                orderInfo =  String.format("Withdraw transaction %s", request.getTxnRef())      ;
-                break;
-            case PAY_DEPOSIT:
-                orderInfo =  String.format("Pay deposit transaction %s", request.getTxnRef())      ;
-                break;
-            case RECEIVE_PAYMENT:
-                orderInfo =  String.format("Thanh toan transaction %s", request.getTxnRef())      ;
-                break;
-            case REFUND_DEPOSIT:
-                orderInfo =  String.format("Thanh toan transaction %s", request.getTxnRef())      ;
-                break;
-            case OFFSET_FINAL_PAYMENT:
-                orderInfo =  String.format("Thanh toan transaction %s", request.getTxnRef())      ;
-                break;
-        }
-
         params.put(VNPayParams.TMN_CODE, tmnCode);
         params.put(VNPayParams.AMOUNT, String.valueOf(amount));
         params.put(VNPayParams.CURRENCY, "VND");
