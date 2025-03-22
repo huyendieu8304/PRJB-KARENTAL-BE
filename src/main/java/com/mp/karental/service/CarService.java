@@ -94,7 +94,7 @@ public class CarService {
         car = carRepository.save(car);
 
         // Process and upload car-related files
-        car = processUploadFiles(request, accountId, car);
+        processUploadFiles(request, accountId, car);
 
         // Save the updated car entity after processing files
         car = carRepository.save(car);
@@ -161,7 +161,7 @@ public class CarService {
         setCarAddress(request, car);
 
         // Process and upload any new files associated with the car
-        car = processUploadFiles(request, accountId, car);
+        processUploadFiles(request, accountId, car);
 
         // Save the updated car details in the database
         car = carRepository.save(car);
@@ -192,6 +192,7 @@ public class CarService {
             return true;  // If the current status and new status are the same, return true (valid).
         }
         //check if car is booked, can not stopped the car
+        //TODO: sửa lại check đã được book chưa
         if (newStatus == ECarStatus.STOPPED && isCarBooked(carId, accountId)) {
             return false; // Cannot stop a car that has active bookings.
         }
@@ -223,20 +224,15 @@ public class CarService {
         for (Booking booking : pendingDeposits) {
             // Update booking status to cancelled
             booking.setStatus(EBookingStatus.CANCELLED);
-            bookingRepository.save(booking); // ✅ Persist changes
+            bookingRepository.save(booking); // Persist changes
 
             // Prepare cancellation reason message
-            String reason = "Your booking " + booking.getBookingNumber() + " was automatically canceled because the car was stopped. Please choose another car.";
+            String reason = "Your booking " + booking.getBookingNumber() + " was automatically canceled because the car owner has stopped rent the car. Please choose another car.";
 
             // Send cancellation email to the customer
-            try {
-                emailService.sendBookingEmail(EBookingStatus.CANCELLED, ERole.CUSTOMER,
-                        booking.getAccount().getEmail(),
-                        booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                        reason);
-            } catch (MessagingException e) {
-                throw new AppException(ErrorCode.SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL);
-            }
+            emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
+                    booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                    reason );
 
             // Remove the cached pending deposit booking from Redis
             redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
@@ -299,7 +295,7 @@ public class CarService {
      * @return The updated car entity with assigned file URIs.
      * @throws AppException If file upload fails.
      */
-    private Car processUploadFiles(Object request, String accountId, Car car) throws AppException {
+    private void processUploadFiles(Object request, String accountId, Car car) throws AppException {
 
         // Generate base URIs for storing documents and images in S3
         String baseDocumentsUri = String.format("car/%s/%s/documents/", accountId, car.getId());
@@ -385,7 +381,6 @@ public class CarService {
             }
         }
 
-        return car; // Return the updated car entity with assigned file URIs
     }
 
     /**
@@ -536,8 +531,7 @@ public class CarService {
                 EBookingStatus.CONFIRMED,
                 EBookingStatus.IN_PROGRESS,
                 EBookingStatus.PENDING_PAYMENT,
-                EBookingStatus.COMPLETED,
-                EBookingStatus.WAITING_CONFIRMED
+                EBookingStatus.COMPLETED
         );
 
         return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);

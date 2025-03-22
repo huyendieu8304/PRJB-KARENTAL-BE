@@ -19,9 +19,7 @@ import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,7 +42,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static software.amazon.awssdk.services.s3.endpoints.internal.ParseArn.ACCOUNT_ID;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
@@ -252,7 +249,7 @@ class BookingServiceTest {
             verify(bookingRepository, times(1)).saveAndFlush(booking);
 
             // Kiểm tra email được gửi đúng cách
-            verify(emailService, times(1)).sendConfirmPickUpEmail(
+            verify(emailService, times(1)).sendConfirmBookingEmail(
                     eq(customer.getEmail()),
                     eq("Toyota Camry"),
                     eq(bookingNumber)

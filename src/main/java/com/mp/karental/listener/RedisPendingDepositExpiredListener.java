@@ -37,13 +37,9 @@ public class RedisPendingDepositExpiredListener implements MessageListener {
                     bookingRepository.save(booking);
 
                     String reason = "Your booking was automatically canceled because the deposit was not paid within 1 hour.";
-                    try {
-                        emailService.sendBookingEmail(EBookingStatus.CANCELLED, ERole.CUSTOMER,
-                                booking.getAccount().getEmail(), booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                                reason);
-                    } catch (MessagingException e) {
-                        throw new AppException(ErrorCode.SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL);
-                    }
+                    emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
+                            booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                            reason);
 
                     log.info("Booking with id " + bookingId + " has been cancelled due to expired of paying deposit time");
                 }
