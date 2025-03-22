@@ -18,7 +18,6 @@ import com.mp.karental.repository.CarRepository;
 import com.mp.karental.repository.WalletRepository;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.util.RedisUtil;
-import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -143,12 +142,13 @@ public class BookingService {
 
         return buildBookingResponse(booking, drivingLicenseKey);
     }
+
     /**
      * Uploads the driver's driving license for a booking.
      * Validates if a driving license file is provided and then uploads it to a designated location.
      *
      * @param drivingLicense The uploaded file containing the driver's driving license.
-     * @param booking The booking associated with the driver's license.
+     * @param booking        The booking associated with the driver's license.
      * @return The generated file key for the uploaded license.
      * @throws AppException If the driving license is not provided.
      */
@@ -216,15 +216,13 @@ public class BookingService {
      * Edits an existing booking based on the provided booking number and update request.
      *
      * @param editBookingRequest The request details for updating the booking, including new car information and driver’s license.
-     * @param bookingNumber The booking number of the booking to be edited.
+     * @param bookingNumber      The booking number of the booking to be edited.
      * @return BookingResponse containing the updated booking details.
      * @throws AppException If there are any validation issues, the booking is not found, or the user doesn’t have access to edit the booking.
      */
     public BookingResponse editBooking(EditBookingRequest editBookingRequest, String bookingNumber) throws AppException {
         Booking booking = validateAndGetBooking(bookingNumber);
-        if (!editBookingRequest.getCarId().equals(booking.getCar().getId())) {
-            throw new AppException(ErrorCode.CAR_NOT_AVAILABLE);
-        }
+
         //do not allow edit
         if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
                 booking.getStatus() == EBookingStatus.PENDING_PAYMENT ||
@@ -351,14 +349,14 @@ public class BookingService {
     /**
      * Validates driver information to ensure all required fields are provided.
      *
-     * @param fullName        The full name of the driver (must not be null or empty).
-     * @param phoneNumber     The phone number of the driver (must not be null or empty).
-     * @param nationalId      The national ID of the driver (must not be null or empty).
-     * @param dob             The date of birth of the driver (must not be null).
-     * @param email           The email of the driver (must not be null or empty).
-     * @param city            The city or province of the driver (must not be null or empty).
-     * @param district        The district of the driver (must not be null or empty).
-     * @param ward            The ward of the driver (must not be null or empty).
+     * @param fullName          The full name of the driver (must not be null or empty).
+     * @param phoneNumber       The phone number of the driver (must not be null or empty).
+     * @param nationalId        The national ID of the driver (must not be null or empty).
+     * @param dob               The date of birth of the driver (must not be null).
+     * @param email             The email of the driver (must not be null or empty).
+     * @param city              The city or province of the driver (must not be null or empty).
+     * @param district          The district of the driver (must not be null or empty).
+     * @param ward              The ward of the driver (must not be null or empty).
      * @param houseNumberStreet The house number and street address of the driver (must not be null or empty).
      * @throws AppException if any required field is missing or empty.
      */
@@ -379,6 +377,7 @@ public class BookingService {
             throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
         }
     }
+
     /**
      * to check the account must complete the profile before booking
      *
@@ -552,7 +551,7 @@ public class BookingService {
             // Convert the input string to an EBookingStatus enum
             return EBookingStatus.valueOf(statusStr.toUpperCase());
 
-        } catch (Exception e){
+        } catch (Exception e) {
             log.info("parsing booking status {} to enum fail", statusStr);
             return null;
         }
@@ -603,7 +602,7 @@ public class BookingService {
             if (booking == null) {
                 throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
             }
-            if(!booking.getCar().getAccount().getId().equals(accountId)) {
+            if (!booking.getCar().getAccount().getId().equals(accountId)) {
                 throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
             }
 
@@ -629,13 +628,13 @@ public class BookingService {
     /**
      * Confirms a booking by the car owner and returns updated booking details.
      * <p>
-     *     Car Owner approve a booking, equivalent to allow the customer to rent the car as booking information
+     * Car Owner approve a booking, equivalent to allow the customer to rent the car as booking information
      * </p>
      *
      * @return BookingResponse containing updated booking details.
      * @throws AppException if validation fails.
      */
-    public BookingResponse confirmBooking(String bookingNumber)  {
+    public BookingResponse confirmBooking(String bookingNumber) {
         log.info("Car owner {} is confirming booking {}", SecurityUtil.getCurrentAccount().getId(), bookingNumber);
         Booking booking = validateAndGetBooking(bookingNumber);
 
@@ -650,6 +649,7 @@ public class BookingService {
             bookingRepository.save(booking);
             throw new AppException(ErrorCode.BOOKING_EXPIRED);
         }
+
         // Update the booking status to CONFIRMED
         booking.setStatus(EBookingStatus.CONFIRMED);
         bookingRepository.saveAndFlush(booking);

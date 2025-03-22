@@ -22,7 +22,6 @@ import java.time.format.DateTimeFormatter;
  *
  * @author QuangPM20
  * @version 1.0
- *
  */
 @Service
 @RequiredArgsConstructor
@@ -32,7 +31,7 @@ public class EmailService {
 
     JavaMailSender mailSender;
 
-//    @Value("${spring.mail.username}")
+    //    @Value("${spring.mail.username}")
     private static String fromEmail = "childrencaresystemse1874@gmail.com"; // replace with your email
 
     //REGISTER
