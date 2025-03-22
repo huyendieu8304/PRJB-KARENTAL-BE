@@ -81,11 +81,11 @@ public enum ErrorCode {
     BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
     INVALID_BOOKING_STATUS(3020, "This booking cannot be confirmed due to its current status.", HttpStatus.BAD_REQUEST),
     BOOKING_EXPIRED(3021, "This booking has expired and cannot be confirmed.", HttpStatus.BAD_REQUEST),
-    FEEDBACK_TIME_EXPIRED(3022, "Feedback is only allowed within 30 days after drop-off.", HttpStatus.BAD_REQUEST),
-    FEEDBACK_TOO_LONG(3023, "Feedback content must not exceed 250 characters.", HttpStatus.BAD_REQUEST),
-    BOOKING_NOT_COMPLETED(3024, "This booking is not COMPLETED.", HttpStatus.BAD_REQUEST),
-    FEEDBACK_NOT_FOUND(3025, "Feedback not found for the given booking ID.", HttpStatus.NOT_FOUND),
-    FEEDBACK_ALREADY_EXISTS(3025, "This booking is already exists.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_TIME_EXPIRED(3031, "Feedback is only allowed within 30 days after drop-off.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_TOO_LONG(3032, "Feedback content must not exceed 250 characters.", HttpStatus.BAD_REQUEST),
+    BOOKING_NOT_COMPLETED(3033, "This booking is not COMPLETED.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_NOT_FOUND(3034, "Feedback not found for the given booking ID.", HttpStatus.NOT_FOUND),
+    FEEDBACK_ALREADY_EXISTS(3035, "This booking is already exists.", HttpStatus.BAD_REQUEST),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
