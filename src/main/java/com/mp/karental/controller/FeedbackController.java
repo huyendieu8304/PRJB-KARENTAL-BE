@@ -48,15 +48,16 @@ public class FeedbackController {
      * API to retrieve feedback given by a customer for a specific booking.
      *
      * @param bookingId The ID of the booking for which feedback is requested.
-     * @return ApiResponse containing a list of feedback responses.
+     * @return ApiResponse containing the feedback response.
      */
     @GetMapping("/customer/view-ratings/{bookingId}")
-    public ApiResponse<List<FeedbackResponse>> getFeedbackByBookingId(@PathVariable String bookingId) {
-        return ApiResponse.<List<FeedbackResponse>>builder()
+    public ApiResponse<FeedbackResponse> getFeedbackByBookingId(@PathVariable String bookingId) {
+        return ApiResponse.<FeedbackResponse>builder()
                 .data(feedbackService.getFeedbackByBookingId(bookingId))
                 .message("Feedback retrieved successfully.")
                 .build();
     }
+
 
     /**
      * API to retrieve all feedback associated with a specific car.

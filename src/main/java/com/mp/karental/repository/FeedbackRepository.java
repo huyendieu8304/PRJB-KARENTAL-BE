@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for managing Feedback entity.
@@ -25,13 +26,13 @@ import java.util.List;
 public interface FeedbackRepository extends JpaRepository<Feedback, String> {
 
     /**
-     * Retrieves all feedback associated with a specific booking.
+     * Retrieves feedback for a specific booking.
      *
      * @param bookingNumber The unique identifier of the booking.
-     * @return A list of feedback related to the given booking.
+     * @return The feedback entity or empty if not found.
      */
     @Query("SELECT f FROM Feedback f WHERE f.booking.bookingNumber = :bookingNumber")
-    List<Feedback> findByBookingNumber(@Param("bookingNumber") String bookingNumber);
+    Optional<Feedback> findByBookingNumber(@Param("bookingNumber") String bookingNumber);
 
     /**
      * Checks if a feedback entry exists in the database by its ID.
@@ -91,4 +92,28 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
     Page<Feedback> findByCarIdsAndRating(@Param("carIds") List<String> carIds,
                                          @Param("rating") int rating,
                                          Pageable pageable);
+
+
+    /**
+     * Calculates the average rating for feedback associated with a list of cars.
+     * <p>
+     * This method retrieves the average rating from feedback records where the feedback is linked
+     * to bookings that belong to the specified cars. If a rating filter (1-5) is provided,
+     * only feedback with that rating is considered. If ratingFilter = 0, all ratings are included.
+     * </p>
+     *
+     * @param carIds      The list of car IDs owned by the user.
+     * @param ratingFilter The rating filter (1-5 for specific ratings, 0 for all ratings).
+     * @return The average rating, or null if no feedback is found.
+     */
+    @Query(value = "SELECT AVG(f.rating) " +
+            "FROM feedback f " +
+            "JOIN booking b ON f.booking_number = b.booking_number " +
+            "JOIN car c ON b.car_id = c.id " +
+            "WHERE c.id IN (:carIds) " +
+            "AND (:ratingFilter = 0 OR f.rating = :ratingFilter)",
+            nativeQuery = true)
+    Double calculateAverageRating(@Param("carIds") List<String> carIds,
+                                  @Param("ratingFilter") int ratingFilter);
+
 }

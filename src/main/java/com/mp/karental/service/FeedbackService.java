@@ -102,29 +102,27 @@ public class FeedbackService {
     }
 
     /**
-     * Retrieves all feedback for a specific booking.
-     * <p>
-     * If no feedback is found, an empty list is returned.
-     * </p>
+     * Retrieves feedback for a specific booking.
+     * If no feedback is found, returns null.
      *
      * @param bookingId The booking ID.
-     * @return A list of feedback or an empty list if no feedback is found.
+     * @return The feedback response or null if not found.
      */
-    public List<FeedbackResponse> getFeedbackByBookingId(String bookingId) {
-        // Fetch feedback list based on booking ID
-        List<Feedback> feedbackList = feedbackRepository.findByBookingNumber(bookingId);
+    public FeedbackResponse getFeedbackByBookingId(String bookingId) {
+        // Fetch feedback based on booking ID
+        Feedback feedback = feedbackRepository.findByBookingNumber(bookingId)
+                .orElse(null);
 
-        // Log a warning and return an empty list if no feedback is found
-        if (feedbackList.isEmpty()) {
+        // Log a warning if no feedback is found
+        if (feedback == null) {
             log.warn("No feedback found for bookingId {}", bookingId);
-            return Collections.emptyList();
+            return null;
         }
 
-        // Convert feedback entities to response DTOs
-        return feedbackList.stream()
-                .map(feedbackMapper::toFeedbackResponse)
-                .collect(Collectors.toList());
+        // Convert feedback entity to response DTO
+        return feedbackMapper.toFeedbackResponse(feedback);
     }
+
 
     /**
      * Retrieves all feedback for a specific car.
@@ -167,50 +165,42 @@ public class FeedbackService {
             log.warn("No cars found for ownerId={}", ownerId);
             return FeedbackReportResponse.builder()
                     .averageRating(0.0)
-                    .feedbacks(Collections.emptyList())  // Return an empty list if no feedback exists
+                    .feedbacks(Collections.emptyList()) // No feedback if no cars are found
                     .build();
         }
+
+        // Retrieve the average rating from the database before pagination
+        Double averageRating = feedbackRepository.calculateAverageRating(carIds, ratingFilter);
+        averageRating = (averageRating != null) ? BigDecimal.valueOf(averageRating)
+                .setScale(2, RoundingMode.HALF_UP).doubleValue() : 0.0;
 
         // Set up pagination and sorting
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createAt"));
 
-        // Fetch feedback based on rating filter
+        // Fetch feedback based on the rating filter
         Page<Feedback> feedbackPage = (ratingFilter > 0)
                 ? feedbackRepository.findByCarIdsAndRating(carIds, ratingFilter, pageRequest)
                 : feedbackRepository.findByCarIds(carIds, pageRequest);
 
         List<Feedback> feedbackList = feedbackPage.getContent();
+
+        // Return immediately if no feedback is found
         if (feedbackList.isEmpty()) {
             log.warn("No feedback found for the given filters");
+            return FeedbackReportResponse.builder()
+                    .averageRating(0.0)
+                    .feedbacks(Collections.emptyList())
+                    .build();
         }
 
-        // Calculate the average rating
-        double averageRating = calculateAverageRating(feedbackList);
-
-        // Convert to response DTOs
+        // Convert feedback entities to DTOs
         List<FeedbackDetailResponse> feedbackDetails = feedbackMapper.toFeedbackDetailResponseList(feedbackList);
 
         return FeedbackReportResponse.builder()
                 .averageRating(averageRating)
-                .feedbacks(feedbackDetails)  // Return the list of feedbacks
+                .feedbacks(feedbackDetails)
                 .build();
     }
 
-    /**
-     * Calculates the average rating from a list of feedback.
-     * <p>
-     * If no feedback exists, returns 0.0.
-     * </p>
-     *
-     * @param feedbackList The list of feedback.
-     * @return The average rating rounded to 2 decimal places.
-     */
-    private double calculateAverageRating(List<Feedback> feedbackList) {
-        if (feedbackList.isEmpty()) return 0.0;
 
-        double sum = feedbackList.stream().mapToInt(Feedback::getRating).sum();
-        double avg = sum / feedbackList.size();
-
-        return BigDecimal.valueOf(avg).setScale(2, RoundingMode.HALF_UP).doubleValue();
-    }
 }
