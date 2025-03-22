@@ -194,37 +194,21 @@ public class BookingService {
 
             // Notify the customer about the cancellation
             String reason = "Your booking has been canceled because another customer has successfully placed a deposit for this car within the same rental period.";
-            try {
-                emailService.sendBookingEmail(EBookingStatus.CANCELLED, ERole.CUSTOMER,
-                        pendingBooking.getAccount().getEmail(),
-                        pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
-                        reason);
-            } catch (MessagingException e) {
-                throw new AppException(ErrorCode.SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL);
-            }
+            emailService.sendCancelledBookingEmail(pendingBooking.getAccount().getEmail(),
+                    pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
+                    reason);
+
         }
 
         // Remove the cached pending deposit booking from Redis
         redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
 
         // Send confirmation emails to both the customer and car owner
-        try {
-            emailService.sendBookingEmail(EBookingStatus.WAITING_CONFIRMED, ERole.CUSTOMER,
-                    booking.getAccount().getEmail(),
-                    booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                    booking.getBookingNumber());
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_SYSTEM_WAITING_CONFIRM_EMAIL_FAIL);
-        }
-
-        try {
-            emailService.sendBookingEmail(EBookingStatus.WAITING_CONFIRMED, ERole.CAR_OWNER,
-                    booking.getCar().getAccount().getEmail(),
-                    booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                    booking.getCar().getLicensePlate());
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_SYSTEM_CONFIRM_DEPOSIT_EMAIL_FAIL);
-        }
+        emailService.sendWaitingConfirmedEmail(booking.getAccount().getEmail(),
+                booking.getCar().getAccount().getEmail(),
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                booking.getBookingNumber()
+        );
     }
 
 
@@ -653,7 +637,6 @@ public class BookingService {
      */
     public BookingResponse confirmBooking(String bookingNumber)  {
         log.info("Car owner {} is confirming booking {}", SecurityUtil.getCurrentAccount().getId(), bookingNumber);
-        // Get the current logged-in account
         Booking booking = validateAndGetBooking(bookingNumber);
 
         // Ensure the booking status is valid for confirmation
@@ -670,14 +653,11 @@ public class BookingService {
         // Update the booking status to CONFIRMED
         booking.setStatus(EBookingStatus.CONFIRMED);
         bookingRepository.saveAndFlush(booking);
-        try {
-            emailService.sendConfirmPickUpEmail(booking.getAccount().getEmail(),
-                    booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                    booking.getBookingNumber());
-        }
-        catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_CONFIRMED_BOOKING_EMAIL_FAIL);
-        }
+
+        emailService.sendConfirmBookingEmail(booking.getAccount().getEmail(),
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                booking.getBookingNumber());
+
         log.info("Booking {} confirmed successfully by car owner {}", bookingNumber, booking.getAccount().getId());
 
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
@@ -705,43 +685,24 @@ public class BookingService {
             throw new AppException(ErrorCode.BOOKING_CANNOT_CANCEL);
         }
 
-        // If the booking is in PENDING_DEPOSIT status, only send a cancellation email to the customer
-        if (booking.getStatus() == EBookingStatus.PENDING_DEPOSIT) {
-            try {
-                emailService.sendBookingCancellationEmail(booking.getAccount().getEmail(), ERole.CUSTOMER,
-                        EBookingStatus.PENDING_DEPOSIT, booking.getCar().getBrand() + " " + booking.getCar().getModel());
-            }
-            catch (MessagingException e) {
-                throw new AppException(ErrorCode.SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL);
-            }
-        }
+        EBookingStatus bookingStatus = booking.getStatus();
+        String carName = booking.getCar().getBrand() + " " + booking.getCar().getModel();
+        String customerId = SecurityUtil.getCurrentAccountId();
 
         // If the booking is in WAITING_CONFIRMED status, refund the full deposit to the customer
-        else if (booking.getStatus() == EBookingStatus.WAITING_CONFIRMED) {
+        if (bookingStatus == EBookingStatus.WAITING_CONFIRMED) {
             transactionService.refundAllDeposit(booking);
-            // Send an email notification to the customer about the full refund
-            try {
-                emailService.sendBookingCancellationEmail(booking.getAccount().getEmail(), ERole.CUSTOMER,
-                        EBookingStatus.WAITING_CONFIRMED, booking.getCar().getBrand() + " " + booking.getCar().getModel());
-            }
-            catch (MessagingException e) {
-                throw new AppException(ErrorCode.SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL);
-            }
         }
 
         // If the booking is in CONFIRMED status, refund 70% of the deposit and notify the car owner
-        else if (booking.getStatus() == EBookingStatus.CONFIRMED) {
+        if (bookingStatus == EBookingStatus.CONFIRMED) {
             transactionService.refundPartialDeposit(booking);
             // Send an email notification to the customer about the partial refund (70%)
-            try {
-                emailService.sendBookingCancellationEmail(booking.getAccount().getEmail(), ERole.CUSTOMER,
-                        EBookingStatus.CONFIRMED, booking.getCar().getBrand() + " " + booking.getCar().getModel());
-                emailService.sendBookingCancellationEmail(booking.getAccount().getEmail(), ERole.CAR_OWNER,
-                        EBookingStatus.CONFIRMED, booking.getCar().getBrand() + " " + booking.getCar().getModel());
-            }catch (MessagingException e) {
-                throw new AppException(ErrorCode.SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL);
-            }
+            emailService.sendBookingCancellationEmailToCarOwner(booking.getCar().getAccount().getEmail(), bookingNumber, carName);
         }
+
+        //the booking is in PENDING_DEPOSIT status, only send a cancellation email to the customer
+        emailService.sendBookingCancellationEmailToCustomer(customerId, bookingStatus, bookingNumber, carName);
 
         // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
@@ -805,7 +766,8 @@ public class BookingService {
     public BookingResponse returnCar(String bookingNumber) {
         // Validate and retrieve the booking
         Booking booking = validateAndGetBooking(bookingNumber);
-
+        String customerEmail = SecurityUtil.getCurrentEmail();
+        String carOwnerEmail = booking.getCar().getAccount().getEmail();
         // Ensure the booking is in progress and drop-off time is not exceeded
         if (booking.getStatus() != EBookingStatus.IN_PROGRESS ||
                 LocalDateTime.now().isAfter(booking.getDropOffTime())) {
@@ -818,68 +780,32 @@ public class BookingService {
 
         // Build the initial booking response
         BookingResponse response = buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+
+        // Calculate the car owner's share (92% of the total payment)
         long totalPayment = response.getTotalPrice();
+        long carOwnerShare = (long) (0.92 * totalPayment);
 
-        // Check if the deposit covers the total cost
-        if (booking.getDeposit() >= totalPayment) {
-            long remainingMoney = booking.getDeposit() - totalPayment;
 
-            // Calculate the car owner's share (92% of the total payment)
-            long carOwnerShare = (long) (0.92 * totalPayment);
+        long remainingMoney = booking.getDeposit() - totalPayment;
 
-            // Offset the final payment transactions
-            transactionService.offsetFinalPayment(booking);
+        if (remainingMoney < 0 && walletCustomer.getBalance() < -remainingMoney) {
+            // Mark the booking as pending payment due to insufficient balance
+            booking.setStatus(EBookingStatus.PENDING_PAYMENT);
 
-            // Mark the booking as completed
-            booking.setStatus(EBookingStatus.COMPLETED);
-
-            // Send email notifications to the customer (refund) and car owner (payment)
-            try {
-                emailService.sendPaymentEmail(
-                        booking.getAccount().getEmail(), ERole.CUSTOMER, booking.getBookingNumber(), remainingMoney, "REFUND");
-
-                emailService.sendPaymentEmail(
-                        booking.getCar().getAccount().getEmail(), ERole.CAR_OWNER, booking.getBookingNumber(), carOwnerShare, "COMPLETED");
-            } catch (MessagingException e) {
-                throw new AppException(ErrorCode.SEND_COMPLETED_BOOKING_EMAIL_FAIL);
-            }
-        } else {
-            // Calculate the remaining amount the customer needs to pay
-            long paymentMoney = totalPayment - booking.getDeposit();
-
-            // Check if the customer's wallet balance is sufficient
-            if (walletCustomer.getBalance() >= paymentMoney) {
-                long carOwnerShare = (long) (0.92 * totalPayment);
-
-                // Deduct the required amount from the customer's wallet
-                transactionService.offsetFinalPayment(booking);
-
-                // Mark the booking as completed
-                booking.setStatus(EBookingStatus.COMPLETED);
-
-                // Send email notifications for successful payment and car owner payment
-                try {
-                    emailService.sendPaymentEmail(
-                            booking.getAccount().getEmail(), ERole.CUSTOMER, booking.getBookingNumber(), paymentMoney, "DEDUCT");
-
-                    emailService.sendPaymentEmail(
-                            booking.getCar().getAccount().getEmail(), ERole.CAR_OWNER, booking.getBookingNumber(), carOwnerShare, "COMPLETED");
-                } catch (MessagingException e) {
-                    throw new AppException(ErrorCode.SEND_COMPLETED_BOOKING_EMAIL_FAIL);
-                }
-            } else {
-                // Mark the booking as pending payment due to insufficient balance
-                booking.setStatus(EBookingStatus.PENDING_PAYMENT);
-
-                // Notify the customer to complete the payment
-                try {
-                    emailService.sendPaymentEmail(
-                            booking.getAccount().getEmail(), ERole.CUSTOMER, booking.getBookingNumber(), paymentMoney, "PENDING_PAYMENT");
-                } catch (MessagingException e) {
-                    throw new AppException(ErrorCode.SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL);
-                }
-            }
+            // Notify the customer to complete the payment
+            emailService.sendPendingPaymentEmail(customerEmail, bookingNumber, -remainingMoney);
         }
+        // Offset the final payment transactions
+        transactionService.offsetFinalPayment(booking);
+        // Mark the booking as completed
+        booking.setStatus(EBookingStatus.COMPLETED);
+        emailService.sendPaymentEmailToCarOwner(carOwnerEmail, bookingNumber, carOwnerShare);
+        emailService.sendPaymentEmailToCustomer(
+                booking.getAccount().getEmail(),
+                booking.getBookingNumber(),
+                remainingMoney,
+                remainingMoney >= 0
+        );
 
         // Save the updated booking details to the database
         bookingRepository.saveAndFlush(booking);
@@ -912,7 +838,6 @@ public class BookingService {
         if (!booking.getAccount().getId().equals(account.getId())) {
             throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
         }
-
         return booking;
     }
 

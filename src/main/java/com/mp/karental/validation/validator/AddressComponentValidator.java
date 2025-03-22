@@ -29,12 +29,9 @@ public class AddressComponentValidator implements ConstraintValidator<ValidAddre
         String district = createBookingRequest.getDriverDistrict();
         String ward = createBookingRequest.getDriverWard();
 
-        boolean isValid = true;
+        boolean isValid = StringUtils.hasText(city) && excelService.getAllCities().contains(city);
 
         // Validate city
-        if (!StringUtils.hasText(city) || !excelService.getAllCities().contains(city)) {
-            isValid = false;
-        }
 
         // Validate district belongs to city
         if (!StringUtils.hasText(district) || !excelService.getDistrictsByCity(city).contains(district)) {
