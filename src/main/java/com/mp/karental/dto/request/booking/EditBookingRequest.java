@@ -29,17 +29,12 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class EditBookingRequest {
-    @RequiredField(fieldName = "car id")
-    String carId;
-
     //driver
     //=============================================================
     String driverFullName;
 
-    @Pattern(regexp = "\\d{10}", message = "Invalid phone number format")
     String driverPhoneNumber;
 
-    @Pattern(regexp = "\\d{9,12}", message = "Invalid national ID format")
     String driverNationalId;
 
     @ValidAge(min = 18)

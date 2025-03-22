@@ -376,6 +376,15 @@ public class BookingService {
         if (dob == null || !isValid) {
             throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
         }
+        // Validate phone number format (must be exactly 10 digits)
+        if (!phoneNumber.matches("^0\\d{9}$")) {
+            throw new AppException(ErrorCode.INVALID_PHONE_NUMBER);
+        }
+
+        // Validate national ID format (must be between 9 and 12 digits)
+        if (!nationalId.matches("\\d{9,12}")) {
+            throw new AppException(ErrorCode.INVALID_NATIONAL_ID);
+        }
     }
 
     /**
@@ -768,9 +777,9 @@ public class BookingService {
         Booking booking = validateAndGetBooking(bookingNumber);
         String customerEmail = SecurityUtil.getCurrentEmail();
         String carOwnerEmail = booking.getCar().getAccount().getEmail();
-        // Ensure the booking is in progress and drop-off time is not exceeded
+        // Ensure the booking is in progress and before drop-off time is not exceeded
         if (booking.getStatus() != EBookingStatus.IN_PROGRESS ||
-                LocalDateTime.now().isBefore(booking.getDropOffTime())) {
+                LocalDate.now().isBefore(booking.getDropOffTime().toLocalDate())) {
             throw new AppException(ErrorCode.CAR_CANNOT_RETURN);
         }
 
