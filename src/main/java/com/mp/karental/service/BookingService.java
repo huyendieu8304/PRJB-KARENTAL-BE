@@ -515,7 +515,6 @@ public class BookingService {
 
             response.setNumberOfDay((int) numberOfDay);
             response.setTotalPrice(totalPrice);
-            response.setUpdatedAt(booking.getUpdatedAt());
 
             // Retrieve car images
             response.setCarImageFrontUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
@@ -572,12 +571,12 @@ public class BookingService {
                 String requestedDirection = sortParams[1].trim().toUpperCase();
 
                 // Validate field name (only allow predefined fields)
-                if (FIELD_UPDATED_AT.equals(requestedField) || FIELD_BASE_PRICE.equals(requestedField)) {
+                if (FIELD_BASE_PRICE.equals(requestedField)) {
                     sortField = requestedField;
                 }
 
                 // Validate sorting direction
-                if ("ASC".equals(requestedDirection) || "DESC".equals(requestedDirection)) {
+                if ("ASC".equals(requestedDirection)) {
                     sortDirection = Sort.Direction.valueOf(requestedDirection);
                 }
             }
@@ -595,10 +594,9 @@ public class BookingService {
     private EBookingStatus parseStatus(String statusStr) {
         try {
             // Convert the input string to an EBookingStatus enum
-            EBookingStatus bookingStatus = EBookingStatus.valueOf(statusStr.toUpperCase());
-            return bookingStatus;
+            return EBookingStatus.valueOf(statusStr.toUpperCase());
 
-        } catch (Exception e){
+        } catch (IllegalArgumentException e) {
             log.info("parsing booking status {} to enum fail", statusStr);
             return null;
         }
@@ -672,7 +670,7 @@ public class BookingService {
     /**
      * Confirms a booking by the car owner and returns updated booking details.
      * <p>
-     *     Car Owner approve a booking, equivalent to allow the customer to rent the car as booking information
+     * Car Owner approve a booking, equivalent to allow the customer to rent the car as booking information
      * </p>
      *
      * @return BookingResponse containing updated booking details.

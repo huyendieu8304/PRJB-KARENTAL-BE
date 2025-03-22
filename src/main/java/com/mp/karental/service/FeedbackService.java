@@ -6,7 +6,6 @@ import com.mp.karental.dto.response.feedback.FeedbackDetailResponse;
 import com.mp.karental.dto.response.feedback.FeedbackReportResponse;
 import com.mp.karental.dto.response.feedback.FeedbackResponse;
 import com.mp.karental.entity.Booking;
-import com.mp.karental.entity.Car;
 import com.mp.karental.entity.Feedback;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
@@ -28,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -82,7 +80,7 @@ public class FeedbackService {
 
         // Check if feedback is within 30 days after drop-off
         if (booking.getDropOffTime().plusDays(30).isBefore(LocalDateTime.now())) {
-            throw new AppException(ErrorCode.FEEDBACK_EXPIRED);
+            throw new AppException(ErrorCode.FEEDBACK_TIME_EXPIRED);
         }
 
         // Validate feedback length (max 250 characters)
@@ -95,9 +93,9 @@ public class FeedbackService {
         feedback.setBooking(booking);
 
         // Save feedback to the database
-        feedbackRepository.save(feedback);
+        feedback = feedbackRepository.save(feedback);
         FeedbackResponse response = feedbackMapper.toFeedbackResponse(feedback);
-        response.setCreatedAt(LocalDateTime.now());
+        response.setCreatedAt(feedback.getCreateAt());
 
         // Return the response after saving
         return response;

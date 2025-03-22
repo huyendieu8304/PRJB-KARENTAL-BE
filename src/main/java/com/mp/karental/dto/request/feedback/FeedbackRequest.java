@@ -30,7 +30,6 @@ public class FeedbackRequest {
     @Max(value = 5, message = "Rating must be at most 5")
     int rating;
 
-    @NotNull(message = "Comment is required")
     @Size(max = 250, message = "Comment must not exceed 250 characters")
     String comment;
 
