@@ -770,8 +770,8 @@ public class BookingService {
         String carOwnerEmail = booking.getCar().getAccount().getEmail();
         // Ensure the booking is in progress and drop-off time is not exceeded
         if (booking.getStatus() != EBookingStatus.IN_PROGRESS ||
-                LocalDateTime.now().isAfter(booking.getDropOffTime())) {
-            throw new AppException(ErrorCode.BOOKING_CANNOT_PICKUP);
+                LocalDateTime.now().isBefore(booking.getDropOffTime())) {
+            throw new AppException(ErrorCode.CAR_CANNOT_RETURN);
         }
 
         // Retrieve the customer's wallet, throw an exception if not found

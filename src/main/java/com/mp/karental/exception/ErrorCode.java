@@ -91,6 +91,7 @@ public enum ErrorCode {
     SEND_CONFIRMED_BOOKING_EMAIL_FAIL(3028,"There was error during sending confirmed booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_COMPLETED_BOOKING_EMAIL_FAIL(3029,"There was error during sending completed booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL(3030,"There was error during sending pending payment booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    CAR_CANNOT_RETURN(3031,"The car cannot be return when booking status is not in-progress and cannot return before the drop off time", HttpStatus.FORBIDDEN),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
