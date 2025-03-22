@@ -141,11 +141,14 @@ public class CarService {
         if (!car.getAccount().getId().equals(accountId)) {
             throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
-
+        //check if car is booked, can not stop the car
+        if (newStatus == ECarStatus.STOPPED && isCarCurrentlyBooked(car.getId())) {
+            throw new AppException(ErrorCode.CAR_CANNOT_STOPPED); // Cannot stop a car that has active bookings.
+        }
         // Update the car details using the request data
         carMapper.editCar(car, request);
 
-        if (!isValidStatusChange(currentStatus, newStatus, car.getId(), accountId)){
+        if (!isValidStatusChange(currentStatus, newStatus)){
             throw new AppException(ErrorCode.INVALID_CAR_STATUS_CHANGE);
         }
 
@@ -185,13 +188,9 @@ public class CarService {
      * @return true if the status change is valid, false otherwise.
      *
      */
-    private boolean isValidStatusChange(ECarStatus currentStatus, ECarStatus newStatus, String carId, String accountId) {
+    private boolean isValidStatusChange(ECarStatus currentStatus, ECarStatus newStatus) {
         if(currentStatus == newStatus){
             return true;  // If the current status and new status are the same, return true (valid).
-        }
-        //check if car is booked, can not stop the car
-        if (newStatus == ECarStatus.STOPPED && isCarCurrentlyBooked(carId, accountId)) {
-            return false; // Cannot stop a car that has active bookings.
         }
         return switch (currentStatus) {  // Switch statement to handle transitions based on the current status.
             case NOT_VERIFIED, VERIFIED -> newStatus == ECarStatus.STOPPED;  // Can transition to STOPPED.
@@ -202,13 +201,12 @@ public class CarService {
     /**
      * This method to check the car currently booked or not
      * @param carId the id of the car
-     * @param accountId the id of the current account
      * @return true if the car is booked by account ID, false otherwise
      */
-    private boolean isCarCurrentlyBooked(String carId, String accountId) {
+    private boolean isCarCurrentlyBooked(String carId) {
         // 2 status is not booked
         List<EBookingStatus> excludedStatuses = Arrays.asList(EBookingStatus.CANCELLED, EBookingStatus.PENDING_DEPOSIT);
-        return bookingRepository.hasActiveBooking(carId, accountId,excludedStatuses);
+        return bookingRepository.hasActiveBooking(carId,excludedStatuses);
     }
     /**
      * Cancels all pending deposit bookings for a car that has been stopped.

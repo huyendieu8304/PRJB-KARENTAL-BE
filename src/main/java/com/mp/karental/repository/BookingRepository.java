@@ -38,11 +38,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
     @Query("SELECT COUNT(b) > 0 FROM Booking b " +
             "WHERE b.car.id = :carId " +
-            "AND b.account.id = :accountId " +
             "AND b.dropOffTime > CURRENT_TIMESTAMP " +
             "AND b.status NOT IN :excludedStatuses")
     boolean hasActiveBooking(@Param("carId") String carId,
-                             @Param("accountId") String accountId,
                              @Param("excludedStatuses") List<EBookingStatus> excludedStatuses);
 
     @Query("""
