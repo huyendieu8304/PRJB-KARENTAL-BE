@@ -2,7 +2,6 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.ECarStatus;
-import com.mp.karental.constant.ERole;
 import com.mp.karental.dto.request.car.AddCarRequest;
 import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
@@ -20,7 +19,6 @@ import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.util.RedisUtil;
-import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -302,7 +300,6 @@ public class CarService {
      * @param request The request object containing the uploaded files.
      * @param accountId The ID of the account uploading the files.
      * @param car The car entity to which the file URIs will be assigned.
-     * @return The updated car entity with assigned file URIs.
      * @throws AppException If file upload fails.
      */
     private void processUploadFiles(Object request, String accountId, Car car) throws AppException {
@@ -520,6 +517,12 @@ public class CarService {
         // If there isn't any booking -> Available
         if (bookings.isEmpty()) {
             return true;
+        }
+        //check car if status is different with VERIFIED, the car is not available
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+        if(car.getStatus() != ECarStatus.VERIFIED) {
+            throw new AppException(ErrorCode.CAR_NOT_VERIFIED);
         }
         // Check whether all booking is CANCELED OR  PENDING_DEPOSIT
         return bookings.stream()
