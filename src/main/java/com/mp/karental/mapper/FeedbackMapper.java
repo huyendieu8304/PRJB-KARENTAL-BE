@@ -75,9 +75,6 @@ public interface FeedbackMapper {
     @Mapping(target = "brand", source = "booking.car.brand")
     @Mapping(target = "model", source = "booking.car.model")
     @Mapping(target = "carImageFrontUrl", source = "booking.car.carImageFront")
-    @Mapping(target = "carImageBackUrl", source = "booking.car.carImageBack")
-    @Mapping(target = "carImageLeftUrl", source = "booking.car.carImageLeft")
-    @Mapping(target = "carImageRightUrl", source = "booking.car.carImageRight")
     FeedbackDetailResponse toFeedbackDetailResponse(Feedback feedback);
 
     /**

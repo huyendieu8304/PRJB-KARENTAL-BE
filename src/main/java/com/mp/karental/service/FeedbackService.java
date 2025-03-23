@@ -52,6 +52,7 @@ public class FeedbackService {
     BookingRepository bookingRepository;
     FeedbackMapper feedbackMapper;
     CarRepository carRepository;
+    FileService fileService;
 
     /**
      * Adds feedback (rating + comment) for a completed booking.
@@ -195,6 +196,11 @@ public class FeedbackService {
 
         // Convert feedback entities to DTOs
         List<FeedbackDetailResponse> feedbackDetails = feedbackMapper.toFeedbackDetailResponseList(feedbackList);
+
+        // Convert URI to URL
+        for (FeedbackDetailResponse feedback : feedbackDetails) {
+            feedback.setCarImageFrontUrl(fileService.getFileUrl(feedback.getCarImageFrontUrl()));
+        }
 
         return FeedbackReportResponse.builder()
                 .averageRating(averageRating)

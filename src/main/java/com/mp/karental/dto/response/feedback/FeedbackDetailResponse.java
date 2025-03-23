@@ -34,8 +34,5 @@ public class FeedbackDetailResponse {
 
     // Car images
     String carImageFrontUrl;
-    String carImageBackUrl;
-    String carImageLeftUrl;
-    String carImageRightUrl;
 
 }
