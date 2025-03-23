@@ -804,18 +804,19 @@ public class BookingService {
             // Notify the customer to complete the payment
             emailService.sendPendingPaymentEmail(customerEmail, bookingNumber, -remainingMoney);
         }
-        // Offset the final payment transactions
-        transactionService.offsetFinalPayment(booking);
-        // Mark the booking as completed
-        booking.setStatus(EBookingStatus.COMPLETED);
-        emailService.sendPaymentEmailToCarOwner(carOwnerEmail, bookingNumber, carOwnerShare);
-        emailService.sendPaymentEmailToCustomer(
-                booking.getAccount().getEmail(),
-                booking.getBookingNumber(),
-                remainingMoney,
-                remainingMoney >= 0
-        );
-
+        else {
+            // Offset the final payment transactions
+            transactionService.offsetFinalPayment(booking);
+            // Mark the booking as completed
+            booking.setStatus(EBookingStatus.COMPLETED);
+            emailService.sendPaymentEmailToCarOwner(carOwnerEmail, bookingNumber, carOwnerShare);
+            emailService.sendPaymentEmailToCustomer(
+                    booking.getAccount().getEmail(),
+                    booking.getBookingNumber(),
+                    remainingMoney,
+                    remainingMoney >= 0
+            );
+        }
         // Save the updated booking details to the database
         bookingRepository.saveAndFlush(booking);
 
