@@ -12,6 +12,14 @@
 ##STAGE 2: create image
 FROM amazoncorretto:17
 
+## instal Redis in container
+#RUN yum install -y epel-release && \
+#    yum install -y redis && \
+#    yum clean all
+#
+#COPY redis.conf /etc/redis/redis.conf
+
+
 # Change from ARG to ENV, ENV would be used during run
 ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
@@ -29,6 +37,9 @@ WORKDIR /app
 # cop file jar to the directory of container
 COPY target/karental-0.0.1-SNAPSHOT.jar app.jar
 #COPY --from=build /app/target/*.jar app.jar
+
+##Execute Redis
+#RUN echo "Starting Redis..." && redis-server /etc/redis/redis.conf --daemonize yes
 
 #expose port
 EXPOSE 8080

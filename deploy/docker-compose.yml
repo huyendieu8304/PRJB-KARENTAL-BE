@@ -1,0 +1,45 @@
+name: karental-application
+
+services:
+  redis:
+    image: redis:7.4.2
+    container_name: redis7
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ../redis.conf:/usr/local/etc/redis/redis.conf  # Mount file config
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]  # Run redis with custom config
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+  app:
+    image: karental:1.0
+    container_name: karental-springboot-app
+    ports:
+      - "8080:8080"
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USERNAME: ${DB_USERNAME}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      EMAIL_USERNAME: ${EMAIL_USERNAME}
+      JWT_ACCESS_SECRET_KEY: ${JWT_ACCESS_SECRET_KEY}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY}
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST}
+    depends_on:
+      - redis
+    networks:
+      - internal
+volumes:
+  redis_data:
+
+networks:
+  internal:
+    driver: bridge

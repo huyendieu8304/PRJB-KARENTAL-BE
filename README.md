@@ -70,3 +70,8 @@ If you see `aof_enabled:1` and `rdb_changes_since_last_save` then every thing is
 
 ## Build application
 `mvn clean package`
+Or you want to build the project for production environment
+`mvn clean package -DskipTests -Pprod`
+
+
+## Build docker image
