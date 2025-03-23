@@ -74,7 +74,7 @@ cloud:
       buckets:
         name: karental
 front-end:
-  domain-name: http://localhost:3000
+  domain-name: ${FE_DOMAIN_NAME:http://localhost:3000}
 
 payment:
   vnpay:

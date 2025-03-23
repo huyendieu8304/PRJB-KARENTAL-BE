@@ -19,7 +19,7 @@ services:
     networks:
       - internal
   app:
-    image: karental:1.0
+    image: huyendieu8304/karental:1.0
     container_name: karental-springboot-app
     ports:
       - "8080:8080"
