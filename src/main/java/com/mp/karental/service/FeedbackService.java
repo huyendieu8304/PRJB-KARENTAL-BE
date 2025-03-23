@@ -28,7 +28,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -165,15 +167,48 @@ public class FeedbackService {
         if (carIds.isEmpty()) {
             log.warn("No cars found for ownerId={}", ownerId);
             return FeedbackReportResponse.builder()
-                    .averageRating(0.0)
-                    .feedbacks(Collections.emptyList()) // No feedback if no cars are found
+                    .averageRatingByOwner(0.0)
+                    .averageRatingByCar(Collections.emptyMap())
+                    .feedbacks(Collections.emptyList())
+                    .totalPages(0)
+                    .pageSize(size)
+                    .totalElements(0)
                     .build();
         }
 
-        // Retrieve the average rating from the database before pagination
-        Double averageRating = feedbackRepository.calculateAverageRating(carIds, ratingFilter);
-        averageRating = (averageRating != null) ? BigDecimal.valueOf(averageRating)
+        // Calculate average rating follow by car_owner
+        Double averageRatingByOwner = feedbackRepository.calculateAverageRatingByOwner(carIds);
+        averageRatingByOwner = (averageRatingByOwner != null) ? BigDecimal.valueOf(averageRatingByOwner)
                 .setScale(2, RoundingMode.HALF_UP).doubleValue() : 0.0;
+
+        // Calculate average rating follow by car.id
+        List<Object[]> avgRatingByCarList = feedbackRepository.calculateAverageRatingByCar(carIds);
+        Map<String, Double> averageRatingByCar = new HashMap<>();
+        for (Object[] data : avgRatingByCarList) {
+            String carId = (String) data[0];
+            double avgRating = (data[1] != null) ? ((Number) data[1]).doubleValue() : 0.0;
+            averageRatingByCar.put(carId, BigDecimal.valueOf(avgRating).setScale(2, RoundingMode.HALF_UP).doubleValue());
+        }
+
+        // Get number of feedback by rating
+        List<Object[]> ratingCountData = feedbackRepository.countFeedbackByRating(carIds);
+        Map<Integer, Long> ratingCounts = new java.util.HashMap<>(ratingCountData.isEmpty()
+                ? Collections.emptyMap()
+                : ratingCountData.stream().collect(Collectors.toMap(
+                data -> ((Number) data[0]).intValue(),
+                data -> ((Number) data[1]).longValue()
+        )));
+
+        // Ensure rating from 1 to 5 always have ratingCounts, if not equal 0
+        for (int i = 1; i <= 5; i++) {
+            ratingCounts.putIfAbsent(i, 0L);
+        }
+
+        // Count total feedback from ratingCounts
+        long totalElements = ratingCounts.values().stream().mapToLong(Long::longValue).sum();
+
+        // Count total of page
+        int totalPages = (size > 0) ? (int) Math.ceil((double) totalElements / size) : 0;
 
         // Set up pagination and sorting
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createAt"));
@@ -189,8 +224,13 @@ public class FeedbackService {
         if (feedbackList.isEmpty()) {
             log.warn("No feedback found for the given filters");
             return FeedbackReportResponse.builder()
-                    .averageRating(0.0)
+                    .averageRatingByOwner(averageRatingByOwner)
+                    .averageRatingByCar(averageRatingByCar)
                     .feedbacks(Collections.emptyList())
+                    .totalPages(totalPages)
+                    .pageSize(size)
+                    .totalElements(totalElements)
+                    .ratingCounts(ratingCounts)
                     .build();
         }
 
@@ -203,8 +243,13 @@ public class FeedbackService {
         }
 
         return FeedbackReportResponse.builder()
-                .averageRating(averageRating)
-                .feedbacks(feedbackDetails)
+                .averageRatingByOwner(averageRatingByOwner)
+                .averageRatingByCar(averageRatingByCar)
+                .feedbacks(Collections.emptyList())
+                .totalPages(totalPages)
+                .pageSize(size)
+                .totalElements(totalElements)
+                .ratingCounts(ratingCounts)
                 .build();
     }
 

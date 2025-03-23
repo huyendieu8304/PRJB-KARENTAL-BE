@@ -116,4 +116,32 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
     Double calculateAverageRating(@Param("carIds") List<String> carIds,
                                   @Param("ratingFilter") int ratingFilter);
 
+    @Query("""
+    SELECT f.rating, COUNT(f.id) 
+    FROM Feedback f 
+    WHERE f.booking.car.id IN :carIds 
+    GROUP BY f.rating
+""")
+    List<Object[]> countFeedbackByRating(@Param("carIds") List<String> carIds);
+
+    @Query(value = """
+    SELECT AVG(f.rating) 
+    FROM feedback f
+    JOIN booking b ON f.booking_number = b.booking_number
+    JOIN car c ON b.car_id = c.id
+    WHERE c.id IN (:carIds)
+""", nativeQuery = true)
+    Double calculateAverageRatingByOwner(@Param("carIds") List<String> carIds);
+
+
+    @Query(value = """
+    SELECT c.id, AVG(f.rating) 
+    FROM feedback f
+    JOIN booking b ON f.booking_number = b.booking_number
+    JOIN car c ON b.car_id = c.id
+    WHERE c.id IN (:carIds)
+    GROUP BY c.id
+""", nativeQuery = true)
+    List<Object[]> calculateAverageRatingByCar(@Param("carIds") List<String> carIds);
+
 }

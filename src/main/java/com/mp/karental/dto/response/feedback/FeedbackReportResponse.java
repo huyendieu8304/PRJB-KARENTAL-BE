@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * DTO for returning feedback report of a car owner.
@@ -23,4 +24,14 @@ public class FeedbackReportResponse {
 
     List<FeedbackDetailResponse> feedbacks;
 
-}
+    // Thêm thông tin phân trang
+    private int totalPages;
+    private int pageSize;
+    private long totalElements;
+
+    // Tổng số feedback theo từng rating (1-5 sao)
+    private Map<Integer, Long> ratingCounts;
+
+    private Double averageRatingByOwner;
+
+    private Map<String, Double> averageRatingByCar; }
