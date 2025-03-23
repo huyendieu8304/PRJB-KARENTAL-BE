@@ -592,6 +592,9 @@ public class BookingService {
      * If the status is invalid or not found, returns `null` (defaulting to all bookings).
      */
     private EBookingStatus parseStatus(String statusStr) {
+        if (statusStr == null || statusStr.isBlank()) {
+            return null; // Return null to get all bookings
+        }
         try {
             // Convert the input string to an EBookingStatus enum
             return EBookingStatus.valueOf(statusStr.toUpperCase());
