@@ -20,16 +20,14 @@ import java.util.Map;
 @AllArgsConstructor
 public class FeedbackReportResponse {
 
-    double averageRating;
-
     List<FeedbackDetailResponse> feedbacks;
 
-    // Thêm thông tin phân trang
+    // Information of page
     private int totalPages;
     private int pageSize;
     private long totalElements;
 
-    // Tổng số feedback theo từng rating (1-5 sao)
+    // Total feedback follow by rating (1-5 start)
     private Map<Integer, Long> ratingCounts;
 
     private Double averageRatingByOwner;

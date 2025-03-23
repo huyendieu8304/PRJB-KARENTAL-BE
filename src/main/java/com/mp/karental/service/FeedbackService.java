@@ -245,7 +245,7 @@ public class FeedbackService {
         return FeedbackReportResponse.builder()
                 .averageRatingByOwner(averageRatingByOwner)
                 .averageRatingByCar(averageRatingByCar)
-                .feedbacks(Collections.emptyList())
+                .feedbacks(feedbackDetails)
                 .totalPages(totalPages)
                 .pageSize(size)
                 .totalElements(totalElements)
