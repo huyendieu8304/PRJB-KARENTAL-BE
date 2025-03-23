@@ -198,7 +198,7 @@ class BookingServiceTest {
 
     @Test
     void testReturnCar_InvalidDropOff_ShouldThrowException() {
-        // Arrange: Booking không thể hủy
+        
         Account account = new Account();
         account.setId(accountId);
         Car car = new Car();
@@ -230,7 +230,7 @@ class BookingServiceTest {
             "COMPLETED" //returned car and completed payment
     })
     void testReturnCar_InvalidStatus_ShouldThrowException(EBookingStatus status) {
-        // Arrange: Booking không thể hủy
+        
         Account account = new Account();
         account.setId(accountId);
         Car car = new Car();
@@ -283,9 +283,9 @@ class BookingServiceTest {
         BookingResponse response = bookingService.cancelBooking("BK123");
 
         // Assert
-        verify(transactionService, times(1)).refundPartialDeposit(existingBooking); // Kiểm tra đã hoàn tiền 100%
-        verify(bookingRepository, times(1)).saveAndFlush(existingBooking); // Kiểm tra đã lưu thay đổi
-        assertEquals(EBookingStatus.CANCELLED, existingBooking.getStatus()); // Đảm bảo trạng thái bị hủy
+        verify(transactionService, times(1)).refundPartialDeposit(existingBooking); 
+        verify(bookingRepository, times(1)).saveAndFlush(existingBooking); 
+        assertEquals(EBookingStatus.CANCELLED, existingBooking.getStatus()); 
     }
 
     @Test
@@ -320,9 +320,9 @@ class BookingServiceTest {
         BookingResponse response = bookingService.cancelBooking("BK123");
 
         // Assert
-        verify(transactionService, times(1)).refundAllDeposit(existingBooking); // Kiểm tra đã hoàn tiền 100%
-        verify(bookingRepository, times(1)).saveAndFlush(existingBooking); // Kiểm tra đã lưu thay đổi
-        assertEquals(EBookingStatus.CANCELLED, existingBooking.getStatus()); // Đảm bảo trạng thái bị hủy
+        verify(transactionService, times(1)).refundAllDeposit(existingBooking); 
+        verify(bookingRepository, times(1)).saveAndFlush(existingBooking); 
+        assertEquals(EBookingStatus.CANCELLED, existingBooking.getStatus()); 
     }
 
 
@@ -334,7 +334,7 @@ class BookingServiceTest {
             "PENDING_PAYMENT"
     })
     void testCancelBooking_InvalidStatus_ShouldThrowException(EBookingStatus status) {
-        // Arrange: Booking không thể hủy
+        
         Account account = new Account();
         account.setId(accountId);
         Car car = new Car();
@@ -402,7 +402,7 @@ class BookingServiceTest {
         mockCar.setBasePrice(2000);
 
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -481,7 +481,7 @@ class BookingServiceTest {
         mockCar.setBasePrice(2000);
 
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -743,10 +743,10 @@ class BookingServiceTest {
         assertEquals(500.0, response.getDeposit());
         assertEquals(100.0, response.getBasePrice());
 
-        // Kiểm tra trạng thái của booking trùng bị hủy
+        
         assertEquals(EBookingStatus.CANCELLED, overlappingBooking.getStatus());
 
-        // Xác nhận gọi các phương thức quan trọng
+        
         verify(redisUtil, times(1)).generateBookingNumber();
         verify(bookingRepository, times(1)).save(any(Booking.class));
         verify(redisUtil, never()).cachePendingDepositBooking(anyString());
@@ -981,7 +981,7 @@ class BookingServiceTest {
 
         when(SecurityUtil.getCurrentAccountId()).thenReturn("123");
         when(SecurityUtil.getCurrentAccount()).thenReturn(account);
-        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(null); // ✅ Giả lập không tìm thấy booking
+        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(null); 
 
         // Act & Assert
         AppException exception = assertThrows(AppException.class, () -> {
@@ -998,7 +998,7 @@ class BookingServiceTest {
         String bookingNumber = "B123";
         String userId = "123";
 
-        // Tạo tài khoản khách hàng
+        
         Account customerAccount = new Account();
         customerAccount.setId(userId);
         Role customerRole = new Role();
@@ -1006,7 +1006,7 @@ class BookingServiceTest {
         customerAccount.setRole(customerRole);
         Car car = new Car();
         car.setId("123");
-        // Tạo booking gán với tài khoản khách hàng
+        
         Booking booking = new Booking();
         booking.setBookingNumber(bookingNumber);
         booking.setAccount(customerAccount);
@@ -1029,7 +1029,7 @@ class BookingServiceTest {
 
         when(bookingMapper.toBookingResponse(any())).thenReturn(mockResponse);
 
-        // Act: Gọi cancelBooking()
+        
         BookingResponse response = bookingService.getBookingDetailsByBookingNumber(bookingNumber);
 
         // Assert
@@ -1041,16 +1041,16 @@ class BookingServiceTest {
     void testGetBookingDetailsByBookingNumber_UnauthorizedAccess() {
         // Arrange
         String bookingNumber = "B123";
-        String userId = "999"; // Người dùng không phải CAR_OWNER hay CUSTOMER
+        String userId = "999"; 
 
-        // Tạo tài khoản với vai trò không hợp lệ
+        
         Account unauthorizedAccount = new Account();
         unauthorizedAccount.setId(userId);
         Role unauthorizedRole = new Role();
-        unauthorizedRole.setName(ERole.ADMIN); // Giả sử ADMIN không được phép truy cập
+        unauthorizedRole.setName(ERole.ADMIN); 
         unauthorizedAccount.setRole(unauthorizedRole);
 
-        // Mock SecurityUtil để giả lập người dùng đăng nhập với vai trò không hợp lệ
+        
         when(SecurityUtil.getCurrentAccountId()).thenReturn(userId);
         when(SecurityUtil.getCurrentAccount()).thenReturn(unauthorizedAccount);
 
@@ -1066,33 +1066,33 @@ class BookingServiceTest {
     void testGetBookingDetailsByBookingNumber_ForbiddenCarAccess() {
         // Arrange
         String bookingNumber = "B123";
-        String ownerId = "123"; // Chủ xe hợp lệ
-        String wrongOwnerId = "999"; // Người dùng không sở hữu xe
+        String ownerId = "123"; 
+        String wrongOwnerId = "999"; 
 
-        // Tạo tài khoản của chủ xe
+        
         Account carOwnerAccount = new Account();
-        carOwnerAccount.setId(wrongOwnerId); // Không phải chủ xe hợp lệ
+        carOwnerAccount.setId(wrongOwnerId); 
         Role carOwnerRole = new Role();
         carOwnerRole.setName(ERole.CAR_OWNER);
         carOwnerAccount.setRole(carOwnerRole);
 
-        // Tạo xe thuộc về chủ xe thực sự (ID "123")
+        
         Account actualCarOwner = new Account();
         actualCarOwner.setId(ownerId);
         Car car = new Car();
         car.setId("CAR123");
         car.setAccount(actualCarOwner);
 
-        // Tạo booking gắn với xe
+        
         Booking booking = new Booking();
         booking.setBookingNumber(bookingNumber);
         booking.setCar(car);
 
-        // Mock SecurityUtil để giả lập người dùng đăng nhập có ID "999"
+        
         when(SecurityUtil.getCurrentAccountId()).thenReturn(wrongOwnerId);
         when(SecurityUtil.getCurrentAccount()).thenReturn(carOwnerAccount);
 
-        // Mock repository để trả về booking
+        
         when(bookingRepository.findBookingByBookingNumberAndOwnerId(bookingNumber, wrongOwnerId)).thenReturn(booking);
 
         // Act & Assert
@@ -1120,8 +1120,8 @@ class BookingServiceTest {
         booking.setAccount(account);
         booking.setCar(car);
         booking.setStatus(EBookingStatus.CONFIRMED);
-        booking.setPickUpTime(LocalDateTime.now().minusDays(2)); // Quá hạn pick up
-        booking.setDropOffTime(LocalDateTime.now().minusDays(1)); // ❌ Drop-off đã qua
+        booking.setPickUpTime(LocalDateTime.now().minusDays(2)); 
+        booking.setDropOffTime(LocalDateTime.now().minusDays(1)); 
 
         when(SecurityUtil.getCurrentAccountId()).thenReturn("123");
         when(SecurityUtil.getCurrentAccount()).thenReturn(account);
@@ -1152,7 +1152,7 @@ class BookingServiceTest {
         booking.setAccount(account);
         booking.setCar(car);
         booking.setStatus(EBookingStatus.CONFIRMED);
-        booking.setPickUpTime(LocalDateTime.now().plusHours(2)); // ❌ Còn hơn 30 phút nữa mới đến pickUpTime
+        booking.setPickUpTime(LocalDateTime.now().plusHours(2)); 
         booking.setDropOffTime(LocalDateTime.now().plusDays(1));
 
         when(SecurityUtil.getCurrentAccountId()).thenReturn("123");
@@ -1183,7 +1183,7 @@ class BookingServiceTest {
         booking.setBookingNumber(bookingNumber);
         booking.setAccount(account);
         booking.setCar(car);
-        booking.setStatus(EBookingStatus.CANCELLED); // ❌ Không phải CONFIRMED
+        booking.setStatus(EBookingStatus.CANCELLED); 
         booking.setPickUpTime(LocalDateTime.now().plusMinutes(30));
         booking.setDropOffTime(LocalDateTime.now().plusDays(1));
 
@@ -1205,25 +1205,25 @@ class BookingServiceTest {
         String bookingNumber = "B123";
 
         Account account1 = new Account();
-        account1.setId("123"); // Người đặt booking
+        account1.setId("123"); 
 
         Account account2 = new Account();
-        account2.setId("999"); // Người đang đăng nhập (không phải chủ booking)
+        account2.setId("999"); 
 
         Car car = new Car();
         car.setId("123");
-        car.setAccount(account1); // Booking thuộc về account1
+        car.setAccount(account1); 
 
         Booking booking = new Booking();
         booking.setBookingNumber(bookingNumber);
-        booking.setAccount(account1); // Booking thuộc về account1
+        booking.setAccount(account1); 
         booking.setCar(car);
         booking.setStatus(EBookingStatus.CONFIRMED);
         booking.setPickUpTime(LocalDateTime.now().plusMinutes(30));
         booking.setDropOffTime(LocalDateTime.now().plusDays(1));
         booking.setDriverDrivingLicenseUri("user/abc.jpg");
 
-        when(SecurityUtil.getCurrentAccountId()).thenReturn("999"); // ✅ Người dùng đăng nhập là account2
+        when(SecurityUtil.getCurrentAccountId()).thenReturn("999"); 
         when(SecurityUtil.getCurrentAccount()).thenReturn(account2);
         when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
 
@@ -1241,7 +1241,7 @@ class BookingServiceTest {
         String bookingNumber = "B123";
 
         when(SecurityUtil.getCurrentAccountId()).thenReturn("123");
-        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(null); // ✅ Giả lập không tìm thấy booking
+        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(null); 
 
         // Act & Assert
         AppException exception = assertThrows(AppException.class, () -> {
@@ -1267,7 +1267,7 @@ class BookingServiceTest {
         booking.setAccount(account);
         booking.setCar(car);
         booking.setStatus(EBookingStatus.CONFIRMED);
-        booking.setPickUpTime(LocalDateTime.now().plusMinutes(30));  // ✅ Đặt pickUpTime tại đây
+        booking.setPickUpTime(LocalDateTime.now().plusMinutes(30));  
         booking.setDropOffTime(LocalDateTime.now().plusDays(1));
         booking.setDriverDrivingLicenseUri("user/abc.jpg");
 
@@ -1276,7 +1276,7 @@ class BookingServiceTest {
         when(SecurityUtil.getCurrentAccount()).thenReturn(account);
         when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
 
-        // Mock BookingResponse với giá trị hợp lệ
+        
         BookingResponse mockResponse = new BookingResponse();
         mockResponse.setDriverDrivingLicenseUrl("mock-url");
         mockResponse.setBookingNumber(bookingNumber);
@@ -1284,7 +1284,7 @@ class BookingServiceTest {
 
         when(bookingMapper.toBookingResponse(any())).thenReturn(mockResponse);
 
-        // Act: Gọi cancelBooking()
+        
         BookingResponse response = bookingService.confirmPickUp(bookingNumber);
 
             // Assert
@@ -1312,7 +1312,7 @@ class BookingServiceTest {
         car.setAccount(account);
 
 
-            // Act & Assert: Kiểm tra xem exception có bị ném ra không
+            
             AppException exception = assertThrows(AppException.class, () -> {
                 bookingService.cancelBooking(bookingNumber);
             });
@@ -1605,7 +1605,7 @@ class BookingServiceTest {
         mockCar.setBasePrice(2000);
 
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -1639,11 +1639,11 @@ class BookingServiceTest {
             return response;
         });
 
-        // Gọi service và kiểm tra exception
+        
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.editBooking(request, bookingNumber);
         });
-        // Kiểm tra error code
+        
         assertEquals(ErrorCode.INVALID_DRIVER_INFO, exception.getErrorCode());
     }
 
@@ -1690,7 +1690,7 @@ class BookingServiceTest {
         mockCar.setBasePrice(2000);
 
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -1724,11 +1724,11 @@ class BookingServiceTest {
             return response;
         });
 
-        // Gọi service và kiểm tra exception
+        
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.editBooking(request, bookingNumber);
         });
-        // Kiểm tra error code
+        
         assertEquals(ErrorCode.INVALID_DRIVER_INFO, exception.getErrorCode());
     }
 
@@ -1776,7 +1776,7 @@ class BookingServiceTest {
         mockCar.setBasePrice(2000);
 
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -1810,11 +1810,11 @@ class BookingServiceTest {
             return response;
         });
 
-        // Gọi service và kiểm tra exception
+        
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.editBooking(request, bookingNumber);
         });
-        // Kiểm tra error code
+        
         assertEquals(ErrorCode.INVALID_DRIVER_INFO, exception.getErrorCode());
     }
 
@@ -1831,7 +1831,7 @@ class BookingServiceTest {
 
 
 
-        // Mock file mới (giấy phép lái xe)
+        
         MultipartFile newMockFile = mock(MultipartFile.class);
         request.setDriverDrivingLicense(newMockFile);
 
@@ -1863,7 +1863,7 @@ class BookingServiceTest {
         mockCar.setDeposit(5000);
         mockCar.setBasePrice(2000);
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -1897,11 +1897,11 @@ class BookingServiceTest {
             return response;
         });
 
-        // Gọi service và kiểm tra exception
+        
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.editBooking(request, bookingNumber);
         });
-        // Kiểm tra error code
+        
         assertEquals(ErrorCode.INVALID_DRIVER_INFO, exception.getErrorCode());
     }
 
@@ -1931,25 +1931,25 @@ class BookingServiceTest {
 
         mockAccount.setProfile(mockProfile);
 
-        // Mock booking có trạng thái không cho phép sửa
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
         Car car = new Car();
         car.setId("car123");
         existingBooking.setCar(car);
-        existingBooking.setStatus(status); // Các trạng thái không cho phép sửa
+        existingBooking.setStatus(status); 
 
         // Mock repository
         lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
         lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(existingBooking);
 
-        // Gọi service và kiểm tra exception
+        
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.editBooking(request, bookingNumber);
         });
 
-        // Kiểm tra error code
+        
         assertEquals(ErrorCode.BOOKING_CANNOT_BE_EDITED, exception.getErrorCode());
     }
 
@@ -1974,7 +1974,7 @@ class BookingServiceTest {
         request.setDriverHouseNumberStreet("123 Đường ABC");
 
 
-        // Mock file mới (giấy phép lái xe)
+        
         MultipartFile newMockFile = mock(MultipartFile.class);
         request.setDriverDrivingLicense(newMockFile);
 
@@ -2007,7 +2007,7 @@ class BookingServiceTest {
         mockCar.setBasePrice(2000);
 
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -2041,10 +2041,10 @@ class BookingServiceTest {
             return response;
         });
 
-        // Thực thi service
+        
         BookingResponse response = bookingService.editBooking(request, bookingNumber);
 
-        // Kiểm tra kết quả
+        
         assertNotNull(response, "Response should not be null");
         assertEquals(expectedUrl, response.getDriverDrivingLicenseUrl());
     }
@@ -2095,7 +2095,7 @@ class BookingServiceTest {
         mockCar.setBasePrice(2000);
 
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -2129,11 +2129,11 @@ class BookingServiceTest {
             return response;
         });
 
-        // Gọi service và kiểm tra exception
+        
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.editBooking(request, bookingNumber);
         });
-        // Kiểm tra error code
+        
         assertEquals(ErrorCode.INVALID_DRIVER_INFO, exception.getErrorCode());
     }
 
@@ -2156,7 +2156,7 @@ class BookingServiceTest {
         request.setDriverWard("Kim Mã");
 
 
-        // Mock file mới (giấy phép lái xe)
+        
         MultipartFile newMockFile = mock(MultipartFile.class);
         request.setDriverDrivingLicense(newMockFile);
 
@@ -2190,7 +2190,7 @@ class BookingServiceTest {
 
 
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -2224,11 +2224,11 @@ class BookingServiceTest {
             return response;
         });
 
-        // Gọi service và kiểm tra exception
+        
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.editBooking(request, bookingNumber);
         });
-        // Kiểm tra error code
+        
         assertEquals(ErrorCode.INVALID_DRIVER_INFO, exception.getErrorCode());
     }
 
@@ -2258,14 +2258,14 @@ class BookingServiceTest {
 
         mockAccount.setProfile(mockProfile);
 
-        // Mock account khác (chủ sở hữu booking)
+        
         Account anotherAccount = new Account();
         anotherAccount.setId("otherUser");
 
-        // Mock booking thuộc về người khác
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
-        existingBooking.setAccount(anotherAccount); // Khác với `mockAccount`
+        existingBooking.setAccount(anotherAccount); 
         Car car = new Car();
         car.setId("car123");
         existingBooking.setCar(car);
@@ -2275,12 +2275,12 @@ class BookingServiceTest {
         lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
         lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(existingBooking);
 
-        // Gọi service và kiểm tra exception
+        
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.editBooking(request, bookingNumber);
         });
 
-        // Kiểm tra error code
+        
         assertEquals(ErrorCode.FORBIDDEN_BOOKING_ACCESS, exception.getErrorCode());
     }
 
@@ -2335,15 +2335,15 @@ class BookingServiceTest {
             return response;
         });
 
-        // Gọi service và kiểm tra exception
+        
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.editBooking(request, bookingNumber);
         });
 
-        // Kiểm tra error code
+        
         assertEquals(ErrorCode.BOOKING_NOT_FOUND_IN_DB, exception.getErrorCode());
 
-        // Kiểm tra phương thức đã được gọi đúng số lần
+        
         verify(bookingRepository, times(1)).findBookingByBookingNumber(bookingNumber);
     }
 
@@ -2385,7 +2385,7 @@ class BookingServiceTest {
         mockCar.setBasePrice(2000);
 
 
-        // Mock booking hiện tại trong DB
+        
         Booking existingBooking = new Booking();
         existingBooking.setBookingNumber(bookingNumber);
         existingBooking.setAccount(mockAccount);
@@ -2411,10 +2411,10 @@ class BookingServiceTest {
             return response;
         });
 
-        // Thực thi service
+        
         BookingResponse response = bookingService.editBooking(request, bookingNumber);
         System.out.println("Booking response"+ response);
-        // Kiểm tra kết quả
+        
         assertNotNull(response, "Response should not be null");
         assertEquals(mockCar.getId(), response.getCarId());
 
@@ -3612,7 +3612,7 @@ CreateBookingRequest request = new CreateBookingRequest();
     @Test
     void getBookingsOfCustomer_WithInvalidStatus_ReturnsAllBookings() {
         // Given
-        String status = "INVALID_STATUS"; // Trạng thái không hợp lệ
+        String status = "INVALID_STATUS"; 
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "updatedAt"));
 
         Page<Booking> bookingPage = new PageImpl<>(Collections.emptyList());
@@ -3626,7 +3626,7 @@ CreateBookingRequest request = new CreateBookingRequest();
         // Then
         assertNotNull(response);
         assertEquals(0, response.getBookings().getTotalElements());
-        verify(bookingRepository).findByAccountId(eq(accountId), eq(pageable)); // Kiểm tra gọi đúng phương thức
+        verify(bookingRepository).findByAccountId(eq(accountId), eq(pageable)); 
     }
 
     @ParameterizedTest

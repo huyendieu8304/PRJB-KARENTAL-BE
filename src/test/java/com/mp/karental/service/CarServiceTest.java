@@ -94,7 +94,7 @@ class CarServiceTest {
         String carId = "car123";
         String accountId = "account456";
         EditCarRequest request = new EditCarRequest();
-        request.setStatus(ECarStatus.STOPPED); // Chủ xe muốn dừng xe
+        request.setStatus(ECarStatus.STOPPED); 
 
         Car car = new Car();
         car.setId(carId);
@@ -113,17 +113,17 @@ class CarServiceTest {
         customer.setEmail("customer@example.com");
         booking.setAccount(customer);
 
-        // Mock SecurityUtil để trả về accountId hợp lệ
+        
         lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
 
-        // Mock carRepository để tìm thấy xe
+        
         lenient().when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
-        // Mock bookingRepository để tìm thấy các booking cần hủy
+        
         lenient().when(bookingRepository.findByCarIdAndStatus(carId, EBookingStatus.PENDING_DEPOSIT))
                 .thenReturn(List.of(booking));
 
-        // ✅ Mock carMapper.toCarResponse() đúng cách
+        
         when(carMapper.toCarResponse(any(Car.class))).thenAnswer(invocation -> {
             Car updatedCar = invocation.getArgument(0);
             CarResponse response = new CarResponse();
@@ -136,24 +136,24 @@ class CarServiceTest {
             return response;
         });
 
-        // ✅ Mock carRepository.save() để đảm bảo xe được cập nhật chính xác
+        
         when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When: Gọi phương thức editCar()
+        
         carService.editCar(request, carId);
 
-        // Then: Booking phải bị hủy
+        
         assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
-        verify(bookingRepository).save(booking); // Đảm bảo booking đã được cập nhật
+        verify(bookingRepository).save(booking); 
 
-        // Email phải được gửi
+        
         verify(emailService).sendCancelledBookingEmail(
                 eq("customer@example.com"),
                 anyString(),
                 contains("was automatically canceled")
         );
 
-        // Cache phải bị xóa
+        
         verify(redisUtil).removeCachePendingDepositBooking("BOOK123");
     }
 
@@ -164,7 +164,7 @@ class CarServiceTest {
         String carId = "car123";
         String accountId = "account456";
         EditCarRequest request = new EditCarRequest();
-        request.setStatus(ECarStatus.STOPPED); // Yêu cầu dừng xe
+        request.setStatus(ECarStatus.STOPPED); 
 
         Car car = new Car();
         car.setId(carId);
@@ -177,7 +177,7 @@ class CarServiceTest {
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
-        // Mock để giả lập xe đang có booking
+        
         when(bookingRepository.hasActiveBooking(eq(carId), anyList())).thenReturn(true);
 
         // When & Then
@@ -198,7 +198,7 @@ class CarServiceTest {
         car.setId(carId);
         car.setStatus(ECarStatus.STOPPED);
 
-        when(carRepository.findById(carId)) // Không dùng lenient()
+        when(carRepository.findById(carId)) 
                 .thenReturn(Optional.of(car));
 
         // When & Then
