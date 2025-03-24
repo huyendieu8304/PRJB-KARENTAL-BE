@@ -54,9 +54,6 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
 
     /**
      * Retrieves paginated feedback for multiple cars, ordered by creation date in descending order.
-     * <p>
-     * This method is useful for displaying feedback for a list of cars belonging to a specific owner.
-     * </p>
      *
      * @param carIds   A list of car IDs.
      * @param pageable The pagination information.
@@ -71,10 +68,6 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
 
     /**
      * Retrieves paginated feedback for multiple cars with a specific rating.
-     * <p>
-     * This query joins the {@code Feedback}, {@code Booking}, and {@code Car} entities
-     * to filter feedback by a list of car IDs and a specific rating.
-     * </p>
      *
      * @param carIds   A list of car IDs.
      * @param rating   The rating value to filter by.
@@ -83,9 +76,7 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
      */
     @Query("""
         SELECT f FROM Feedback f 
-        JOIN f.booking b
-        JOIN b.car c
-        WHERE c.id IN :carIds 
+        WHERE f.booking.car.id IN :carIds 
         AND f.rating = :rating
         ORDER BY f.createAt DESC
     """)
@@ -93,65 +84,60 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
                                          @Param("rating") int rating,
                                          Pageable pageable);
 
-
     /**
-     * Calculates the average rating for feedback associated with a list of cars.
-     * <p>
-     * This method retrieves the average rating from feedback records where the feedback is linked
-     * to bookings that belong to the specified cars. If a rating filter (1-5) is provided,
-     * only feedback with that rating is considered. If ratingFilter = 0, all ratings are included.
-     * </p>
+     * Counts the number of feedback entries for each rating (1-5) for a given set of cars.
      *
-     * @param carIds      The list of car IDs owned by the user.
-     * @param ratingFilter The rating filter (1-5 for specific ratings, 0 for all ratings).
-     * @return The average rating, or null if no feedback is found.
+     * @param carIds A list of car IDs.
+     * @return A list of objects where each element contains a rating value and its count.
      */
-    @Query(value = "SELECT AVG(f.rating) " +
-            "FROM feedback f " +
-            "JOIN booking b ON f.booking_number = b.booking_number " +
-            "JOIN car c ON b.car_id = c.id " +
-            "WHERE c.id IN (:carIds) " +
-            "AND (:ratingFilter = 0 OR f.rating = :ratingFilter)",
-            nativeQuery = true)
-    Double calculateAverageRating(@Param("carIds") List<String> carIds,
-                                  @Param("ratingFilter") int ratingFilter);
-
     @Query("""
-    SELECT f.rating, COUNT(f.id) 
-    FROM Feedback f 
-    WHERE f.booking.car.id IN :carIds 
-    GROUP BY f.rating
-""")
+        SELECT f.rating, COUNT(f.id) 
+        FROM Feedback f 
+        WHERE f.booking.car.id IN :carIds 
+        GROUP BY f.rating
+    """)
     List<Object[]> countFeedbackByRating(@Param("carIds") List<String> carIds);
 
+    /**
+     * Calculates the average rating for all feedback associated with the given car IDs.
+     *
+     * @param carIds A list of car IDs.
+     * @return The average rating, or null if no feedback exists.
+     */
     @Query(value = """
-    SELECT AVG(f.rating) 
-    FROM feedback f
-    JOIN booking b ON f.booking_number = b.booking_number
-    JOIN car c ON b.car_id = c.id
-    WHERE c.id IN (:carIds)
-""", nativeQuery = true)
+        SELECT AVG(f.rating) 
+        FROM feedback f
+        JOIN booking b ON f.booking_number = b.booking_number
+        WHERE b.car_id IN (:carIds)
+    """, nativeQuery = true)
     Double calculateAverageRatingByOwner(@Param("carIds") List<String> carIds);
 
-
+    /**
+     * Calculates the average rating for each individual car in the given list.
+     *
+     * @param carIds A list of car IDs.
+     * @return A list of objects where each element contains a car ID and its average rating.
+     */
     @Query(value = """
-    SELECT c.id, AVG(f.rating) 
-    FROM feedback f
-    JOIN booking b ON f.booking_number = b.booking_number
-    JOIN car c ON b.car_id = c.id
-    WHERE c.id IN (:carIds)
-    GROUP BY c.id
-""", nativeQuery = true)
+        SELECT b.car_id, AVG(f.rating) 
+        FROM feedback f
+        JOIN booking b ON f.booking_number = b.booking_number
+        WHERE b.car_id IN (:carIds)
+        GROUP BY b.car_id
+    """, nativeQuery = true)
     List<Object[]> calculateAverageRatingByCar(@Param("carIds") List<String> carIds);
 
+    /**
+     * Calculates the average rating for a specific car.
+     *
+     * @param carId The unique identifier of the car.
+     * @return The average rating for the car, or null if no feedback exists.
+     */
     @Query(value = """
-    SELECT AVG(f.rating) 
-    FROM feedback f
-    JOIN booking b ON f.booking_number = b.booking_number
-    JOIN car c ON b.car_id = c.id
-    WHERE c.id = :carId
-""", nativeQuery = true)
+        SELECT AVG(f.rating) 
+        FROM feedback f
+        JOIN booking b ON f.booking_number = b.booking_number
+        WHERE b.car_id = :carId
+    """, nativeQuery = true)
     Double calculateAverageRatingByCar(@Param("carId") String carId);
-
-
 }

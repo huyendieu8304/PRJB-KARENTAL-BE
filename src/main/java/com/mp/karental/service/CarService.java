@@ -19,6 +19,7 @@ import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
 import com.mp.karental.repository.FeedbackRepository;
 import com.mp.karental.security.SecurityUtil;
+import com.mp.karental.util.RedisUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,10 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +52,8 @@ public class CarService {
     CarMapper carMapper;
     FileService fileService;
     BookingRepository bookingRepository;
+    EmailService emailService;
+    RedisUtil redisUtil;
 
     // Define constant field names to avoid repetition
     private static final String FIELD_PRODUCTION_YEAR = "productionYear";
@@ -68,7 +68,7 @@ public class CarService {
      * @throws AppException If the account is not found in the database.
      */
     public CarResponse addNewCar(AddCarRequest request) throws AppException {
-        // Get the current user account Id
+        // Get the current user account id
         String accountId = SecurityUtil.getCurrentAccountId();
 
         // Retrieve the account from the database, throw an exception if not found
@@ -94,7 +94,7 @@ public class CarService {
         car = carRepository.save(car);
 
         // Process and upload car-related files
-        car = processUploadFiles(request, accountId, car);
+        processUploadFiles(request, accountId, car);
 
         // Save the updated car entity after processing files
         car = carRepository.save(car);
@@ -143,7 +143,10 @@ public class CarService {
         if (!car.getAccount().getId().equals(accountId)) {
             throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
-
+        //check if car is booked, can not stop the car
+        if (newStatus == ECarStatus.STOPPED && isCarCurrentlyBooked(car.getId())) {
+            throw new AppException(ErrorCode.CAR_CANNOT_STOPPED); // Cannot stop a car that has active bookings.
+        }
         // Update the car details using the request data
         carMapper.editCar(car, request);
 
@@ -152,12 +155,16 @@ public class CarService {
         }
 
         car.setStatus(newStatus); // Convert status to uppercase for consistency
+        // when new status is stopped, all bookings of the car in status pending-deposit is cancelled
+        if (newStatus == ECarStatus.STOPPED) {
+            cancelPendingDepositsForStoppedCar(car.getId());
+        }
 
         // Update the car's address details
         setCarAddress(request, car);
 
         // Process and upload any new files associated with the car
-        car = processUploadFiles(request, accountId, car);
+        processUploadFiles(request, accountId, car);
 
         // Save the updated car details in the database
         car = carRepository.save(car);
@@ -190,8 +197,57 @@ public class CarService {
         return switch (currentStatus) {  // Switch statement to handle transitions based on the current status.
             case NOT_VERIFIED, VERIFIED -> newStatus == ECarStatus.STOPPED;  // Can transition to STOPPED.
             case STOPPED -> newStatus == ECarStatus.NOT_VERIFIED;  // Can transition to NOT_VERIFIED.
-            default -> false;  // Any other transitions are invalid.
         };
+    }
+
+    /**
+     * This method to check the car currently booked or not
+     * @param carId the id of the car
+     * @return true if the car is booked by account ID, false otherwise
+     */
+    private boolean isCarCurrentlyBooked(String carId) {
+        // 2 status is not booked
+        List<EBookingStatus> excludedStatuses = Arrays.asList(EBookingStatus.CANCELLED, EBookingStatus.PENDING_DEPOSIT);
+        return bookingRepository.hasActiveBooking(carId,excludedStatuses);
+    }
+    /**
+     * Cancels all pending deposit bookings for a car that has been stopped.
+     * Updates the status of affected bookings, notifies customers via email,
+     * and removes cached pending deposit bookings.
+     *
+     * @param carId The ID of the car that has been stopped.
+     * @throws AppException If an error occurs while sending cancellation emails.
+     */
+    private void cancelPendingDepositsForStoppedCar(String carId) {
+        // Fetch only pending deposit bookings for this specific car
+        List<Booking> pendingDeposits = bookingRepository.findByCarIdAndStatus(carId, EBookingStatus.PENDING_DEPOSIT);
+
+        // If no pending deposits exist, log and return
+        if (pendingDeposits.isEmpty()) {
+            log.info("No pending deposit bookings found for car ID: {}", carId);
+            return;
+        }
+
+        // Process each pending deposit booking
+        for (Booking booking : pendingDeposits) {
+            // Update booking status to cancelled
+            booking.setStatus(EBookingStatus.CANCELLED);
+            bookingRepository.save(booking); //  Persist changes
+
+            // Prepare cancellation reason message
+            String reason = "Your booking " + booking.getBookingNumber() + " was automatically canceled because the car owner has stopped rent the car. Please choose another car.";
+
+            // Send cancellation email to the customer
+            emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
+                    booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                    reason );
+
+            // Remove the cached pending deposit booking from Redis
+            redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
+
+            // Log the cancellation
+            log.info("Booking {} has been cancelled due to car {} being stopped.", booking.getBookingNumber(), carId);
+        }
     }
 
     /**
@@ -244,29 +300,28 @@ public class CarService {
      * @param request The request object containing the uploaded files.
      * @param accountId The ID of the account uploading the files.
      * @param car The car entity to which the file URIs will be assigned.
-     * @return The updated car entity with assigned file URIs.
      * @throws AppException If file upload fails.
      */
-    private Car processUploadFiles(Object request, String accountId, Car car) throws AppException {
+    private void processUploadFiles(Object request, String accountId, Car car) throws AppException {
 
         // Generate base URIs for storing documents and images in S3
         String baseDocumentsUri = String.format("car/%s/%s/documents/", accountId, car.getId());
         String baseImagesUri = String.format("car/%s/%s/images/", accountId, car.getId());
 
         // Initialize file storage keys for car images
-        String s3KeyImageFront = "";
-        String s3KeyImageBack = "";
-        String s3KeyImageLeft = "";
-        String s3KeyImageRight = "";
+        String s3KeyImageFront;
+        String s3KeyImageBack;
+        String s3KeyImageLeft;
+        String s3KeyImageRight;
 
         // Initialize document and image file variables
-        MultipartFile registrationPaper = null;
-        MultipartFile certificateOfInspection = null;
-        MultipartFile insurance = null;
-        MultipartFile imageFront = null;
-        MultipartFile imageBack = null;
-        MultipartFile imageLeft = null;
-        MultipartFile imageRight = null;
+        MultipartFile registrationPaper;
+        MultipartFile certificateOfInspection;
+        MultipartFile insurance;
+        MultipartFile imageFront;
+        MultipartFile imageBack;
+        MultipartFile imageLeft;
+        MultipartFile imageRight ;
 
         // If the request is an AddCarRequest, handle document and image uploads
         if (request instanceof AddCarRequest) {
@@ -333,7 +388,6 @@ public class CarService {
             }
         }
 
-        return car; // Return the updated car entity with assigned file URIs
     }
 
     /**
@@ -353,31 +407,23 @@ public class CarService {
         // Retrieve the list of cars owned by the current user
         Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
 
-        // Convert each Car entity to CarThumbnailResponse
-        Page<CarThumbnailResponse> responses = cars.map(car -> {
+        return cars.map(car -> {
             CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
-
-            // Set the car's address in the response
             response.setAddress(car.getWard() + ", " + car.getCityProvince());
-
-            // Convert file paths to accessible URLs
             response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
             response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
             response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
-            // Retrieve and set the average rating of the car
-            double averageRating = getAverageRatingByCar(car.getId());
-            response.setAverageRatingByCar(averageRating);
+            // Gọi repository để lấy rating từng xe
+            Double averageRating = feedbackRepository.calculateAverageRatingByCar(car.getId());
+            response.setAverageRatingByCar(averageRating != null ? averageRating : 0.0);
 
-            // Count and set the number of completed bookings for the car
             long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
             response.setNoOfRides(noOfRides);
 
             return response;
         });
-
-        return responses;
     }
 
     /**
@@ -475,7 +521,12 @@ public class CarService {
 
         List<Booking> bookings = bookingRepository.findActiveBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
         log.info("Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
-
+        //check car if status is different with VERIFIED, the car is not available
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+        if(car.getStatus() != ECarStatus.VERIFIED) {
+            throw new AppException(ErrorCode.CAR_NOT_VERIFIED);
+        }
         // If there isn't any booking -> Available
         if (bookings.isEmpty()) {
             return true;
@@ -499,7 +550,8 @@ public class CarService {
                 EBookingStatus.CONFIRMED,
                 EBookingStatus.IN_PROGRESS,
                 EBookingStatus.PENDING_PAYMENT,
-                EBookingStatus.COMPLETED
+                EBookingStatus.COMPLETED,
+                EBookingStatus.WAITING_CONFIRMED
         );
 
         return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);
@@ -550,6 +602,7 @@ public class CarService {
      * @param sort The sorting string in the format "field,direction" (e.g., "productionYear,desc").
      * @return A paginated list of available cars.
      */
+
     public Page<CarThumbnailResponse> searchCars(SearchCarRequest request, int page, int size, String sort) {
         log.info("Search request received - Address: {}, PickUp: {}, DropOff: {}",
                 request.getAddress(), request.getPickUpTime(), request.getDropOffTime());
@@ -560,48 +613,33 @@ public class CarService {
         // Get list car is VERIFIED with pagination
         Page<Car> verifiedCars = carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, request.getAddress(), pageable);
 
-        // Get list carId to query average rating
-        List<String> carIds = verifiedCars.stream().map(Car::getId).toList();
-
-        // Get list rating follow by car id
-        Map<String, Double> ratingMap = feedbackRepository.calculateAverageRatingByCar(carIds)
-                .stream().collect(Collectors.toMap(
-                        result -> (String) result[0], // carId
-                        result -> {
-                            Object value = result[1]; // Get value of AVG(f.rating)
-                            if (value instanceof BigDecimal) {
-                                return ((BigDecimal) value).doubleValue(); // Convert from BigDecimal -> Double
-                            }
-                            return 0.0; // If null or not BigDecimal, return 0
-                        },
-                        (a, b) -> b // Keep the last value if duplicate
-                ));
-
         // Filter to take car is AVAILABLE
         List<CarThumbnailResponse> availableCars = new ArrayList<>();
 
         for (Car car : verifiedCars) {
+            log.info("Checking completed bookings for Car ID: {}", car.getId());
 
             boolean available = isCarAvailable(car.getId(), request.getPickUpTime(), request.getDropOffTime());
-
             if (!available) {
-                continue; // Ignore unavailable car
+                continue;
             }
 
             long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
+            log.info("Number of completed rides for Car ID {}: {}", car.getId(), noOfRides);
 
             CarThumbnailResponse response = carMapper.toSearchCar(car, noOfRides);
-            response.setAddress(car.getWard() + ", " + car.getCityProvince() + ", " + car.getWard());
+            response.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", " + car.getWard());
+
+            // Get rating by car id
+            Double averageRating = feedbackRepository.calculateAverageRatingByCar(car.getId());
+            response.setAverageRatingByCar(averageRating != null ? averageRating : 0.0);
 
             // Get URL image car
             response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
             response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
             response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
-
-            // Set average rating
-            response.setAverageRatingByCar(ratingMap.getOrDefault(car.getId(), 0.0));
-
+            response.setNoOfRides(noOfRides);
             availableCars.add(response);
         }
 
@@ -629,7 +667,7 @@ public class CarService {
         }
 
         // Get average rating of car
-        Double averageRating = getAverageRatingByCar(car.getId());
+        double averageRating = getAverageRatingByCar(car.getId());
 
         // Convert Car entity to CarResponse DTO
         CarResponse carResponse = carMapper.toCarResponse(car);
@@ -653,18 +691,7 @@ public class CarService {
      * @return The average rating if feedback exists; otherwise, returns 0.0.
      */
     public double getAverageRatingByCar(String carId) {
-        Double averageRating = feedbackRepository.calculateAverageRatingByCar(List.of(carId))
-                .stream()
-                .findFirst()
-                .map(result -> {
-                    Object value = result[1]; // Value of AVG(f.rating)
-                    if (value instanceof BigDecimal) {
-                        return ((BigDecimal) value).doubleValue(); // Convert BigDecimal -> float
-                    }
-                    return 0.0; // Avoid error if value isn't valid
-                })
-                .orElse(0.0);// Return 0 if no feedback is available
-        return averageRating;
+        Double averageRating = feedbackRepository.calculateAverageRatingByCar(carId);
+        return (averageRating != null) ? averageRating : 0.0;
     }
-
 }

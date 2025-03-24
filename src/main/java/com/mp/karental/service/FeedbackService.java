@@ -5,6 +5,7 @@ import com.mp.karental.dto.request.feedback.FeedbackRequest;
 import com.mp.karental.dto.response.feedback.FeedbackDetailResponse;
 import com.mp.karental.dto.response.feedback.FeedbackReportResponse;
 import com.mp.karental.dto.response.feedback.FeedbackResponse;
+import com.mp.karental.dto.response.feedback.RatingResponse;
 import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Feedback;
 import com.mp.karental.exception.AppException;
@@ -166,22 +167,8 @@ public class FeedbackService {
         List<String> carIds = carRepository.findCarIdsByOwnerId(ownerId);
         if (carIds.isEmpty()) {
             log.warn("No cars found for ownerId={}", ownerId);
-            return buildFeedbackReportResponse(0.0, Collections.emptyMap(), Collections.emptyList(), 0, size, 0, Collections.emptyMap());
+            return buildFeedbackReportResponse(Collections.emptyList(), 0, size, 0);
 
-        }
-
-        // Calculate average rating follow by car_owner
-        Double averageRatingByOwner = feedbackRepository.calculateAverageRatingByOwner(carIds);
-        averageRatingByOwner = (averageRatingByOwner != null) ? BigDecimal.valueOf(averageRatingByOwner)
-                .setScale(2, RoundingMode.HALF_UP).doubleValue() : 0.0;
-
-        // Calculate average rating follow by car.id
-        List<Object[]> avgRatingByCarList = feedbackRepository.calculateAverageRatingByCar(carIds);
-        Map<String, Double> averageRatingByCar = new HashMap<>();
-        for (Object[] data : avgRatingByCarList) {
-            String carId = (String) data[0];
-            double avgRating = (data[1] != null) ? ((Number) data[1]).doubleValue() : 0.0;
-            averageRatingByCar.put(carId, BigDecimal.valueOf(avgRating).setScale(2, RoundingMode.HALF_UP).doubleValue());
         }
 
         // Get number of feedback by rating
@@ -198,11 +185,12 @@ public class FeedbackService {
             ratingCounts.putIfAbsent(i, 0L);
         }
 
-        // Count total feedback from ratingCounts
-        long totalElements = ratingCounts.values().stream().mapToLong(Long::longValue).sum();
+        // Count total feedback based on ratingFilter
+        long totalElements = (ratingFilter > 0) ? ratingCounts.getOrDefault(ratingFilter, 0L)
+                : ratingCounts.values().stream().mapToLong(Long::longValue).sum();
 
-        // Count total of page
-        int totalPages = (size > 0) ? (int) Math.ceil((double) totalElements / size) : 0;
+        // Calculate total pages correctly based on filtered totalElements
+        int totalPages = (size > 0 && totalElements > 0) ? (int) Math.ceil((double) totalElements / size) : 0;
 
         // Set up pagination and sorting
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createAt"));
@@ -217,8 +205,8 @@ public class FeedbackService {
         // Return immediately if no feedback is found
         if (feedbackList.isEmpty()) {
             log.warn("No feedback found for the given filters");
-            return buildFeedbackReportResponse(averageRatingByOwner, averageRatingByCar,
-                    Collections.emptyList(), totalPages, size, totalElements, ratingCounts);
+            return buildFeedbackReportResponse(
+                    Collections.emptyList(), totalPages, size, totalElements);
         }
 
         // Convert feedback entities to DTOs
@@ -229,28 +217,92 @@ public class FeedbackService {
             feedback.setCarImageFrontUrl(fileService.getFileUrl(feedback.getCarImageFrontUrl()));
         }
 
-        return buildFeedbackReportResponse(averageRatingByOwner, averageRatingByCar, feedbackDetails, totalPages, size, totalElements, ratingCounts);
+        return buildFeedbackReportResponse(feedbackDetails, totalPages, size, totalElements);
 
     }
 
     /**
-     * Helper method to build FeedbackReportResponse
+     * Helper method to build a FeedbackReportResponse object.
+     * <p>
+     * This method constructs a FeedbackReportResponse containing a paginated list of feedbacks,
+     * along with pagination metadata such as total pages, page size, and total elements.
+     * </p>
+     *
+     * @param feedbacks     The list of feedback details.
+     * @param totalPages    The total number of pages in the feedback report.
+     * @param pageSize      The number of feedback entries per page.
+     * @param totalElements The total number of feedback records.
+     * @return A constructed FeedbackReportResponse object.
      */
     private FeedbackReportResponse buildFeedbackReportResponse(
-            double averageRatingByOwner,
-            Map<String, Double> averageRatingByCar,
             List<FeedbackDetailResponse> feedbacks,
             int totalPages,
             int pageSize,
-            long totalElements,
-            Map<Integer, Long> ratingCounts) {
+            long totalElements
+    ) {
         return FeedbackReportResponse.builder()
-                .averageRatingByOwner(averageRatingByOwner)
-                .averageRatingByCar(averageRatingByCar)
                 .feedbacks(feedbacks)
                 .totalPages(totalPages)
                 .pageSize(pageSize)
                 .totalElements(totalElements)
+                .build();
+    }
+
+    /**
+     * Retrieves the average rating and rating distribution for a car owner.
+     * <p>
+     * This method fetches the car owner's ID from the security context, retrieves their car IDs,
+     * and calculates the average rating based on feedback data. It also counts the number of feedback
+     * entries for each rating level (1-5 stars) to provide a distribution of ratings.
+     * </p>
+     * <p>
+     * If the car owner has no cars, the method returns a default response with an average rating of 0.0
+     * and zero counts for all rating levels.
+     * </p>
+     *
+     * @return A {@link RatingResponse} containing the average rating and a map of rating counts.
+     */
+    @Transactional(readOnly = true)
+    public RatingResponse getAverageRatingAndCountByCarOwner() {
+        // Get the current authenticated car owner's ID
+        String ownerId = SecurityUtil.getCurrentAccountId();
+
+        // Retrieve the list of car IDs owned by the car owner
+        List<String> carIds = carRepository.findCarIdsByOwnerId(ownerId);
+
+        // If the owner has no registered cars, return a default response
+        if (carIds.isEmpty()) {
+            return RatingResponse.builder()
+                    .averageRatingByOwner(0.0)
+                    .ratingCounts(Map.of(1, 0L, 2, 0L, 3, 0L, 4, 0L, 5, 0L))
+                    .build();
+        }
+
+        // Calculate the average rating of the car owner based on all their cars' feedback
+        Double averageRatingByOwner = feedbackRepository.calculateAverageRatingByOwner(carIds);
+
+        // Ensure the rating is rounded to 2 decimal places, or default to 0.0 if null
+        averageRatingByOwner = (averageRatingByOwner != null)
+                ? BigDecimal.valueOf(averageRatingByOwner).setScale(2, RoundingMode.HALF_UP).doubleValue()
+                : 0.0;
+
+        // Count the number of feedback entries grouped by rating (1-5 stars)
+        List<Object[]> ratingCountData = feedbackRepository.countFeedbackByRating(carIds);
+        Map<Integer, Long> ratingCounts = ratingCountData.stream()
+                .collect(Collectors.toMap(
+                        data -> ((Number) data[0]).intValue(), // Extract rating value (1-5)
+                        data -> ((Number) data[1]).longValue(), // Extract count for that rating
+                        (oldValue, newValue) -> oldValue // Handle duplicates by keeping the first occurrence
+                ));
+
+        // Ensure all rating levels (1-5 stars) are present in the map, defaulting to zero if missing
+        for (int i = 1; i <= 5; i++) {
+            ratingCounts.putIfAbsent(i, 0L);
+        }
+
+        // Build and return the response containing the average rating and rating counts
+        return RatingResponse.builder()
+                .averageRatingByOwner(averageRatingByOwner)
                 .ratingCounts(ratingCounts)
                 .build();
     }

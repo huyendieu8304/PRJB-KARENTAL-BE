@@ -2,11 +2,11 @@ package com.mp.karental.service;
 
 import com.mp.karental.constant.ETransactionStatus;
 import com.mp.karental.constant.ETransactionType;
+
 import com.mp.karental.dto.request.transaction.TransactionRequest;
 import com.mp.karental.dto.response.transaction.ListTransactionResponse;
 import com.mp.karental.dto.response.transaction.TransactionPaymentURLResponse;
 import com.mp.karental.dto.response.transaction.TransactionResponse;
-import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Booking;
 import com.mp.karental.entity.Transaction;
 import com.mp.karental.entity.Wallet;
@@ -31,6 +31,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -47,23 +48,24 @@ public class TransactionService {
     PaymentService paymentService;
     private final ApplicationRunner init;
     IpnHandler ipnHandler;
-    public TransactionPaymentURLResponse createTransaction(TransactionRequest transactionRequest) {
+    // method serve withdraw transaction
+
+    //create payment URL to VNPAY sanbox when transaction is TOP_UP
+    public TransactionPaymentURLResponse createTransactionTopUp(TransactionRequest transactionRequest) {
         log.info("Creating Transaction: {}", transactionRequest);
 
         // When create transaction, save it to database with status PROCESSING
         String accountId = SecurityUtil.getCurrentAccountId();
-        Account account = accountRepository.findById(accountId)
-                    .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+
         Transaction transaction = transactionMapper.toTransaction(transactionRequest);
-        log.info("Transaction request: {}", transactionRequest);
-         Wallet wallet = walletRepository.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
+        Wallet wallet = walletRepository.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
         transaction.setWallet(wallet);
         transaction.setStatus(ETransactionStatus.PROCESSING);
         transactionRepository.save(transaction);
 
-        TransactionResponse transactionResponse =  transactionMapper.toTransactionResponse(transaction);
+        TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(transaction);
         // if the transaction is top-up, initialize a payment request
-        if(transaction.getType().equals(ETransactionType.TOP_UP)){
+        if (transaction.getType().equals(ETransactionType.TOP_UP)) {
             InitPaymentRequest initPaymentRequest = InitPaymentRequest.builder()
                     .transactionType(transaction.getType())
                     .userId(accountId)
@@ -81,19 +83,20 @@ public class TransactionService {
                     .build();
         }
         // if transaction is withdraw, directly deduct balance
-        if(transaction.getType().equals(ETransactionType.WITHDRAW)){
+        if (transaction.getType().equals(ETransactionType.WITHDRAW)) {
             // if amount is larger than balance, throw error
-            if(wallet.getBalance() < transaction.getAmount()){
+            if (wallet.getBalance() < transaction.getAmount()) {
                 transaction.setStatus(ETransactionStatus.FAILED);
                 transactionRepository.save(transaction);
                 throw new AppException(ErrorCode.PAYMENT_FAILED);
-            }else {
+            } else {
                 transaction.setStatus(ETransactionStatus.SUCCESSFUL);
                 wallet.setBalance(wallet.getBalance() - transaction.getAmount());
                 transactionRepository.save(transaction);
             }
         }
-        transactionResponse =  transactionMapper.toTransactionResponse(transaction);
+        walletRepository.save(wallet);
+        transactionResponse = transactionMapper.toTransactionResponse(transaction);
         log.info("Transaction withdraw response: {}", transactionResponse);
         // return response for Withdraw transaction
         return TransactionPaymentURLResponse.builder()
@@ -106,8 +109,6 @@ public class TransactionService {
         IpnResponse ipnResponse = ipnHandler.process(params);
         Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND_IN_DB));
         String accountId = SecurityUtil.getCurrentAccountId();
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
         Wallet wallet = walletRepository.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
         TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(transaction);
         log.info("Transaction Status: transactionResponse={}", transactionResponse);
@@ -140,23 +141,49 @@ public class TransactionService {
         }
         return transactionResponse;
     }
-    // method serves as third-party, customer will transfer money from wallet to admin wallet
-    public void payDeposit(String customerId, long amount, Booking b ){
-        //Find 2 user wallet
-        Wallet customerWallet = walletRepository.findById(customerId)
+
+    // Method to transfer money from admin wallet to user wallet (include customer and car owner)
+    private Wallet transferFromSystemToUser(String userId, long amount){
+        Wallet userWallet = walletRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
         Wallet adminWallet = walletRepository.findById(accountRepository.findByRoleId(3).getId())
-                                .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
+        // deduct from admin wallet
+        adminWallet.setBalance(adminWallet.getBalance() - amount);
+        // plus to user wallet
+        userWallet.setBalance(userWallet.getBalance() + amount);
+        //save wallet
+        walletRepository.save(userWallet);
+        walletRepository.save(adminWallet);
+        return userWallet;
+    }
+
+
+    // Method to transfer money from user wallet (include customer and car owner) to admin wallet
+    private Wallet transferFromUserToSystem(String userId, long amount){
+        Wallet userWallet = walletRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
+        Wallet adminWallet = walletRepository.findById(accountRepository.findByRoleId(3).getId())
+                .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
         // deduct from customer wallet
-        customerWallet.setBalance(customerWallet.getBalance() - amount);
+        userWallet.setBalance(userWallet.getBalance() - amount);
         // plus to admin wallet
         adminWallet.setBalance(adminWallet.getBalance() + amount);
-        walletRepository.save(customerWallet);
+        //save wallet
+        walletRepository.save(userWallet);
         walletRepository.save(adminWallet);
+        return userWallet;
+    }
+
+    // method serves as third-party, customer will transfer money from wallet to admin wallet when pay deposit
+    public void payDeposit(Booking b ){
+        String customerId = b.getAccount().getId();
+        // customer pay for system
+        Wallet customerWallet =  transferFromUserToSystem(customerId,b.getDeposit());
         // save as new transaction
         Transaction transaction = Transaction.builder()
                                     .type(ETransactionType.PAY_DEPOSIT)
-                                    .amount(amount)
+                                    .amount(b.getDeposit())
                                     .bookingNo(b.getBookingNumber())
                                     .carName(b.getCar().getModel())
                                     .status(ETransactionStatus.SUCCESSFUL)
@@ -164,31 +191,104 @@ public class TransactionService {
                                     .build();
         transactionRepository.save(transaction);
     }
-    // method serves as third-party, admin will transfer money from wallet to car owner wallet
-    public void payForCarOwner(String carOwnerId, long amount, Booking b, float benefitRateForSystem ){
-       //Find 2 user wallet
-        Wallet carOwnerWallet = walletRepository.findById(carOwnerId)
-                .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
-        Wallet adminWallet = walletRepository.findById(accountRepository.findByRoleId(3).getId())
-                .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
-        //modify this with business rule of system
-        // plus to car owner wallet
-        carOwnerWallet.setBalance((long) (carOwnerWallet.getBalance() + amount*(1-benefitRateForSystem)));
-        // deduct from admin wallet
-        adminWallet.setBalance(adminWallet.getBalance() - amount);
 
-        walletRepository.save(carOwnerWallet);
-        walletRepository.save(adminWallet);
-        // save as new transaction
-        Transaction transaction = Transaction.builder()
-                .type(ETransactionType.RECEIVE_PAYMENT)
-                .amount(amount)
+    /* method serves as third-party,
+     admin will transfer money from wallet to user wallet when
+     user cancel booking (car owner: 22% and customer: 70%, system get 8%)
+    */
+    public void refundPartialDeposit (Booking b){
+       //Find id of customer, car owner
+        String customerId = b.getAccount().getId();
+        String carOwnerId = b.getCar().getAccount().getId();
+        //system pay for customer 70%
+        Wallet customerWallet = transferFromSystemToUser(customerId,(long)(b.getDeposit()*0.7));
+        //system pay for customer 22%
+        Wallet carOwnerWallet = transferFromSystemToUser(carOwnerId,(long)(b.getDeposit()*0.22));
+
+        // save as new transaction for customer
+        Transaction transactionCustomer = Transaction.builder()
+                .type(ETransactionType.REFUND_DEPOSIT)
+                .amount((long)(b.getDeposit()*0.7))
+                .bookingNo(b.getBookingNumber())
+                .carName(b.getCar().getModel())
+                .status(ETransactionStatus.SUCCESSFUL)
+                .wallet(customerWallet)
+                .build();
+        transactionRepository.save(transactionCustomer);
+        // save as new transaction for carOwner
+        Transaction transactionCarOwner = Transaction.builder()
+                .type(ETransactionType.REFUND_DEPOSIT)
+                .amount((long)(b.getDeposit()*0.22))
                 .bookingNo(b.getBookingNumber())
                 .carName(b.getCar().getModel())
                 .status(ETransactionStatus.SUCCESSFUL)
                 .wallet(carOwnerWallet)
                 .build();
+        transactionRepository.save(transactionCarOwner);
+    }
+
+
+    //refund ALL deposit
+    //when bookingStatus = WAITING_CONFIRMED
+    // car owner refuse that booking
+    public void refundAllDeposit(Booking b){
+        //pay 100% deposit to customer
+        Wallet customerWallet = transferFromSystemToUser(b.getAccount().getId(), b.getDeposit());
+        // save as new transaction
+        Transaction transaction = Transaction.builder()
+                .type(ETransactionType.REFUND_DEPOSIT)
+                .amount(b.getDeposit())
+                .bookingNo(b.getBookingNumber())
+                .carName(b.getCar().getModel())
+                .status(ETransactionStatus.SUCCESSFUL)
+                .wallet(customerWallet)
+                .build();
         transactionRepository.save(transaction);
+    }
+
+    // OFFSET FINAL PAYMENT when booking is COMPLETED
+    public void offsetFinalPayment(Booking b){
+
+        // count total
+        long totalPayment = calculateTotalPayment(b);
+
+        Wallet customerWallet ;
+        Wallet carOnwerWallet;
+        // When deposit is less than total, system will deduct money from user’s wallet
+        if(b.getDeposit() < totalPayment){
+             customerWallet = transferFromUserToSystem(b.getAccount().getId(), totalPayment - b.getDeposit());
+        }
+        //If the deposit amount is more than the total amount, system will return money to user’s wallet
+        else{
+             customerWallet = transferFromSystemToUser(b.getAccount().getId(), b.getDeposit() - totalPayment);
+        }
+        carOnwerWallet = transferFromSystemToUser(b.getCar().getAccount().getId(),(long)(totalPayment*0.92 ));
+        //Create transaction for customer wallet
+        Transaction transactionCustomer = Transaction.builder()
+                .type(ETransactionType.OFFSET_FINAL_PAYMENT)
+                .amount(b.getDeposit())
+                .bookingNo(b.getBookingNumber())
+                .carName(b.getCar().getModel())
+                .status(ETransactionStatus.SUCCESSFUL)
+                .wallet(customerWallet)
+                .build();
+        transactionRepository.save(transactionCustomer);
+        //Create transaction for car owner wallet
+        Transaction transactionCarOwner = Transaction.builder()
+                .type(ETransactionType.RECEIVE_DEPOSIT)
+                .amount(b.getDeposit())
+                .bookingNo(b.getBookingNumber())
+                .carName(b.getCar().getModel())
+                .status(ETransactionStatus.SUCCESSFUL)
+                .wallet(carOnwerWallet)
+                .build();
+        transactionRepository.save(transactionCarOwner);
+    }
+
+    private long calculateTotalPayment(Booking b){
+        long minutes = Duration.between(b.getPickUpTime(), b.getDropOffTime()).toMinutes();
+        long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
+        return  b.getBasePrice() * days;
     }
     //get transaction with date
     public ListTransactionResponse getAllTransactions(LocalDateTime from, LocalDateTime to) {

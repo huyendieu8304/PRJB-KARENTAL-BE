@@ -37,6 +37,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("accountId") String accountId,
             @Param("statuses") List<EBookingStatus> statuses
     );
+    @Query("SELECT COUNT(b) > 0 FROM Booking b " +
+            "WHERE b.car.id = :carId " +
+            "AND b.dropOffTime > CURRENT_TIMESTAMP " +
+            "AND b.status NOT IN :excludedStatuses")
+    boolean hasActiveBooking(@Param("carId") String carId,
+                             @Param("excludedStatuses") List<EBookingStatus> excludedStatuses);
 
     @Query("""
     SELECT b
@@ -54,30 +60,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("endRange") LocalDateTime endRange
     );
 
-    @Query("""
-    SELECT COUNT(b) 
-    FROM Booking b 
-    WHERE b.car.id = :carId 
-    AND b.status <> :cancelledStatus 
-    AND (
-        :startRange BETWEEN b.pickUpTime AND b.dropOffTime 
-        OR :endRange BETWEEN b.pickUpTime AND b.dropOffTime
-        OR (b.pickUpTime <= :startRange AND b.dropOffTime >= :endRange)
-    )
-""")
-    long countActiveBookingsInTimeRange(@Param("carId") String carId,
-                                        @Param("startRange") LocalDateTime startRange,
-                                        @Param("endRange") LocalDateTime endRange,
-                                        @Param("cancelledStatus") EBookingStatus cancelledStatus);
-
-
-
-    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' " +
-            "AND b.paymentType = 'WALLET' " +
-            "AND b.createdAt <= :expiredTime " +
-            "ORDER BY b.createdAt")
-    List<Booking> findExpiredBookings(@Param("expiredTime") LocalDateTime expiredTime);
-
     @Query("SELECT b FROM Booking b WHERE b.car.id = :carId AND b.status = :status " +
             "AND ((b.pickUpTime BETWEEN :pickUpTime AND :dropOffTime) OR " +
             "(b.dropOffTime BETWEEN :pickUpTime AND :dropOffTime) OR " +
@@ -90,8 +72,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("dropOffTime") LocalDateTime dropOffTime
     );
 
-    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' AND b.createdAt > :threshold")
-    List<Booking> findPendingDepositBookings(@Param("threshold") LocalDateTime threshold);
+    @Query("SELECT b FROM Booking b WHERE b.car.id = :carId AND b.status = :status")
+    List<Booking> findByCarIdAndStatus(@Param("carId") String carId, @Param("status") EBookingStatus status);
 
 
     @Query("""

@@ -17,24 +17,21 @@ public class AddressComponentValidator implements ConstraintValidator<ValidAddre
     private final ExcelService excelService;
 
     @Override
-    public boolean isValid(CreateBookingRequest CreateBookingRequest, ConstraintValidatorContext context) {
-        if (CreateBookingRequest == null) {
+    public boolean isValid(CreateBookingRequest createBookingRequest, ConstraintValidatorContext context) {
+        if (createBookingRequest == null) {
             return true; // Ignore validation if object is null
         }
-        if(!CreateBookingRequest.isDriver()){
+        if(!createBookingRequest.isDriver()){
             return true;
         }
 
-        String city = CreateBookingRequest.getDriverCityProvince();
-        String district = CreateBookingRequest.getDriverDistrict();
-        String ward = CreateBookingRequest.getDriverWard();
+        String city = createBookingRequest.getDriverCityProvince();
+        String district = createBookingRequest.getDriverDistrict();
+        String ward = createBookingRequest.getDriverWard();
 
-        boolean isValid = true;
+        boolean isValid = StringUtils.hasText(city) && excelService.getAllCities().contains(city);
 
         // Validate city
-        if (!StringUtils.hasText(city) || !excelService.getAllCities().contains(city)) {
-            isValid = false;
-        }
 
         // Validate district belongs to city
         if (!StringUtils.hasText(district) || !excelService.getDistrictsByCity(city).contains(district)) {

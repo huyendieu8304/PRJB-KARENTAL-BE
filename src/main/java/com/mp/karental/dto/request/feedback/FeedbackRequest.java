@@ -1,5 +1,6 @@
 package com.mp.karental.dto.request.feedback;
 
+import com.mp.karental.validation.RequiredField;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -22,15 +23,15 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class FeedbackRequest {
-    @NotNull(message = "Booking ID is required")
+    @RequiredField(message = "Booking ID")
     String bookingId;
 
-    @NotNull(message = "Rating is required")
+    @RequiredField(message = "Rating")
     @Min(value = 1, message = "Rating must be at least 1")
     @Max(value = 5, message = "Rating must be at most 5")
     int rating;
 
-    @Size(max = 2000, message = "Comment must not exceed 2000 characters")
+    @Size(max = 2000, message = "INVALID_COMMENT_LENGTH")
     String comment;
 
 }

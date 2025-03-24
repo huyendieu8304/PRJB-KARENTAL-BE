@@ -4,6 +4,7 @@ import com.mp.karental.dto.request.feedback.FeedbackRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.feedback.FeedbackReportResponse;
 import com.mp.karental.dto.response.feedback.FeedbackResponse;
+import com.mp.karental.dto.response.feedback.RatingResponse;
 import com.mp.karental.service.FeedbackService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -98,5 +99,24 @@ public class FeedbackController {
                 .message("Feedback report retrieved successfully.")
                 .build();
     }
+
+    /**
+     * API endpoint for car owners to retrieve their average rating and rating distribution.
+     * <p>
+     * This endpoint allows car owners to view their overall rating statistics, including:
+     * - The average rating of all their cars.
+     * - The number of feedback entries for each rating level (1-5 stars).
+     * </p>
+     *
+     * @return ApiResponse containing the rating statistics.
+     */
+    @GetMapping("/car-owner/rating")
+    public ApiResponse<RatingResponse> getRatingFeedbackReport() {
+        return ApiResponse.<RatingResponse>builder()
+                .data(feedbackService.getAverageRatingAndCountByCarOwner())
+                .message("Car rating retrieved successfully.")
+                .build();
+    }
+
 
 }

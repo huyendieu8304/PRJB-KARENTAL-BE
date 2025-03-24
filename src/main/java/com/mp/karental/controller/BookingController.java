@@ -43,7 +43,7 @@ public class BookingController {
     }
 
     @PutMapping(value = "/customer/edit-book/{bookingNumber}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<BookingResponse> editBooking(@ModelAttribute @Valid EditBookingRequest editBookingRequest, @PathVariable String bookingNumber) {
+    ApiResponse<BookingResponse> editBooking(@ModelAttribute @Valid EditBookingRequest editBookingRequest, @PathVariable String bookingNumber)  {
         log.info("edit booking {}", editBookingRequest);
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.editBooking(editBookingRequest, bookingNumber))
@@ -146,5 +146,34 @@ public class BookingController {
         return bookingService.confirmBooking(bookingNumber);
     }
 
+    /**
+     * Handles the cancellation of a booking by a customer.
+     * This endpoint allows a customer to cancel their booking based on the provided booking number.
+     * The cancellation process is managed by the {@code cancelBooking} method in {@code BookingService},
+     * which handles refunds, updates the booking status, and sends necessary email notifications.
+     *
+     * @param bookingNumber The unique identifier of the booking to be canceled.
+     * @return An {@link ApiResponse} containing the updated {@link BookingResponse} with the booking details.
+     */
+    @PutMapping("/customer/cancel-booking/{bookingNumber}")
+    public ApiResponse<BookingResponse> cancelBooking(@PathVariable String bookingNumber)  {
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.cancelBooking(bookingNumber))
+                .build();
+    }
+
+    @PutMapping("/customer/confirm-pick-up/{bookingNumber}")
+    public ApiResponse<BookingResponse> confirmPickUpBooking(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.confirmPickUp(bookingNumber))
+                .build();
+    }
+
+    @PutMapping("/customer/return-car/{bookingNumber}")
+    public ApiResponse<BookingResponse> returnCar(@PathVariable String bookingNumber) {
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.returnCar(bookingNumber))
+                .build();
+    }
 
 }

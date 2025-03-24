@@ -5,7 +5,6 @@ import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.dto.request.booking.EditBookingRequest;
 import com.mp.karental.dto.response.booking.BookingListResponse;
-import com.mp.karental.dto.response.booking.BookingThumbnailResponse;
 import com.mp.karental.dto.request.booking.CreateBookingRequest;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
@@ -23,7 +22,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,14 +30,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(classes = KarentalApplication.class)
@@ -55,7 +50,7 @@ class BookingControllerTest {
     @MockitoBean
     private BookingService bookingService;
 
-    private CreateBookingRequest CreateBookingRequest;
+    private CreateBookingRequest createBookingRequest;
     private EditBookingRequest editBookingRequest;
     private BookingResponse bookingResponse;
 
@@ -67,18 +62,18 @@ class BookingControllerTest {
                 .build();
 
         // Given
-        CreateBookingRequest = new CreateBookingRequest();
-        CreateBookingRequest.setCarId("123");
-        CreateBookingRequest.setDriverFullName("John Doe");
-        CreateBookingRequest.setDriverPhoneNumber("0123456789");
-        CreateBookingRequest.setDriverNationalId("123456789000");
-        CreateBookingRequest.setDriverDob(LocalDate.of(1990, 1, 1));
-        CreateBookingRequest.setDriverEmail("johndoe@example.com");
-        CreateBookingRequest.setDriverCityProvince("Thành phố Hà Nội");
-        CreateBookingRequest.setDriverDistrict("Quận Ba Đình");
-        CreateBookingRequest.setDriverWard("Phường Phúc Xá");
-        CreateBookingRequest.setDriverHouseNumberStreet("123 Kim Ma");
-        CreateBookingRequest.setPickUpLocation("Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma");
+        createBookingRequest = new CreateBookingRequest();
+        createBookingRequest.setCarId("123");
+        createBookingRequest.setDriverFullName("John Doe");
+        createBookingRequest.setDriverPhoneNumber("0123456789");
+        createBookingRequest.setDriverNationalId("123456789000");
+        createBookingRequest.setDriverDob(LocalDate.of(1990, 1, 1));
+        createBookingRequest.setDriverEmail("johndoe@example.com");
+        createBookingRequest.setDriverCityProvince("Thành phố Hà Nội");
+        createBookingRequest.setDriverDistrict("Quận Ba Đình");
+        createBookingRequest.setDriverWard("Phường Phúc Xá");
+        createBookingRequest.setDriverHouseNumberStreet("123 Kim Ma");
+        createBookingRequest.setPickUpLocation("Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma");
 
         bookingResponse = new BookingResponse();
         bookingResponse.setBookingNumber("BK123456");
@@ -120,7 +115,6 @@ class BookingControllerTest {
     void testEditBooking_Success() throws Exception {
         // Prepare mock EditBookingRequest
         EditBookingRequest editBookingRequest = new EditBookingRequest();
-        editBookingRequest.setCarId("12345");
         editBookingRequest.setDriverFullName("John Doe");
         editBookingRequest.setDriverPhoneNumber("0886980035");
         editBookingRequest.setDriverNationalId("123456789012");
@@ -135,45 +129,14 @@ class BookingControllerTest {
         when(bookingService.editBooking(any(EditBookingRequest.class), eq("12345"))).thenReturn(bookingResponse);
 
         // Perform the PUT request
-        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT, "/booking/customer/edit-book/{bookingNumber}", "12345")
-                        .contentType(MediaType.MULTIPART_FORM_DATA_VALUE)
-                        .param("driverFullName", editBookingRequest.getDriverFullName()) // Add all fields you want to test
-                        .param("driverPhoneNumber", editBookingRequest.getDriverPhoneNumber())
-                        .param("driverNationalId", editBookingRequest.getDriverNationalId())
-                        .param("driverDob", String.valueOf(editBookingRequest.getDriverDob()))
-                        .param("carId", editBookingRequest.getCarId()))
-                .andExpect(status().isOk());// Assert that the status code is 200
-    }
-
-    @Test
-    void testEditBooking_BadRequest() throws Exception {
-        // Prepare mock EditBookingRequest
-        EditBookingRequest editBookingRequest = new EditBookingRequest();
-        editBookingRequest.setCarId("12345");
-        editBookingRequest.setDriverFullName("John Doe");
-        editBookingRequest.setDriverPhoneNumber("0886980035");
-        editBookingRequest.setDriverNationalId("123456789012");
-        editBookingRequest.setDriverDob(LocalDate.parse("1990-01-01"));
-        // Populate other fields as required
-
-        BookingResponse bookingResponse = new BookingResponse();
-        // Set the expected response from your service method
-        bookingResponse.setBookingNumber("12345");
-
-        // Mock the service call
-        when(bookingService.editBooking(any(EditBookingRequest.class), eq("12345"))).thenReturn(bookingResponse);
-
-        // Perform the PUT request
-        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT, "/booking/customer/edit-book/{bookingNumber}", "12345")
+        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/booking/customer/edit-book/{bookingNumber}", "12345")
                         .contentType(MediaType.MULTIPART_FORM_DATA_VALUE)
                         .param("driverFullName", editBookingRequest.getDriverFullName()) // Add all fields you want to test
                         .param("driverPhoneNumber", editBookingRequest.getDriverPhoneNumber())
                         .param("driverNationalId", editBookingRequest.getDriverNationalId())
                         .param("driverDob", String.valueOf(editBookingRequest.getDriverDob())))
-
-                .andExpect(status().isBadRequest());// Assert that the status code is 200
+                .andExpect(status().isOk());// Assert that the status code is 200
     }
-
 
     @Test
     void testGetBookingsForCustomer_Success() throws Exception {
@@ -203,6 +166,42 @@ class BookingControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalOnGoingBookings").value(3))
                 .andExpect(jsonPath("$.data.totalWaitingConfirmBooking").value(2));
+    }
+
+    @Test
+    void testGetBookingsForCarOwner_WithSpecificStatus() throws Exception {
+        BookingListResponse mockResponse = new BookingListResponse(5, 1, Page.empty());
+        when(bookingService.getBookingsOfCarOwner(0, 10, "updatedAt,DESC", "CONFIRMED")).thenReturn(mockResponse);
+
+        mockMvc.perform(get("/booking/car-owner/rentals")
+                        .param("status", "CONFIRMED")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalOnGoingBookings").value(5))
+                .andExpect(jsonPath("$.data.totalWaitingConfirmBooking").value(1));
+    }
+
+    @Test
+    void testGetBookingsForCustomer_StatusIsProvided() throws Exception {
+        BookingListResponse mockResponse = new BookingListResponse(5, 1, Page.empty());
+        when(bookingService.getBookingsOfCustomer(anyInt(), anyInt(), anyString(), eq("CONFIRMED"))).thenReturn(mockResponse);
+
+        mockMvc.perform(get("/booking/customer/my-bookings")
+                        .param("status", "CONFIRMED")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalOnGoingBookings").value(5))
+                .andExpect(jsonPath("$.data.totalWaitingConfirmBooking").value(1));
+
+        verify(bookingService).getBookingsOfCustomer(0, 10, "updatedAt,DESC", "CONFIRMED");
+    }
+
+    @Test
+    void testGetBookingsForCustomer_InvalidStatus() throws Exception {
+        mockMvc.perform(get("/booking/car-owner/rentals")
+                        .param("status", "INVALID_STATUS")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 
 
@@ -246,6 +245,22 @@ class BookingControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+
+    @Test
+    void getWallet_Success() throws Exception {
+
+        WalletResponse mockWalletResponse = new WalletResponse("user123", 500000);
+
+        when(bookingService.getWallet()).thenReturn(mockWalletResponse);
+
+
+        mockMvc.perform(get("/booking/get-wallet")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value("user123"))
+                .andExpect(jsonPath("$.data.balance").value(500000));
+    }
+
     @Test
     void testConfirmBooking_Success() throws Exception {
         BookingResponse confirmedBooking = new BookingResponse();
@@ -270,4 +285,65 @@ class BookingControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void testCancelBooking_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.CANCELLED);
+
+        // Mock the service method
+        when(bookingService.cancelBooking(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/customer/cancel-booking/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
+    @Test
+    void testConfirmPickUpBooking_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.IN_PROGRESS);
+
+        // Mock the service method
+        when(bookingService.confirmPickUp(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/customer/confirm-pick-up/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
+    @Test
+    void testReturnCar_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.COMPLETED);
+
+        // Mock the service method
+        when(bookingService.returnCar(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/customer/return-car/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
 }

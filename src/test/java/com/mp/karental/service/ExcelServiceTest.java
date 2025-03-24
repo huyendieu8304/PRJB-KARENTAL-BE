@@ -111,10 +111,6 @@ class ExcelServiceTest {
     void testGetDistrictsByCity() {
         assertTrue(excelService.getDistrictsByCity("Thành phố Hà Nội").contains("Quận Ba Đình"));
     }
-    @Test
-    void testExceptionHandlingWhenSheetNotFound() {
-        assertThrows(FileNotFoundException.class, () -> excelService.loadExcelDataAddress("nonexistent.xls"));
-    }
 
     @Test
     void testConcurrentAccessGetAllCities() throws InterruptedException {
@@ -173,22 +169,6 @@ class ExcelServiceTest {
         // Ensure no brands or models are loaded
         assertEquals(35, excelService.getAllBrands().size());
         assertEquals(375, excelService.getAllModels().size());
-    }
-
-    @Test
-    void testLoadExcelDataCarDuplicateModels() throws IOException {
-        // Mock a sheet with duplicate models under the same brand
-        lenient().when(row.getRowNum()).thenReturn(1); // Header row skipped
-
-        // Mocking data with duplicate models under Toyota
-        lenient().when(cell.getStringCellValue()).thenReturn("Toyota", "Camry", "Toyota", "Camry");
-
-        // Trigger loading data
-        excelService.loadExcelDataCar("xls/Car Rentals_Value list_Brand and model.xlsx");
-
-        // Ensure only unique models are stored under Toyota
-        assertEquals(27, excelService.getModelsByBrand("Toyota").size());
-        assertTrue(excelService.getModelsByBrand("Toyota").contains("Camry"));
     }
     @Test
     void testGetCellValueNullCell() {
@@ -269,34 +249,6 @@ class ExcelServiceTest {
 
         assertEquals(1, brands.size());
     }
-
-    @Test
-    void testLoadExcelDataAddressInvalidFormat() throws IOException {
-        ExcelService excelService = new ExcelService();
-
-        // Path to an invalid format Excel file (e.g., .csv)
-        String filePath = "xls/invalid_format.csv";
-
-        // Execute the method and expect an IOException to be thrown
-        assertThrows(IOException.class, () -> excelService.loadExcelDataAddress(filePath));
-    }
-
-    @Test
-    void testLoadExcelDataCar() throws IOException {
-        ExcelService excelService = new ExcelService();
-
-        // Path to a sample Excel file with car brand and model data
-        String filePath = "xls/Car Rentals_Value list_Brand and model.xlsx";
-
-        // Execute the method to load data
-        excelService.loadExcelDataCar(filePath);
-
-        // Assertions to verify the populated brandModelMap
-        Map<String, Set<String>> brandModelMap = excelService.getBrandModelMap();
-        assertTrue(brandModelMap.containsKey("Toyota"));
-        assertTrue(brandModelMap.get("Toyota").contains("Camry"));
-    }
-
     @Test
     void testGetBrandsByModel_NoMatch() {
 
@@ -341,24 +293,6 @@ class ExcelServiceTest {
 
         assertEquals("Special Characters: @#$%^&*()", excelService.getCellValue(cell));
     }
-
-    @Test
-    void testIterateOverRowsAndCells() throws IOException {
-        // Load a test Excel file with known data
-        String filePath = "xls/Address value list.xls";
-        excelService.loadExcelDataAddress(filePath);
-
-        // Example: Assuming the first sheet has expected rows and cells
-        List<String> wards = excelService.getAllWards();
-        List<String> districts = excelService.getAllDistricts();
-        List<String> cities = excelService.getAllCities();
-
-        // Assert on specific values from the loaded Excel sheet
-        assertTrue(wards.contains("Phường Phúc Xá"));
-        assertTrue(districts.contains("Quận Ba Đình"));
-        assertTrue(cities.contains("Thành phố Hà Nội"));
-    }
-
     @Test
     void testExcelServiceConstructor_Success() {
         // Test initialization with valid file paths

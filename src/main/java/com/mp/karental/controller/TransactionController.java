@@ -1,8 +1,10 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.constant.ETransactionType;
+
 import com.mp.karental.dto.request.transaction.TransactionRequest;
 import com.mp.karental.dto.response.ApiResponse;
+
 import com.mp.karental.dto.response.transaction.ListTransactionResponse;
 import com.mp.karental.dto.response.transaction.TransactionPaymentURLResponse;
 import com.mp.karental.dto.response.transaction.TransactionResponse;
@@ -31,7 +33,7 @@ public class TransactionController {
     TransactionService transactionService;
     @GetMapping(value="/transaction-list", params = { "from", "to" })
     public ApiResponse<ListTransactionResponse> getAllTransactionResponseList(@RequestParam(name = "from", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-                                                                                @RequestParam(name = "to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to){
+                                                                              @RequestParam(name = "to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to){
         return ApiResponse.<ListTransactionResponse>builder()
                 .data(transactionService.getAllTransactions(from,to))
                 .build();
@@ -55,7 +57,7 @@ public class TransactionController {
         log.info("Transaction Request: {}", transactionRequest);
         transactionRequest.setType(ETransactionType.TOP_UP);
         return ApiResponse.<TransactionPaymentURLResponse>builder()
-                .data(transactionService.createTransaction(transactionRequest))
+                .data(transactionService.createTransactionTopUp(transactionRequest))
                 .build();
     }
     @PostMapping("/withdraw")
@@ -65,7 +67,7 @@ public class TransactionController {
         log.info("Transaction Request: {}", transactionRequest);
         transactionRequest.setType(ETransactionType.WITHDRAW);
         return ApiResponse.<TransactionPaymentURLResponse>builder()
-                .data(transactionService.createTransaction(transactionRequest))
+                .data(transactionService.createTransactionTopUp(transactionRequest))
                 .build();
     }
     @GetMapping("{transactionId}/status")
