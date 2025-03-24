@@ -15,10 +15,7 @@ import com.mp.karental.entity.Car;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
-import com.mp.karental.repository.AccountRepository;
-import com.mp.karental.repository.BookingRepository;
-import com.mp.karental.repository.CarRepository;
-import com.mp.karental.repository.UserProfileRepository;
+import com.mp.karental.repository.*;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.util.RedisUtil;
 import org.junit.jupiter.api.*;
@@ -75,6 +72,8 @@ class CarServiceTest {
     private EmailService emailService;
     @Mock
     private RedisUtil redisUtil;
+    @Mock
+    private FeedbackRepository feedbackRepository;
 
     private MockedStatic<SecurityUtil> mockedSecurityUtil;
 
@@ -334,6 +333,7 @@ class CarServiceTest {
         when(carMapper.toCarThumbnailResponse(any(Car.class))).thenReturn(carThumbnailResponse);
 
         Page<CarThumbnailResponse> response = carService.getCarsByUserId(0, 10, "mileage,asc");
+
         assertNotNull(response);
         assertEquals(1, response.getTotalElements());
         assertEquals("https://example.com/image.jpg", response.getContent().get(0).getCarImageFront());
@@ -684,9 +684,7 @@ class CarServiceTest {
         Account mockAccount = new Account();
         mockAccount.setId(accountId);
 
-        Car car;
-        CarResponse carResponse;
-        car = new Car();
+        Car car = new Car();
         car.setId("123");
         car.setCityProvince("Hanoi");
         car.setDistrict("Hoan Kiem");
@@ -694,20 +692,23 @@ class CarServiceTest {
         car.setHouseNumberStreet("24 Trang Tien");
         car.setAccount(mockAccount);
 
-        carResponse = new CarResponse();
+        CarResponse carResponse = new CarResponse();
         carResponse.setId("123");
         carResponse.setAddress("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien");
-        when(carRepository.findById("123")).thenReturn(Optional.of(car));
-        when(carMapper.toCarResponse(car)).thenReturn(carResponse);
 
+        lenient().when(carRepository.findById("123")).thenReturn(Optional.of(car));
+        lenient().when(carMapper.toCarResponse(car)).thenReturn(carResponse);
+        lenient().when(feedbackRepository.calculateAverageRatingByCar("123")).thenReturn(4.5); // Mock giá trị trung bình
         CarResponse result = carService.getCarById("123");
 
         assertNotNull(result);
         assertEquals("123", result.getId());
         assertEquals("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien", result.getAddress());
+        assertEquals(4.5, result.getAverageRatingByCar());
 
         verify(carRepository, times(1)).findById("123");
         verify(carMapper, times(1)).toCarResponse(car);
+        verify(feedbackRepository, times(1)).calculateAverageRatingByCar("123"); // Verify gọi feedbackRepository
     }
 
     @Test

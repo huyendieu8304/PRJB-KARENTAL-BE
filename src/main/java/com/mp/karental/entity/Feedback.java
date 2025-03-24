@@ -38,6 +38,7 @@ public class Feedback {
     @Column(nullable = false)
     int rating;
 
+    @Column(columnDefinition = "TEXT")
     String comment;
 
     @CreationTimestamp

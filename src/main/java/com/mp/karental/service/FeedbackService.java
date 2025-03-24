@@ -127,7 +127,6 @@ public class FeedbackService {
         return feedbackMapper.toFeedbackResponse(feedback);
     }
 
-
     /**
      * Retrieves all feedback for a specific car.
      * <p>
@@ -145,80 +144,89 @@ public class FeedbackService {
     }
 
     /**
-     * Retrieves the feedback report for a car owner.
+     * Retrieves a paginated feedback report based on the provided filters.
      * <p>
-     * Fetches the list of feedback for all cars owned by the authenticated user.
-     * If a rating filter is applied, only feedback with the specified rating is retrieved.
+     * This method allows fetching feedback for either car owners or customers based on the `includeRating` flag.
+     * If `includeRating` is true, it retrieves feedback for cars owned by the authenticated user.
+     * If `includeRating` is false, it retrieves feedback for cars the user has previously rated.
+     * </p>
+     * <p>
+     * The method also calculates the total number of feedback entries for the selected rating filter
+     * and determines pagination details such as total pages and total elements.
      * </p>
      *
-     * @param ratingFilter The rating filter (1-5 stars or 0 for all).
-     * @param page         The page number (default 0).
-     * @param size         The page size (default 10).
-     * @return FeedbackReportResponse containing the filtered feedback.
+     * @param ratingFilter  The rating to filter feedback (1-5). If 0, fetches all feedback.
+     * @param page          The page number (zero-based index).
+     * @param size          The number of feedback entries per page.
+     * @param includeRating Whether to fetch feedback for the authenticated user's owned cars (true) or rated cars (false).
+     * @return A {@link FeedbackReportResponse} containing feedback details and pagination metadata.
      */
     @Transactional(readOnly = true)
-    public FeedbackReportResponse getFilteredFeedbackReport(int ratingFilter, int page, int size) {
-        log.info("Fetching feedback report for ratingFilter={}, page={}, size={}", ratingFilter, page, size);
+    public FeedbackReportResponse getFilteredFeedbackReportCommon(int ratingFilter, int page, int size, boolean includeRating) {
+        log.info("Fetching feedback report for ratingFilter={}, page={}, size={}, includeRating={}", ratingFilter, page, size, includeRating);
 
-        // Get the current owner's ID
-        String ownerId = SecurityUtil.getCurrentAccountId();
+        // Retrieve the authenticated user's ID
+        String userId = SecurityUtil.getCurrentAccountId();
 
-        // Retrieve the list of car IDs owned by the user
-        List<String> carIds = carRepository.findCarIdsByOwnerId(ownerId);
-        if (carIds.isEmpty()) {
-            log.warn("No cars found for ownerId={}", ownerId);
+        // Fetch the list of car IDs based on user role (owner or customer)
+        List<String> relatedCarIds = includeRating
+                ? carRepository.findCarIdsByOwnerId(userId) // Fetch cars owned by the user
+                : carRepository.findCarIdsByCustomerId(userId); // Fetch cars the user has rated
+
+        if (relatedCarIds.isEmpty()) {
+            log.warn("No relevant cars found for userId={}", userId);
             return buildFeedbackReportResponse(Collections.emptyList(), 0, size, 0);
-
         }
 
-        // Get number of feedback by rating
-        List<Object[]> ratingCountData = feedbackRepository.countFeedbackByRating(carIds);
-        Map<Integer, Long> ratingCounts = new java.util.HashMap<>(ratingCountData.isEmpty()
-                ? Collections.emptyMap()
-                : ratingCountData.stream().collect(Collectors.toMap(
-                data -> ((Number) data[0]).intValue(),
-                data -> ((Number) data[1]).longValue()
-        )));
+        // Retrieve the count of feedback per rating level
+        Map<Integer, Long> ratingCounts = getRatingCountsByCarIds(relatedCarIds);
 
-        // Ensure rating from 1 to 5 always have ratingCounts, if not equal 0
-        for (int i = 1; i <= 5; i++) {
-            ratingCounts.putIfAbsent(i, 0L);
-        }
-
-        // Count total feedback based on ratingFilter
+        // Calculate the total number of feedback entries based on the rating filter
         long totalElements = (ratingFilter > 0) ? ratingCounts.getOrDefault(ratingFilter, 0L)
                 : ratingCounts.values().stream().mapToLong(Long::longValue).sum();
 
-        // Calculate total pages correctly based on filtered totalElements
+        // Calculate the total number of pages
         int totalPages = (size > 0 && totalElements > 0) ? (int) Math.ceil((double) totalElements / size) : 0;
 
-        // Set up pagination and sorting
+        // Define pagination and sorting by creation date (descending order)
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createAt"));
 
-        // Fetch feedback based on the rating filter
+        // Fetch paginated feedback based on the rating filter
         Page<Feedback> feedbackPage = (ratingFilter > 0)
-                ? feedbackRepository.findByCarIdsAndRating(carIds, ratingFilter, pageRequest)
-                : feedbackRepository.findByCarIds(carIds, pageRequest);
+                ? feedbackRepository.findByCarIdsAndRating(relatedCarIds, ratingFilter, pageRequest)
+                : feedbackRepository.findByCarIds(relatedCarIds, pageRequest);
 
-        List<Feedback> feedbackList = feedbackPage.getContent();
+        // Convert feedback entities to response DTOs
+        List<FeedbackDetailResponse> feedbackDetails = feedbackMapper.toFeedbackDetailResponseList(feedbackPage.getContent());
 
-        // Return immediately if no feedback is found
-        if (feedbackList.isEmpty()) {
-            log.warn("No feedback found for the given filters");
-            return buildFeedbackReportResponse(
-                    Collections.emptyList(), totalPages, size, totalElements);
-        }
-
-        // Convert feedback entities to DTOs
-        List<FeedbackDetailResponse> feedbackDetails = feedbackMapper.toFeedbackDetailResponseList(feedbackList);
-
-        // Convert URI to URL
-        for (FeedbackDetailResponse feedback : feedbackDetails) {
-            feedback.setCarImageFrontUrl(fileService.getFileUrl(feedback.getCarImageFrontUrl()));
-        }
-
+        // Build and return the response
         return buildFeedbackReportResponse(feedbackDetails, totalPages, size, totalElements);
+    }
 
+    /**
+     * Retrieves a paginated feedback report for a car owner.
+     *
+     * @param ratingFilter The rating to filter feedback (1-5). If 0, fetches all feedback.
+     * @param page         The page number (zero-based index).
+     * @param size         The number of feedback entries per page.
+     * @return A {@link FeedbackReportResponse} containing feedback details and pagination metadata.
+     */
+    @Transactional(readOnly = true)
+    public FeedbackReportResponse getOwnerFeedbackReport(int ratingFilter, int page, int size) {
+        return getFilteredFeedbackReportCommon(ratingFilter, page, size, true);
+    }
+
+    /**
+     * Retrieves a paginated feedback report for a customer.
+     *
+     * @param ratingFilter The rating to filter feedback (1-5). If 0, fetches all feedback.
+     * @param page         The page number (zero-based index).
+     * @param size         The number of feedback entries per page.
+     * @return A {@link FeedbackReportResponse} containing feedback details and pagination metadata.
+     */
+    @Transactional(readOnly = true)
+    public FeedbackReportResponse getCustomerFeedbackReport(int ratingFilter, int page, int size) {
+        return getFilteredFeedbackReportCommon(ratingFilter, page, size, false);
     }
 
     /**
@@ -247,6 +255,7 @@ public class FeedbackService {
                 .totalElements(totalElements)
                 .build();
     }
+
 
     /**
      * Retrieves the average rating and rating distribution for a car owner.
@@ -286,19 +295,8 @@ public class FeedbackService {
                 ? BigDecimal.valueOf(averageRatingByOwner).setScale(2, RoundingMode.HALF_UP).doubleValue()
                 : 0.0;
 
-        // Count the number of feedback entries grouped by rating (1-5 stars)
-        List<Object[]> ratingCountData = feedbackRepository.countFeedbackByRating(carIds);
-        Map<Integer, Long> ratingCounts = ratingCountData.stream()
-                .collect(Collectors.toMap(
-                        data -> ((Number) data[0]).intValue(), // Extract rating value (1-5)
-                        data -> ((Number) data[1]).longValue(), // Extract count for that rating
-                        (oldValue, newValue) -> oldValue // Handle duplicates by keeping the first occurrence
-                ));
-
-        // Ensure all rating levels (1-5 stars) are present in the map, defaulting to zero if missing
-        for (int i = 1; i <= 5; i++) {
-            ratingCounts.putIfAbsent(i, 0L);
-        }
+        // Lấy số lượng feedback theo rating từ hàm chung
+        Map<Integer, Long> ratingCounts = getRatingCountsByCarIds(carIds);
 
         // Build and return the response containing the average rating and rating counts
         return RatingResponse.builder()
@@ -306,4 +304,28 @@ public class FeedbackService {
                 .ratingCounts(ratingCounts)
                 .build();
     }
+
+    /**
+     * Retrieves the count of feedback for each rating level (1-5) for a given list of car IDs.
+     *
+     * @param carIds The list of car IDs to retrieve feedback counts.
+     * @return A map where the key is the rating (1-5) and the value is the count of feedback entries.
+     */
+    private Map<Integer, Long> getRatingCountsByCarIds(List<String> carIds) {
+
+        List<Object[]> ratingCountData = feedbackRepository.countFeedbackByRating(carIds);
+        Map<Integer, Long> ratingCounts = ratingCountData.stream().collect(Collectors.toMap(
+                data -> ((Number) data[0]).intValue(), // Rating (1-5)
+                data -> ((Number) data[1]).longValue(), // Number of feedback
+                (oldValue, newValue) -> oldValue // Avoid duplicate key
+        ));
+
+        // Ensure enough key from 1 to 5, default value 0 when don't have data
+        for (int i = 1; i <= 5; i++) {
+            ratingCounts.putIfAbsent(i, 0L);
+        }
+
+        return ratingCounts;
+    }
+
 }

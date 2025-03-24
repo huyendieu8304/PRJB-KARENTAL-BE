@@ -95,7 +95,7 @@ public class FeedbackController {
             @RequestParam(defaultValue = "10") int size) {
 
         return ApiResponse.<FeedbackReportResponse>builder()
-                .data(feedbackService.getFilteredFeedbackReport(ratingFilter, page, size))
+                .data(feedbackService.getOwnerFeedbackReport(ratingFilter, page, size))
                 .message("Feedback report retrieved successfully.")
                 .build();
     }
@@ -115,6 +115,32 @@ public class FeedbackController {
         return ApiResponse.<RatingResponse>builder()
                 .data(feedbackService.getAverageRatingAndCountByCarOwner())
                 .message("Car rating retrieved successfully.")
+                .build();
+    }
+
+    /**
+     * API endpoint for customer to view their feedback reports.
+     *
+     * This endpoint allows customers to retrieve a paginated list of feedback
+     * left by them. Customers can filter feedback based on
+     * rating and sort them in descending order of creation date.
+     *
+     * @param ratingFilter (optional) The rating value to filter feedback (e.g., 5 for 5-star feedback).
+     *                     Default is 0, meaning no filtering by rating.
+     * @param page         (optional) The page number for pagination. Default is 0 (first page).
+     * @param size         (optional) The number of feedback entries per page. Default is 10.
+     * @return ApiResponse containing the feedback report, including the list of feedback
+     *         details and the average rating for the cars which is feedbacked by them.
+     */
+    @GetMapping("/customer/view-feedbacks")
+    public ApiResponse<FeedbackReportResponse> getCustomerFeedbackReport(
+            @RequestParam(defaultValue = "0") int ratingFilter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ApiResponse.<FeedbackReportResponse>builder()
+                .data(feedbackService.getCustomerFeedbackReport(ratingFilter, page, size))
+                .message("Feedback report retrieved successfully.")
                 .build();
     }
 

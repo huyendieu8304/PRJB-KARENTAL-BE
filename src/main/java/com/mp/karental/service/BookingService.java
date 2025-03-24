@@ -614,6 +614,9 @@ public class BookingService {
             if (booking == null) {
                 throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
             }
+            if (!booking.getCar().getAccount().getId().equals(accountId)) {
+                throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
+            }
 
             // Check if the user is a CUSTOMER
         } else if (ERole.CUSTOMER.equals(account.getRole().getName())) {
@@ -645,21 +648,7 @@ public class BookingService {
      */
     public BookingResponse confirmBooking(String bookingNumber) {
         log.info("Car owner {} is confirming booking {}", SecurityUtil.getCurrentAccount().getId(), bookingNumber);
-
-        // Get booking by bookingNumber
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if (booking == null) {
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-        }
-
-        // Get the current logged-in account
-        Account account = SecurityUtil.getCurrentAccount();
-
-
-        // Ensure the booking belongs to the current car owner
-        if (!booking.getCar().getAccount().getId().equals(account.getId())) {
-            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
-        }
+        Booking booking = validateAndGetBooking(bookingNumber);
 
         // Ensure the booking status is valid for confirmation
         if (booking.getStatus() == null || !EBookingStatus.WAITING_CONFIRMED.equals(booking.getStatus())) {
@@ -677,10 +666,15 @@ public class BookingService {
         booking.setStatus(EBookingStatus.CONFIRMED);
         bookingRepository.saveAndFlush(booking);
 
-        log.info("Booking {} confirmed successfully by car owner {}", bookingNumber, account.getId());
+        emailService.sendConfirmBookingEmail(booking.getAccount().getEmail(),
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                booking.getBookingNumber());
+
+        log.info("Booking {} confirmed successfully by car owner {}", bookingNumber, booking.getAccount().getId());
 
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
+
 
     /**
      * Cancels a booking based on the provided booking number.

@@ -29,9 +29,6 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class EditBookingRequest {
-    @RequiredField(fieldName = "car id")
-    String carId;
-
     //driver
     //=============================================================
     String driverFullName;

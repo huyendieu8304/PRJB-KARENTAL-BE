@@ -48,5 +48,12 @@ public interface CarRepository extends JpaRepository<Car, String> {
     @Query("SELECT c.id FROM Car c WHERE c.account.id = :ownerId")
     List<String> findCarIdsByOwnerId(@Param("ownerId") String ownerId);
 
+    @Query("""
+    SELECT DISTINCT b.car.id 
+    FROM Booking b 
+    WHERE b.account.id = :customerId
+""")
+    List<String> findCarIdsByCustomerId(@Param("customerId") String customerId);
+
 }
 
