@@ -415,9 +415,8 @@ public class CarService {
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
             response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
-            // Gọi repository để lấy rating từng xe
-            Double averageRating = feedbackRepository.calculateAverageRatingByCar(car.getId());
-            response.setAverageRatingByCar(averageRating != null ? averageRating : 0.0);
+            // Call the reusable method to get the rating
+            response.setAverageRatingByCar(getAverageRatingByCar(car.getId()));
 
             long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
             response.setNoOfRides(noOfRides);
@@ -521,12 +520,7 @@ public class CarService {
 
         List<Booking> bookings = bookingRepository.findActiveBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
         log.info("Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
-        //check car if status is different with VERIFIED, the car is not available
-        Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
-        if(car.getStatus() != ECarStatus.VERIFIED) {
-            throw new AppException(ErrorCode.CAR_NOT_VERIFIED);
-        }
+
         // If there isn't any booking -> Available
         if (bookings.isEmpty()) {
             return true;
@@ -631,8 +625,7 @@ public class CarService {
             response.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", " + car.getWard());
 
             // Get rating by car id
-            Double averageRating = feedbackRepository.calculateAverageRatingByCar(car.getId());
-            response.setAverageRatingByCar(averageRating != null ? averageRating : 0.0);
+            response.setAverageRatingByCar(getAverageRatingByCar(car.getId()));
 
             // Get URL image car
             response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));

@@ -58,7 +58,7 @@ public enum ErrorCode {
     INVALID_TRANSACTION_TYPE(2030,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
     INVALID_DRIVER_INFO(2031,"Driver's information is different from account holder, but the information is not fulfilled",HttpStatus.BAD_REQUEST),
     INVALID_COMMENT_LENGTH(2032,"The comment length is invalid", HttpStatus.BAD_REQUEST),
-
+    INVALID_RATING_RANGE(2033, "The rating range is invalid", HttpStatus.BAD_REQUEST),
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.SERVICE_UNAVAILABLE),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),

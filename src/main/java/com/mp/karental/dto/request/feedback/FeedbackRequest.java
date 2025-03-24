@@ -27,8 +27,8 @@ public class FeedbackRequest {
     String bookingId;
 
     @RequiredField(message = "Rating")
-    @Min(value = 1, message = "Rating must be at least 1")
-    @Max(value = 5, message = "Rating must be at most 5")
+    @Min(value = 1, message = "INVALID_RATING_RANGE")
+    @Max(value = 5, message = "INVALID_RATING_RANGE")
     int rating;
 
     @Size(max = 2000, message = "INVALID_COMMENT_LENGTH")

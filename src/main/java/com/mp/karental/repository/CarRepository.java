@@ -51,6 +51,7 @@ public interface CarRepository extends JpaRepository<Car, String> {
     @Query("""
     SELECT DISTINCT b.car.id 
     FROM Booking b 
+    JOIN Feedback f ON b.bookingNumber = f.id
     WHERE b.account.id = :customerId
 """)
     List<String> findCarIdsByCustomerId(@Param("customerId") String customerId);

@@ -87,7 +87,7 @@ public class FeedbackService {
             throw new AppException(ErrorCode.FEEDBACK_TIME_EXPIRED);
         }
 
-        // Validate feedback length (max 250 characters)
+        // Validate feedback length (max 2000 characters)
         if (request.getComment() != null && request.getComment().length() > 2000) {
             throw new AppException(ErrorCode.FEEDBACK_TOO_LONG);
         }
@@ -198,6 +198,7 @@ public class FeedbackService {
 
         // Convert feedback entities to response DTOs
         List<FeedbackDetailResponse> feedbackDetails = feedbackMapper.toFeedbackDetailResponseList(feedbackPage.getContent());
+        feedbackDetails.forEach(detail -> detail.setCarImageFrontUrl(fileService.getFileUrl(detail.getCarImageFrontUrl())));
 
         // Build and return the response
         return buildFeedbackReportResponse(feedbackDetails, totalPages, size, totalElements);
@@ -295,7 +296,7 @@ public class FeedbackService {
                 ? BigDecimal.valueOf(averageRatingByOwner).setScale(2, RoundingMode.HALF_UP).doubleValue()
                 : 0.0;
 
-        // Lấy số lượng feedback theo rating từ hàm chung
+        // Get the number of feedbacks by rating from a common method
         Map<Integer, Long> ratingCounts = getRatingCountsByCarIds(carIds);
 
         // Build and return the response containing the average rating and rating counts
