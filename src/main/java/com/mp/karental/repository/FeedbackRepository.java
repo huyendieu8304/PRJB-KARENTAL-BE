@@ -113,31 +113,16 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
     Double calculateAverageRatingByOwner(@Param("carIds") List<String> carIds);
 
     /**
-     * Calculates the average rating for each individual car in the given list.
-     *
-     * @param carIds A list of car IDs.
-     * @return A list of objects where each element contains a car ID and its average rating.
-     */
-    @Query(value = """
-        SELECT b.car_id, AVG(f.rating) 
-        FROM feedback f
-        JOIN booking b ON f.booking_number = b.booking_number
-        WHERE b.car_id IN (:carIds)
-        GROUP BY b.car_id
-    """, nativeQuery = true)
-    List<Object[]> calculateAverageRatingByCar(@Param("carIds") List<String> carIds);
-
-    /**
      * Calculates the average rating for a specific car.
      *
      * @param carId The unique identifier of the car.
      * @return The average rating for the car, or null if no feedback exists.
      */
     @Query(value = """
-        SELECT AVG(f.rating) 
-        FROM feedback f
-        JOIN booking b ON f.booking_number = b.booking_number
-        WHERE b.car_id = :carId
-    """, nativeQuery = true)
+                SELECT AVG(f.rating) 
+                FROM feedback f
+                JOIN booking b ON f.booking_number = b.booking_number
+                WHERE b.car_id = :carId
+            """, nativeQuery = true)
     Double calculateAverageRatingByCar(@Param("carId") String carId);
 }
