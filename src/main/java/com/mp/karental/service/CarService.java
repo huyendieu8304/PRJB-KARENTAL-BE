@@ -608,9 +608,6 @@ public class CarService {
         return new PageImpl<>(availableCars, pageable, verifiedCars.getTotalElements());
     }
 
-
-
-
     /**
      * Retrieves a car by its ID and ensures that the current logged-in user owns the car.
      *
