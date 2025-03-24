@@ -17,6 +17,7 @@ import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
+import com.mp.karental.repository.FeedbackRepository;
 import com.mp.karental.security.SecurityUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,10 +29,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Service class for handling car operations.
@@ -54,6 +58,7 @@ public class CarService {
     // Define constant field names to avoid repetition
     private static final String FIELD_PRODUCTION_YEAR = "productionYear";
     private static final String FIELD_PRICE = "basePrice";
+    private final FeedbackRepository feedbackRepository;
 
     /**
      * Adds a new car to the system.
@@ -342,23 +347,33 @@ public class CarService {
     public Page<CarThumbnailResponse> getCarsByUserId(int page, int size, String sort) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Validate page, size and sort
+        // Validate and create pagination parameters
         Pageable pageable = getPageable(page, size, sort);
 
-        // Get list of cars
-        // Map cars to CarThumbnailResponse using fromCar method
+        // Retrieve the list of cars owned by the current user
         Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
+
+        // Convert each Car entity to CarThumbnailResponse
         Page<CarThumbnailResponse> responses = cars.map(car -> {
             CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
+
+            // Set the car's address in the response
             response.setAddress(car.getWard() + ", " + car.getCityProvince());
 
+            // Convert file paths to accessible URLs
             response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
             response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
             response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
+            // Retrieve and set the average rating of the car
+            double averageRating = getAverageRatingByCar(car.getId());
+            response.setAverageRatingByCar(averageRating);
+
+            // Count and set the number of completed bookings for the car
             long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
             response.setNoOfRides(noOfRides);
+
             return response;
         });
 
@@ -382,6 +397,8 @@ public class CarService {
         // Retrieve car details from the database
         Car car = carRepository.findById(request.getCarId())
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        double averageRating = getAverageRatingByCar(request.getCarId());
 
         // Check if the car is verified
         if (car.getStatus() != ECarStatus.VERIFIED) {
@@ -432,6 +449,9 @@ public class CarService {
 
         // Set booking status in the response
         response.setBooked(isBooked);
+
+        // Set average rating follow by car
+        response.setAverageRatingByCar(averageRating);
 
         // Count the number of completed bookings for this car and set it
         long noOfRides = bookingRepository.countCompletedBookingsByCar(request.getCarId());
@@ -540,6 +560,23 @@ public class CarService {
         // Get list car is VERIFIED with pagination
         Page<Car> verifiedCars = carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, request.getAddress(), pageable);
 
+        // Get list carId to query average rating
+        List<String> carIds = verifiedCars.stream().map(Car::getId).toList();
+
+        // Get list rating follow by car id
+        Map<String, Double> ratingMap = feedbackRepository.calculateAverageRatingByCar(carIds)
+                .stream().collect(Collectors.toMap(
+                        result -> (String) result[0], // carId
+                        result -> {
+                            Object value = result[1]; // Get value of AVG(f.rating)
+                            if (value instanceof BigDecimal) {
+                                return ((BigDecimal) value).doubleValue(); // Convert from BigDecimal -> Double
+                            }
+                            return 0.0; // If null or not BigDecimal, return 0
+                        },
+                        (a, b) -> b // Keep the last value if duplicate
+                ));
+
         // Filter to take car is AVAILABLE
         List<CarThumbnailResponse> availableCars = new ArrayList<>();
 
@@ -561,6 +598,9 @@ public class CarService {
             response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
             response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
+
+            // Set average rating
+            response.setAverageRatingByCar(ratingMap.getOrDefault(car.getId(), 0.0));
 
             availableCars.add(response);
         }
@@ -591,8 +631,13 @@ public class CarService {
             throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS); // Custom error for unauthorized access
         }
 
+        // Get average rating of car
+        Double averageRating = getAverageRatingByCar(car.getId());
+
         // Convert Car entity to CarResponse DTO
         CarResponse carResponse = carMapper.toCarResponse(car);
+
+        carResponse.setAverageRatingByCar(averageRating);
 
         // Concatenate address fields into a single string and set it in CarResponse
         carResponse.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", "
@@ -603,4 +648,26 @@ public class CarService {
 
         return carResponse;
     }
+
+    /**
+     * Retrieves the average rating of a car based on user feedback.
+     *
+     * @param carId The ID of the car to fetch the average rating for.
+     * @return The average rating if feedback exists; otherwise, returns 0.0.
+     */
+    public double getAverageRatingByCar(String carId) {
+        Double averageRating = feedbackRepository.calculateAverageRatingByCar(List.of(carId))
+                .stream()
+                .findFirst()
+                .map(result -> {
+                    Object value = result[1]; // Value of AVG(f.rating)
+                    if (value instanceof BigDecimal) {
+                        return ((BigDecimal) value).doubleValue(); // Convert BigDecimal -> float
+                    }
+                    return 0.0; // Avoid error if value isn't valid
+                })
+                .orElse(0.0);// Return 0 if no feedback is available
+        return averageRating;
+    }
+
 }

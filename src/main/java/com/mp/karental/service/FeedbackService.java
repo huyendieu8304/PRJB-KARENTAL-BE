@@ -87,7 +87,7 @@ public class FeedbackService {
         }
 
         // Validate feedback length (max 250 characters)
-        if (request.getComment() != null && request.getComment().length() > 250) {
+        if (request.getComment() != null && request.getComment().length() > 2000) {
             throw new AppException(ErrorCode.FEEDBACK_TOO_LONG);
         }
 
@@ -166,14 +166,8 @@ public class FeedbackService {
         List<String> carIds = carRepository.findCarIdsByOwnerId(ownerId);
         if (carIds.isEmpty()) {
             log.warn("No cars found for ownerId={}", ownerId);
-            return FeedbackReportResponse.builder()
-                    .averageRatingByOwner(0.0)
-                    .averageRatingByCar(Collections.emptyMap())
-                    .feedbacks(Collections.emptyList())
-                    .totalPages(0)
-                    .pageSize(size)
-                    .totalElements(0)
-                    .build();
+            return buildFeedbackReportResponse(0.0, Collections.emptyMap(), Collections.emptyList(), 0, size, 0, Collections.emptyMap());
+
         }
 
         // Calculate average rating follow by car_owner
@@ -223,15 +217,8 @@ public class FeedbackService {
         // Return immediately if no feedback is found
         if (feedbackList.isEmpty()) {
             log.warn("No feedback found for the given filters");
-            return FeedbackReportResponse.builder()
-                    .averageRatingByOwner(averageRatingByOwner)
-                    .averageRatingByCar(averageRatingByCar)
-                    .feedbacks(Collections.emptyList())
-                    .totalPages(totalPages)
-                    .pageSize(size)
-                    .totalElements(totalElements)
-                    .ratingCounts(ratingCounts)
-                    .build();
+            return buildFeedbackReportResponse(averageRatingByOwner, averageRatingByCar,
+                    Collections.emptyList(), totalPages, size, totalElements, ratingCounts);
         }
 
         // Convert feedback entities to DTOs
@@ -242,16 +229,29 @@ public class FeedbackService {
             feedback.setCarImageFrontUrl(fileService.getFileUrl(feedback.getCarImageFrontUrl()));
         }
 
+        return buildFeedbackReportResponse(averageRatingByOwner, averageRatingByCar, feedbackDetails, totalPages, size, totalElements, ratingCounts);
+
+    }
+
+    /**
+     * Helper method to build FeedbackReportResponse
+     */
+    private FeedbackReportResponse buildFeedbackReportResponse(
+            double averageRatingByOwner,
+            Map<String, Double> averageRatingByCar,
+            List<FeedbackDetailResponse> feedbacks,
+            int totalPages,
+            int pageSize,
+            long totalElements,
+            Map<Integer, Long> ratingCounts) {
         return FeedbackReportResponse.builder()
                 .averageRatingByOwner(averageRatingByOwner)
                 .averageRatingByCar(averageRatingByCar)
-                .feedbacks(feedbackDetails)
+                .feedbacks(feedbacks)
                 .totalPages(totalPages)
-                .pageSize(size)
+                .pageSize(pageSize)
                 .totalElements(totalElements)
                 .ratingCounts(ratingCounts)
                 .build();
     }
-
-
 }

@@ -144,4 +144,14 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
 """, nativeQuery = true)
     List<Object[]> calculateAverageRatingByCar(@Param("carIds") List<String> carIds);
 
+    @Query(value = """
+    SELECT AVG(f.rating) 
+    FROM feedback f
+    JOIN booking b ON f.booking_number = b.booking_number
+    JOIN car c ON b.car_id = c.id
+    WHERE c.id = :carId
+""", nativeQuery = true)
+    Double calculateAverageRatingByCar(@Param("carId") String carId);
+
+
 }

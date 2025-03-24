@@ -30,5 +30,5 @@ public class CarThumbnailResponse {
     private String carImageLeft;
     private String carImageBack;
     long noOfRides;
-
+    private double averageRatingByCar;
 }
