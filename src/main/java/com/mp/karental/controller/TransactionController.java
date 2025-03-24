@@ -4,7 +4,6 @@ import com.mp.karental.constant.ETransactionType;
 
 import com.mp.karental.dto.request.transaction.TransactionRequest;
 import com.mp.karental.dto.response.ApiResponse;
-
 import com.mp.karental.dto.response.transaction.ListTransactionResponse;
 import com.mp.karental.dto.response.transaction.TransactionPaymentURLResponse;
 import com.mp.karental.dto.response.transaction.TransactionResponse;
@@ -61,13 +60,13 @@ public class TransactionController {
                 .build();
     }
     @PostMapping("/withdraw")
-    ApiResponse<TransactionPaymentURLResponse> withdraw(@RequestBody @Valid TransactionRequest transactionRequest, HttpServletRequest httpServletRequest) {
+    ApiResponse<TransactionResponse> withdraw(@RequestBody @Valid TransactionRequest transactionRequest, HttpServletRequest httpServletRequest) {
         var ipAddress = RequestUtil.getIpAddress(httpServletRequest);
         transactionRequest.setIpAddress(ipAddress);
         log.info("Transaction Request: {}", transactionRequest);
         transactionRequest.setType(ETransactionType.WITHDRAW);
-        return ApiResponse.<TransactionPaymentURLResponse>builder()
-                .data(transactionService.createTransactionTopUp(transactionRequest))
+        return ApiResponse.<TransactionResponse>builder()
+                .data(transactionService.withdraw(transactionRequest.getAmount()))
                 .build();
     }
     @GetMapping("{transactionId}/status")

@@ -50,10 +50,10 @@ import org.springframework.web.util.WebUtils;
 public class AuthenticationService {
 
     //TODO: sửa lại khi deploy
-//    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
     @Value("${front-end.domain-name}")
     @NonFinal
     private String frontEndDomainName;
+
 
     @Value("${application.security.jwt.access-token-cookie-name}")
     @NonFinal
