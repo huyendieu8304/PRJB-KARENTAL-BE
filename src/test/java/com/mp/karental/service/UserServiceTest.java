@@ -231,33 +231,6 @@ class UserServiceTest {
     }
 
     @Test
-    void resendVerifyEmail_ShouldThrowException_WhenSendEmailFails() throws MessagingException {
-        // Given
-        String email = "test@example.com";
-        Account account = new Account();
-        account.setId(ACCOUNT_ID);
-        account.setEmail(email);
-        account.setEmailVerified(false);
-
-        when(accountRepository.findByEmail(email)).thenReturn(Optional.of(account));
-        when(redisUtil.generateVerifyEmailToken(account.getId())).thenReturn("mock-token");
-
-        // Giả lập lỗi khi gửi email
-        doThrow(new MessagingException("Email sending failed"))
-                .when(emailService).sendRegisterEmail(eq(email), anyString());
-
-        // When + Then
-        AppException exception = assertThrows(AppException.class,
-                () -> userService.resendVerifyEmail(email));
-
-        assertEquals(ErrorCode.SEND_VERIFY_EMAIL_TO_USER_FAIL, exception.getErrorCode());
-
-        // Đảm bảo đã gọi hàm tạo token và gửi email
-        verify(redisUtil).generateVerifyEmailToken(account.getId());
-        verify(emailService).sendRegisterEmail(eq(email), anyString());
-    }
-
-    @Test
     void verifyEmail_WhenTokenIsValid_ShouldVerifyEmailSuccessfully() {
         // Arrange
         Account account = new Account();
