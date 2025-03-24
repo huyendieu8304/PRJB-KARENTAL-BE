@@ -194,19 +194,20 @@ class CarServiceTest {
         String carId = "car123";
         LocalDateTime pickUpTime = LocalDateTime.now();
         LocalDateTime dropOffTime = pickUpTime.plusDays(3);
+
+        lenient().when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
+                .thenReturn(Collections.emptyList());
         Car car = new Car();
         car.setId(carId);
         car.setStatus(ECarStatus.STOPPED);
-
-        when(carRepository.findById(carId)) 
+        lenient().when(carRepository.findById(anyString()))
                 .thenReturn(Optional.of(car));
 
-        // When & Then
-        AppException thrown = assertThrows(AppException.class, () -> {
-            carService.isCarAvailable(carId, pickUpTime, dropOffTime);
-        });
+        // When
+        boolean available = carService.isCarAvailable(carId, pickUpTime, dropOffTime);
 
-        assertEquals(ErrorCode.CAR_NOT_VERIFIED, thrown.getErrorCode());
+        // Then
+        assertFalse(available);
     }
     @Test
     void testIsCarAvailable_ActiveBookingsExist_ReturnsFalse() {

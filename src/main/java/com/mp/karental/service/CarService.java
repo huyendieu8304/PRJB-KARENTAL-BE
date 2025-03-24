@@ -515,7 +515,7 @@ public class CarService {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
         if(car.getStatus() != ECarStatus.VERIFIED) {
-            throw new AppException(ErrorCode.CAR_NOT_VERIFIED);
+            return false;
         }
         // If there isn't any booking -> Available
         if (bookings.isEmpty()) {
