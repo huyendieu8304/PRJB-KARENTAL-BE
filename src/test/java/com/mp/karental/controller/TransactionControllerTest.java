@@ -101,4 +101,29 @@ class TransactionControllerTest {
         assertNotNull(response.getData());
         verify(transactionService, times(1)).getTransactionStatus(eq(transactionId), anyMap());
     }
+
+    @Test
+    void testGetAllTransactionList_WhenAllIsTrue_ShouldReturnAllTransactions() {
+        // Arrange
+        when(transactionService.getAllTransactionsList()).thenReturn(new ListTransactionResponse());
+
+        // Act
+        ApiResponse<ListTransactionResponse> response = transactionController.getAllTransactionList(true);
+
+        // Assert
+        assertNotNull(response);
+        assertNotNull(response.getData());
+        verify(transactionService, times(1)).getAllTransactionsList();
+    }
+
+    @Test
+    void testGetAllTransactionList_WhenAllIsFalse_ShouldReturnEmptyList() {
+        // Act
+        ApiResponse<ListTransactionResponse> response = transactionController.getAllTransactionList(false);
+
+        // Assert
+        assertNotNull(response);
+        assertNotNull(response.getData());
+        verifyNoInteractions(transactionService);
+    }
 }

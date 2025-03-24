@@ -48,6 +48,7 @@ public class TransactionService {
     EmailService emailService;
     private final ApplicationRunner init;
     IpnHandler ipnHandler;
+
     // method serve withdraw transaction
     public TransactionResponse withdraw(long amount){
         String accountId = SecurityUtil.getCurrentAccountId();
@@ -75,6 +76,7 @@ public class TransactionService {
         // return response for Withdraw transaction
         return transactionResponse;
     }
+
     //create payment URL to VNPAY sanbox when transaction is TOP_UP
     public TransactionPaymentURLResponse createTransactionTopUp(TransactionRequest transactionRequest) {
         log.info("Creating Transaction: {}", transactionRequest);
@@ -107,6 +109,7 @@ public class TransactionService {
                     .build();
 
     }
+
     //get the transaction status after vnpay process
     public TransactionResponse getTransactionStatus(String transactionId, Map<String,String> params) {
         log.info("Checking Transaction Status: transactionId={}, params={}", transactionId, params);
@@ -289,7 +292,7 @@ public class TransactionService {
         transactionRepository.save(transactionCarOwner);
     }
 
-    private long calculateTotalPayment(Booking b){
+    public long calculateTotalPayment(Booking b){
         long minutes = Duration.between(b.getPickUpTime(), b.getDropOffTime()).toMinutes();
         long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
         return  b.getBasePrice() * days;

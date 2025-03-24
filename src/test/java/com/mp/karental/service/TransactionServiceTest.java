@@ -4,13 +4,16 @@ import com.mp.karental.constant.ERole;
 import com.mp.karental.constant.ETransactionStatus;
 import com.mp.karental.constant.ETransactionType;
 import com.mp.karental.dto.request.TransactionRequest;
+import com.mp.karental.dto.response.ListTransactionResponse;
 import com.mp.karental.dto.response.TransactionPaymentURLResponse;
 import com.mp.karental.dto.response.TransactionResponse;
 import com.mp.karental.entity.*;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.mapper.TransactionMapper;
+import com.mp.karental.payment.constant.VNPayIPNResponseConst;
 import com.mp.karental.payment.dto.request.InitPaymentRequest;
 import com.mp.karental.payment.dto.response.InitPaymentResponse;
+import com.mp.karental.payment.service.IpnHandler;
 import com.mp.karental.payment.service.PaymentService;
 import com.mp.karental.repository.TransactionRepository;
 import com.mp.karental.repository.WalletRepository;
@@ -26,6 +29,11 @@ import org.mockito.Mockito;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,6 +59,8 @@ public class TransactionServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
+    @Mock
+    private IpnHandler ipnHandler;
     private Wallet customerWallet;
     private Wallet carOwnerWallet;
     private Wallet loggedInUser;
@@ -114,7 +124,7 @@ public class TransactionServiceTest {
         // Arrange
         long withdrawAmount = 5000000;
         when(walletRepository.findById(loggedInUser.getId())).thenReturn(Optional.of(loggedInUser));
-        
+
         // Mock the transaction and response
         Transaction expectedTransaction = Transaction.builder()
                 .id("txn123")
@@ -353,5 +363,314 @@ public class TransactionServiceTest {
         verify(walletRepository, times(2)).save(any(Wallet.class));
         verify(walletRepository).save(argThat(wallet -> wallet.getId().equals(loggedInUser.getId())));
         verify(walletRepository).save(argThat(wallet -> wallet.getId().equals(adminWallet.getId())));
+    }
+
+    @Test
+    void getAllTransactionsList_ShouldReturnTransactions() {
+        // Arrange
+        String accountId = loggedInUser.getId();
+        List<Transaction> transactions = Arrays.asList(
+            Transaction.builder().id("txn1").amount(1000).build(),
+            Transaction.builder().id("txn2").amount(2000).build()
+        );
+        List<TransactionResponse> transactionResponses = Arrays.asList(
+            TransactionResponse.builder().amount(1000).build(),
+            TransactionResponse.builder().amount(2000).build()
+        );
+
+        when(transactionRepository.getTransactionsByWalletId(accountId)).thenReturn(transactions);
+        when(walletRepository.findById(accountId)).thenReturn(Optional.of(loggedInUser));
+        when(transactionMapper.toTransactionResponse(any(Transaction.class)))
+            .thenReturn(transactionResponses.get(0), transactionResponses.get(1));
+
+        // Act
+        ListTransactionResponse response = transactionService.getAllTransactionsList();
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(loggedInUser.getBalance(), response.getBalance());
+        assertEquals(2, response.getListTransactionResponse().size());
+        verify(transactionRepository).getTransactionsByWalletId(accountId);
+    }
+
+    @Test
+    void getAllTransactions_WithDateRange_ShouldReturnFilteredTransactions() {
+        // Arrange
+        String accountId = loggedInUser.getId();
+        LocalDateTime from = LocalDateTime.now().minusDays(1);
+        LocalDateTime to = LocalDateTime.now();
+        List<Transaction> transactions = Arrays.asList(
+            Transaction.builder().id("txn1").amount(1000).build()
+        );
+        List<TransactionResponse> transactionResponses = Arrays.asList(
+            TransactionResponse.builder().amount(1000).build()
+        );
+
+        when(transactionRepository.getTransactionsByDate(accountId, from, to)).thenReturn(transactions);
+        when(walletRepository.findById(accountId)).thenReturn(Optional.of(loggedInUser));
+        when(transactionMapper.toTransactionResponse(any(Transaction.class)))
+            .thenReturn(transactionResponses.get(0));
+
+        // Act
+        ListTransactionResponse response = transactionService.getAllTransactions(from, to);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(loggedInUser.getBalance(), response.getBalance());
+        assertEquals(1, response.getListTransactionResponse().size());
+        verify(transactionRepository).getTransactionsByDate(accountId, from, to);
+    }
+
+    @Test
+    void getTransactionStatus_WithSuccessfulPayment_ShouldUpdateTransaction() {
+        // Arrange
+        String transactionId = "txn-123";
+        Map<String, String> params = new HashMap<>();
+        Transaction transaction = Transaction.builder()
+            .id(transactionId)
+            .status(ETransactionStatus.PROCESSING)
+            .type(ETransactionType.TOP_UP)
+            .amount(1000)
+            .wallet(loggedInUser)
+            .build();
+
+        when(ipnHandler.process(params)).thenReturn(VNPayIPNResponseConst.SUCCESS);
+        when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+        when(walletRepository.findById(loggedInUser.getId())).thenReturn(Optional.of(loggedInUser));
+        when(transactionMapper.toTransactionResponse(any())).thenReturn(
+            TransactionResponse.builder().status(ETransactionStatus.SUCCESSFUL).build()
+        );
+
+        // Act
+        TransactionResponse response = transactionService.getTransactionStatus(transactionId, params);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(ETransactionStatus.SUCCESSFUL, response.getStatus());
+        verify(walletRepository).save(loggedInUser);
+        verify(transactionRepository).save(transaction);
+    }
+
+    @Test
+    void getTransactionStatus_WithFailedPayment_ShouldThrowException() {
+        // Arrange
+        String transactionId = "txn-123";
+        Map<String, String> params = new HashMap<>();
+        Transaction transaction = Transaction.builder()
+            .id(transactionId)
+            .status(ETransactionStatus.PROCESSING)
+            .type(ETransactionType.TOP_UP)
+            .amount(1000)
+            .wallet(loggedInUser)
+            .build();
+
+        TransactionResponse mockResponse = TransactionResponse.builder()
+            .status(ETransactionStatus.PROCESSING)
+            .build();
+
+        when(ipnHandler.process(params)).thenReturn(VNPayIPNResponseConst.UNKNOWN_ERROR);
+        when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+        when(walletRepository.findById(loggedInUser.getId())).thenReturn(Optional.of(loggedInUser));
+        when(transactionMapper.toTransactionResponse(any())).thenReturn(mockResponse);
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> 
+            transactionService.getTransactionStatus(transactionId, params));
+
+        verify(transactionRepository).findById(transactionId);
+        verify(ipnHandler).process(params);
+        assertEquals(ETransactionStatus.FAILED, transaction.getStatus());
+    }
+
+    @Test
+    void getTransactionStatus_WithAlreadySuccessfulTransaction_ShouldNotUpdateStatus() {
+        // Arrange
+        String transactionId = "txn-123";
+        Map<String, String> params = new HashMap<>();
+        Transaction transaction = Transaction.builder()
+            .id(transactionId)
+            .status(ETransactionStatus.SUCCESSFUL)  // Already successful
+            .type(ETransactionType.TOP_UP)
+            .amount(1000)
+            .wallet(loggedInUser)
+            .build();
+
+        when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+        when(walletRepository.findById(loggedInUser.getId())).thenReturn(Optional.of(loggedInUser));
+        when(transactionMapper.toTransactionResponse(any())).thenReturn(
+            TransactionResponse.builder().status(ETransactionStatus.SUCCESSFUL).build()
+        );
+
+        // Act
+        TransactionResponse response = transactionService.getTransactionStatus(transactionId, params);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(ETransactionStatus.SUCCESSFUL, response.getStatus());
+        verify(transactionRepository, never()).save(any());
+        verify(walletRepository, never()).save(any());
+    }
+
+//    @Test
+//    void getTransactionStatus_WithNonTopUpTransaction_ShouldNotUpdateWallet() {
+//        // Arrange
+//        String transactionId = "txn-123";
+//        Map<String, String> params = new HashMap<>();
+//
+//        Wallet wallet = Wallet.builder()
+//            .id("26b1f637-3f23-4d57-a20e-1e68b3176dfc")
+//            .balance(10000000L)
+//            .build();
+//
+//        Transaction transaction = Transaction.builder()
+//            .id(transactionId)
+//            .status(ETransactionStatus.PROCESSING)
+//            .type(ETransactionType.WITHDRAW)  // Non TOP_UP type
+//            .amount(1000)
+//            .wallet(wallet)
+//            .build();
+//
+//        TransactionResponse mockResponse = TransactionResponse.builder()
+//            .status(ETransactionStatus.SUCCESSFUL)
+//            .build();
+//
+//        // Mock repository calls
+//        when(ipnHandler.process(params)).thenReturn(VNPayIPNResponseConst.SUCCESS);
+//        when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+//        when(walletRepository.findById(wallet.getId())).thenReturn(Optional.of(wallet));
+//        when(transactionMapper.toTransactionResponse(any())).thenReturn(mockResponse);
+//        when(walletRepository.save(any(Wallet.class))).thenReturn(wallet);
+//        when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
+//
+//        // Act
+//        transactionService.getTransactionStatus(transactionId, params);
+//
+//        // Assert
+//        verify(transactionRepository).findById(transactionId);
+//        verify(ipnHandler).process(params);
+//        verify(walletRepository, never()).save(any());
+//        assertEquals(ETransactionStatus.SUCCESSFUL, transaction.getStatus());
+//    }
+
+    @Test
+    void offsetFinalPayment_WhenDepositLessThanTotal_ShouldDeductFromCustomer() {
+        // Arrange
+        Car car = Car.builder()
+            .id("car-123")
+            .model("Toyota Camry")
+            .account(carOwnerWallet.getAccount())
+            .build();
+
+        Booking booking = Booking.builder()
+            .deposit(1000000) // 1M deposit
+            .basePrice(2000000) // 2M per day
+            .pickUpTime(LocalDateTime.now())
+            .dropOffTime(LocalDateTime.now().plusDays(2)) // 2 days rental
+            .account(loggedInUser.getAccount())
+            .car(car)
+            .bookingNumber("BOOKING-123")
+            .build();
+
+        when(accountRepository.findByRoleId(3)).thenReturn(adminAccount);
+        when(walletRepository.findById(loggedInUser.getId())).thenReturn(Optional.of(loggedInUser));
+        when(walletRepository.findById(carOwnerWallet.getId())).thenReturn(Optional.of(carOwnerWallet));
+        when(walletRepository.findById(adminAccount.getId())).thenReturn(Optional.of(adminWallet));
+
+        // Act
+        transactionService.offsetFinalPayment(booking);
+
+        // Assert
+        verify(transactionRepository, times(2)).save(any(Transaction.class));
+        verify(walletRepository, times(4)).save(any(Wallet.class));
+    }
+
+    @Test
+    void offsetFinalPayment_WhenDepositMoreThanTotal_ShouldRefundToCustomer() {
+        // Arrange
+        Car car = Car.builder()
+            .id("car-123")
+            .model("Toyota Camry")
+            .account(carOwnerWallet.getAccount())
+            .build();
+
+        Booking booking = Booking.builder()
+            .deposit(5000000) // 5M deposit
+            .basePrice(2000000) // 2M per day
+            .pickUpTime(LocalDateTime.now())
+            .dropOffTime(LocalDateTime.now().plusDays(1)) // 1 day rental
+            .account(loggedInUser.getAccount())
+            .car(car)
+            .bookingNumber("BOOKING-123")
+            .build();
+
+        when(accountRepository.findByRoleId(3)).thenReturn(adminAccount);
+        when(walletRepository.findById(loggedInUser.getId())).thenReturn(Optional.of(loggedInUser));
+        when(walletRepository.findById(carOwnerWallet.getId())).thenReturn(Optional.of(carOwnerWallet));
+        when(walletRepository.findById(adminAccount.getId())).thenReturn(Optional.of(adminWallet));
+
+        // Act
+        transactionService.offsetFinalPayment(booking);
+
+        // Assert
+        verify(transactionRepository, times(2)).save(any(Transaction.class));
+        verify(walletRepository, times(4)).save(any(Wallet.class));
+    }
+
+    @Test
+    void calculateTotalPayment_ShouldCalculateCorrectly() {
+        // Arrange
+        LocalDateTime pickUpTime = LocalDateTime.now();
+        LocalDateTime dropOffTime = pickUpTime.plusDays(2).plusHours(6); // 2.25 days, should round up to 3
+        long basePrice = 1000000;
+
+        Booking booking = Booking.builder()
+            .basePrice(basePrice)
+            .pickUpTime(pickUpTime)
+            .dropOffTime(dropOffTime)
+            .build();
+
+        // Act
+        long totalPayment = transactionService.calculateTotalPayment(booking);
+
+        // Assert
+        assertEquals(3000000, totalPayment, "Should charge for 3 full days");
+    }
+
+    @Test
+    void offsetFinalPayment_WithEqualDepositAndTotal_ShouldHandleCorrectly() {
+        // Arrange
+        Car car = Car.builder()
+            .id("car-123")
+            .model("Toyota Camry")
+            .account(carOwnerWallet.getAccount())
+            .build();
+
+        Booking booking = Booking.builder()
+            .deposit(2000000) // 2M deposit
+            .basePrice(2000000) // 2M per day
+            .pickUpTime(LocalDateTime.now())
+            .dropOffTime(LocalDateTime.now().plusDays(1)) // 1 day rental = 2M total
+            .account(loggedInUser.getAccount())
+            .car(car)
+            .bookingNumber("BOOKING-123")
+            .build();
+
+        when(accountRepository.findByRoleId(3)).thenReturn(adminAccount);
+        when(walletRepository.findById(loggedInUser.getId())).thenReturn(Optional.of(loggedInUser));
+        when(walletRepository.findById(carOwnerWallet.getId())).thenReturn(Optional.of(carOwnerWallet));
+        when(walletRepository.findById(adminAccount.getId())).thenReturn(Optional.of(adminWallet));
+
+        // Act
+        transactionService.offsetFinalPayment(booking);
+
+        // Assert
+        verify(transactionRepository, times(2)).save(any(Transaction.class));
+        verify(walletRepository, times(4)).save(any(Wallet.class)); // Updated to match actual calls
+        
+        // Verify the final balance
+        verify(walletRepository).save(argThat(wallet -> 
+            wallet.getId().equals(loggedInUser.getId())));
+        verify(walletRepository).save(argThat(wallet -> 
+            wallet.getId().equals(carOwnerWallet.getId())));
     }
 }
