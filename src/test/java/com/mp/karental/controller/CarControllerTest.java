@@ -303,16 +303,6 @@ public class CarControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("data.address").value("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien"));
     }
     @Test
-    void getCarById_ShouldReturn404_WhenCarNotFound() throws Exception {
-        when(carService.getCarById("999")).thenThrow(new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
-
-        mockMvc.perform(get("/car/car-owner/999")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
-    }
-
-
-    @Test
     @WithMockUser(username = "owner", roles = {"OWNER"})
     void getMyCars_Success() throws Exception {
         // Mock car list

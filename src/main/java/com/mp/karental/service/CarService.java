@@ -18,6 +18,7 @@ import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
 import com.mp.karental.security.SecurityUtil;
+import com.mp.karental.util.RedisUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -50,6 +51,8 @@ public class CarService {
     CarMapper carMapper;
     FileService fileService;
     BookingRepository bookingRepository;
+    EmailService emailService;
+    RedisUtil redisUtil;
 
     // Define constant field names to avoid repetition
     private static final String FIELD_PRODUCTION_YEAR = "productionYear";
@@ -63,7 +66,7 @@ public class CarService {
      * @throws AppException If the account is not found in the database.
      */
     public CarResponse addNewCar(AddCarRequest request) throws AppException {
-        // Get the current user account Id
+        // Get the current user account id
         String accountId = SecurityUtil.getCurrentAccountId();
 
         // Retrieve the account from the database, throw an exception if not found
@@ -89,7 +92,7 @@ public class CarService {
         car = carRepository.save(car);
 
         // Process and upload car-related files
-        car = processUploadFiles(request, accountId, car);
+        processUploadFiles(request, accountId, car);
 
         // Save the updated car entity after processing files
         car = carRepository.save(car);
@@ -138,7 +141,10 @@ public class CarService {
         if (!car.getAccount().getId().equals(accountId)) {
             throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
-
+        //check if car is booked, can not stop the car
+        if (newStatus == ECarStatus.STOPPED && isCarCurrentlyBooked(car.getId())) {
+            throw new AppException(ErrorCode.CAR_CANNOT_STOPPED); // Cannot stop a car that has active bookings.
+        }
         // Update the car details using the request data
         carMapper.editCar(car, request);
 
@@ -147,12 +153,16 @@ public class CarService {
         }
 
         car.setStatus(newStatus); // Convert status to uppercase for consistency
+        // when new status is stopped, all bookings of the car in status pending-deposit is cancelled
+        if (newStatus == ECarStatus.STOPPED) {
+            cancelPendingDepositsForStoppedCar(car.getId());
+        }
 
         // Update the car's address details
         setCarAddress(request, car);
 
         // Process and upload any new files associated with the car
-        car = processUploadFiles(request, accountId, car);
+        processUploadFiles(request, accountId, car);
 
         // Save the updated car details in the database
         car = carRepository.save(car);
@@ -185,8 +195,57 @@ public class CarService {
         return switch (currentStatus) {  // Switch statement to handle transitions based on the current status.
             case NOT_VERIFIED, VERIFIED -> newStatus == ECarStatus.STOPPED;  // Can transition to STOPPED.
             case STOPPED -> newStatus == ECarStatus.NOT_VERIFIED;  // Can transition to NOT_VERIFIED.
-            default -> false;  // Any other transitions are invalid.
         };
+    }
+
+    /**
+     * This method to check the car currently booked or not
+     * @param carId the id of the car
+     * @return true if the car is booked by account ID, false otherwise
+     */
+    private boolean isCarCurrentlyBooked(String carId) {
+        // 2 status is not booked
+        List<EBookingStatus> excludedStatuses = Arrays.asList(EBookingStatus.CANCELLED, EBookingStatus.PENDING_DEPOSIT);
+        return bookingRepository.hasActiveBooking(carId,excludedStatuses);
+    }
+    /**
+     * Cancels all pending deposit bookings for a car that has been stopped.
+     * Updates the status of affected bookings, notifies customers via email,
+     * and removes cached pending deposit bookings.
+     *
+     * @param carId The ID of the car that has been stopped.
+     * @throws AppException If an error occurs while sending cancellation emails.
+     */
+    private void cancelPendingDepositsForStoppedCar(String carId) {
+        // Fetch only pending deposit bookings for this specific car
+        List<Booking> pendingDeposits = bookingRepository.findByCarIdAndStatus(carId, EBookingStatus.PENDING_DEPOSIT);
+
+        // If no pending deposits exist, log and return
+        if (pendingDeposits.isEmpty()) {
+            log.info("No pending deposit bookings found for car ID: {}", carId);
+            return;
+        }
+
+        // Process each pending deposit booking
+        for (Booking booking : pendingDeposits) {
+            // Update booking status to cancelled
+            booking.setStatus(EBookingStatus.CANCELLED);
+            bookingRepository.save(booking); //  Persist changes
+
+            // Prepare cancellation reason message
+            String reason = "Your booking " + booking.getBookingNumber() + " was automatically canceled because the car owner has stopped rent the car. Please choose another car.";
+
+            // Send cancellation email to the customer
+            emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
+                    booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                    reason );
+
+            // Remove the cached pending deposit booking from Redis
+            redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
+
+            // Log the cancellation
+            log.info("Booking {} has been cancelled due to car {} being stopped.", booking.getBookingNumber(), carId);
+        }
     }
 
     /**
@@ -239,29 +298,28 @@ public class CarService {
      * @param request The request object containing the uploaded files.
      * @param accountId The ID of the account uploading the files.
      * @param car The car entity to which the file URIs will be assigned.
-     * @return The updated car entity with assigned file URIs.
      * @throws AppException If file upload fails.
      */
-    private Car processUploadFiles(Object request, String accountId, Car car) throws AppException {
+    private void processUploadFiles(Object request, String accountId, Car car) throws AppException {
 
         // Generate base URIs for storing documents and images in S3
         String baseDocumentsUri = String.format("car/%s/%s/documents/", accountId, car.getId());
         String baseImagesUri = String.format("car/%s/%s/images/", accountId, car.getId());
 
         // Initialize file storage keys for car images
-        String s3KeyImageFront = "";
-        String s3KeyImageBack = "";
-        String s3KeyImageLeft = "";
-        String s3KeyImageRight = "";
+        String s3KeyImageFront;
+        String s3KeyImageBack;
+        String s3KeyImageLeft;
+        String s3KeyImageRight;
 
         // Initialize document and image file variables
-        MultipartFile registrationPaper = null;
-        MultipartFile certificateOfInspection = null;
-        MultipartFile insurance = null;
-        MultipartFile imageFront = null;
-        MultipartFile imageBack = null;
-        MultipartFile imageLeft = null;
-        MultipartFile imageRight = null;
+        MultipartFile registrationPaper;
+        MultipartFile certificateOfInspection;
+        MultipartFile insurance;
+        MultipartFile imageFront;
+        MultipartFile imageBack;
+        MultipartFile imageLeft;
+        MultipartFile imageRight ;
 
         // If the request is an AddCarRequest, handle document and image uploads
         if (request instanceof AddCarRequest) {
@@ -328,7 +386,6 @@ public class CarService {
             }
         }
 
-        return car; // Return the updated car entity with assigned file URIs
     }
 
     /**
@@ -348,7 +405,8 @@ public class CarService {
         // Get list of cars
         // Map cars to CarThumbnailResponse using fromCar method
         Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
-        Page<CarThumbnailResponse> responses = cars.map(car -> {
+
+        return cars.map(car -> {
             CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
             response.setAddress(car.getWard() + ", " + car.getCityProvince());
 
@@ -361,8 +419,6 @@ public class CarService {
             response.setNoOfRides(noOfRides);
             return response;
         });
-
-        return responses;
     }
 
     /**
@@ -455,7 +511,12 @@ public class CarService {
 
         List<Booking> bookings = bookingRepository.findActiveBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
         log.info("Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
-
+        //check car if status is different with VERIFIED, the car is not available
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+        if(car.getStatus() != ECarStatus.VERIFIED) {
+            return false;
+        }
         // If there isn't any booking -> Available
         if (bookings.isEmpty()) {
             return true;
@@ -479,7 +540,8 @@ public class CarService {
                 EBookingStatus.CONFIRMED,
                 EBookingStatus.IN_PROGRESS,
                 EBookingStatus.PENDING_PAYMENT,
-                EBookingStatus.COMPLETED
+                EBookingStatus.COMPLETED,
+                EBookingStatus.WAITING_CONFIRMED
         );
 
         return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);

@@ -11,7 +11,7 @@ import lombok.Getter;
 @Getter
 public enum EBookingStatus {
     PENDING_DEPOSIT, //booked but hasn't paid deposit yet
-    WAITING_CONFIRM,
+    WAITING_CONFIRMED,
     CONFIRMED, //paid deposit
     CANCELLED, //cancelled booking
     IN_PROGRESS, //customer picked up car

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository interface for performing CRUD operations on Booking entities.
@@ -35,10 +36,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("accountId") String accountId,
             @Param("statuses") List<EBookingStatus> statuses
     );
+    @Query("SELECT COUNT(b) > 0 FROM Booking b " +
+            "WHERE b.car.id = :carId " +
+            "AND b.dropOffTime > CURRENT_TIMESTAMP " +
+            "AND b.status NOT IN :excludedStatuses")
+    boolean hasActiveBooking(@Param("carId") String carId,
+                             @Param("excludedStatuses") List<EBookingStatus> excludedStatuses);
 
     @Query("""
     SELECT b
-    FROM Booking b 
+    FROM Booking b
     WHERE b.car.id = :carId
     AND (
         (:startRange BETWEEN b.pickUpTime AND b.dropOffTime)
@@ -52,30 +59,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("endRange") LocalDateTime endRange
     );
 
-    @Query("""
-    SELECT COUNT(b) 
-    FROM Booking b 
-    WHERE b.car.id = :carId 
-    AND b.status <> :cancelledStatus 
-    AND (
-        :startRange BETWEEN b.pickUpTime AND b.dropOffTime 
-        OR :endRange BETWEEN b.pickUpTime AND b.dropOffTime
-        OR (b.pickUpTime <= :startRange AND b.dropOffTime >= :endRange)
-    )
-""")
-    long countActiveBookingsInTimeRange(@Param("carId") String carId,
-                                        @Param("startRange") LocalDateTime startRange,
-                                        @Param("endRange") LocalDateTime endRange,
-                                        @Param("cancelledStatus") EBookingStatus cancelledStatus);
-
-
-
-    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' " +
-            "AND b.paymentType = 'WALLET' " +
-            "AND b.createdAt <= :expiredTime " +
-            "ORDER BY b.createdAt")
-    List<Booking> findExpiredBookings(@Param("expiredTime") LocalDateTime expiredTime);
-
     @Query("SELECT b FROM Booking b WHERE b.car.id = :carId AND b.status = :status " +
             "AND ((b.pickUpTime BETWEEN :pickUpTime AND :dropOffTime) OR " +
             "(b.dropOffTime BETWEEN :pickUpTime AND :dropOffTime) OR " +
@@ -88,8 +71,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("dropOffTime") LocalDateTime dropOffTime
     );
 
-    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_DEPOSIT' AND b.createdAt > :threshold")
-    List<Booking> findPendingDepositBookings(@Param("threshold") LocalDateTime threshold);
+    @Query("SELECT b FROM Booking b WHERE b.car.id = :carId AND b.status = :status")
+    List<Booking> findByCarIdAndStatus(@Param("carId") String carId, @Param("status") EBookingStatus status);
 
 
     @Query("""
@@ -99,7 +82,74 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 """)
     Page<Booking> findByAccountId(@Param("accountId") String accountId, Pageable pageable);
 
+    @Query("""
+    SELECT b FROM Booking b
+    JOIN FETCH b.car c
+    WHERE b.account.id = :accountId
+    AND (:status = 'ALL' OR b.status = :status)
+""")
+    Page<Booking> findByAccountIdAndStatus(@Param("accountId") String accountId,
+                                           @Param("status") EBookingStatus status,
+                                           Pageable pageable);
+
+    @Query("""
+    SELECT COUNT(b) FROM Booking b
+    WHERE b.car.account.id = :ownerId
+    AND (:statuses IS NULL OR b.status IN :statuses)
+""")
+    int countOngoingBookingsByCar(
+            @Param("ownerId") String ownerId,
+            @Param("statuses") List<EBookingStatus> statuses
+    );
+
+    @Query("""
+    SELECT COUNT(b) FROM Booking b
+    WHERE b.car.account.id = :ownerId
+    AND b.status = :status
+""")
+    int countBookingsByOwnerAndStatus(@Param("ownerId") String ownerId,
+                                      @Param("status") EBookingStatus status);
+
+
+    @Query("""
+    SELECT b FROM Booking b
+    JOIN b.car c
+    WHERE c.account.id = :ownerId
+    AND b.status <> :excludedStatus
+""")
+    Page<Booking> findBookingsByCarOwnerId(
+            @Param("ownerId") String ownerId,
+            @Param("excludedStatus") EBookingStatus excludedStatus,
+            Pageable pageable
+    );
+
+    @Query("""
+    SELECT b FROM Booking b
+    JOIN b.car c
+    WHERE c.account.id = :ownerId
+    AND (:status IS NULL OR b.status = :status)
+    AND b.status <> :excludedStatus
+""")
+    Page<Booking> findBookingsByCarOwnerIdAndStatus(
+            @Param("ownerId") String ownerId,
+            @Param("status") EBookingStatus status,
+            @Param("excludedStatus") EBookingStatus excludedStatus,
+            Pageable pageable
+    );
 
     Booking findBookingByBookingNumber(String bookingNumber);
 
+
+    @Query("""
+    SELECT b FROM Booking b
+    JOIN b.car c
+    WHERE b.bookingNumber = :bookingNumber
+    AND c.account.id = :ownerId
+""")
+    Booking findBookingByBookingNumberAndOwnerId(
+            @Param("bookingNumber") String bookingNumber,
+            @Param("ownerId") String ownerId
+    );
+
+    Optional<Booking> findByBookingNumber(String bookingNumber);
 }

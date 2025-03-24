@@ -80,7 +80,7 @@ public class VNPayService implements PaymentService{
             case PAY_DEPOSIT:
                 orderInfo =  String.format("Pay deposit transaction %s", request.getTxnRef())      ;
                 break;
-            case RECEIVE_PAYMENT:
+            case RECEIVE_DEPOSIT:
                 orderInfo =  String.format("Thanh toan transaction %s", request.getTxnRef())      ;
                 break;
             case REFUND_DEPOSIT:
