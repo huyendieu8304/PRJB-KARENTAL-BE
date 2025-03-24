@@ -1,9 +1,8 @@
-package com.mp.karental.dto.request;
+package com.mp.karental.dto.request.user;
 
 import com.mp.karental.validation.RequiredField;
 import com.mp.karental.validation.UniqueEmail;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 

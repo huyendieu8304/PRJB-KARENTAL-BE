@@ -33,6 +33,7 @@ public class UniqueEmailValidator implements ConstraintValidator<UniqueEmail, St
 
     private final AccountRepository accountRepository;
 
+
     /**
      * Validates that the provided email is unique.
      *

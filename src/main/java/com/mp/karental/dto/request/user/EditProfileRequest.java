@@ -1,4 +1,4 @@
-package com.mp.karental.dto.request;
+package com.mp.karental.dto.request.user;
 
 import com.mp.karental.validation.*;
 import jakarta.validation.constraints.*;
@@ -26,8 +26,10 @@ public class EditProfileRequest {
     @Pattern(regexp = "^[\\p{L}\\s-]+$", message = "INVALID_NAME")
     String fullName;
 
-    @Past(message = "DATE_OF_BIRTH_MUST_BE_IN_THE_PAST")
+    @RequiredField(fieldName = "Date of birth")
+    @ValidAge(min = 18, message = "INVALID_DATE_OF_BIRTH")
     LocalDate dob;
+
 
     @NotBlank(message = "REQUIRED_FIELD")
     @RequiredField(fieldName = "Phone number")

@@ -1,4 +1,4 @@
-package com.mp.karental.dto.response;
+package com.mp.karental.dto.response.user;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;

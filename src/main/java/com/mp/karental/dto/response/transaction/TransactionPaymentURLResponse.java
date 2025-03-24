@@ -1,4 +1,4 @@
-package com.mp.karental.dto.response;
+package com.mp.karental.dto.response.transaction;
 
 import com.mp.karental.payment.dto.response.InitPaymentResponse;
 import lombok.*;

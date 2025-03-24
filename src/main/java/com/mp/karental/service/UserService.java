@@ -1,11 +1,11 @@
 package com.mp.karental.service;
 
 import com.mp.karental.constant.ERole;
-import com.mp.karental.dto.request.AccountRegisterRequest;
-import com.mp.karental.dto.request.EditPasswordRequest;
-import com.mp.karental.dto.request.EditProfileRequest;
-import com.mp.karental.dto.response.EditProfileResponse;
-import com.mp.karental.dto.response.UserResponse;
+import com.mp.karental.dto.request.user.AccountRegisterRequest;
+import com.mp.karental.dto.request.user.EditPasswordRequest;
+import com.mp.karental.dto.request.user.EditProfileRequest;
+import com.mp.karental.dto.response.user.EditProfileResponse;
+import com.mp.karental.dto.response.user.UserResponse;
 import com.mp.karental.entity.Account;
 import com.mp.karental.entity.Role;
 import com.mp.karental.entity.UserProfile;
@@ -22,11 +22,10 @@ import com.mp.karental.util.RedisUtil;
 import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.annotation.Value;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +50,7 @@ public class UserService {
     @Value("${front-end.domain-name}")
     @NonFinal
     private String frontEndDomainName;
+
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
     RoleRepository roleRepository;
@@ -125,11 +125,7 @@ public class UserService {
         String confirmUrl = frontEndDomainName + "/user/verify-email?t=" + verifyEmailToken;
         log.info("Verify email url: {}", confirmUrl);
         //sending email
-        try {
-            emailService.sendRegisterEmail(account.getEmail(), confirmUrl);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_VERIFY_EMAIL_TO_USER_FAIL);
-        }
+        emailService.sendRegisterEmail(account.getEmail(), confirmUrl);
     }
 
     public void verifyEmail(String verifyEmailToken){

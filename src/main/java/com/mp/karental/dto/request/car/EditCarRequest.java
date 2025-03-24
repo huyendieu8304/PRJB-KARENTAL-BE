@@ -1,5 +1,6 @@
-package com.mp.karental.dto.request;
+package com.mp.karental.dto.request.car;
 
+import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.validation.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
@@ -30,10 +31,10 @@ public class EditCarRequest {
     float fuelConsumption;
     @Min(value = 0, message = "INVALID_VALUE_MIN")
     @RequiredField(fieldName = "Car's base price")
-    int basePrice;
+    long basePrice;
     @Min(value = 0, message = "INVALID_VALUE_MIN")
     @RequiredField(fieldName = "Deposit value")
-    int deposit;
+    long deposit;
 
     @RequiredField(fieldName = "Address")
     @ValidAddress(message = "INVALID_ADDRESS")
@@ -46,23 +47,18 @@ public class EditCarRequest {
 
     String termOfUse;
 
-    @ValidStatusEdit(message = "INVALID_STATUS_EDIT")
-    String status;
+    ECarStatus status;
 
     //  MultipartFile**
-    @RequiredField(fieldName = "Car's front side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
     MultipartFile carImageFront;
 
-    @RequiredField(fieldName = "Car's back side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
     MultipartFile carImageBack;
 
-    @RequiredField(fieldName = "Car's left side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
     MultipartFile carImageLeft;
 
-    @RequiredField(fieldName = "Car's right side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
     MultipartFile carImageRight;
 }

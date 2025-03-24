@@ -1,4 +1,4 @@
-package com.mp.karental.dto.response;
+package com.mp.karental.dto.response.car;
 
 
 import lombok.*;
@@ -31,8 +31,8 @@ public class CarResponse {
     int productionYear;
     float mileage;
     float fuelConsumption;
-    int basePrice;
-    int deposit;
+    long basePrice;
+    long deposit;
     String address;
     String description;
     String additionalFunction;

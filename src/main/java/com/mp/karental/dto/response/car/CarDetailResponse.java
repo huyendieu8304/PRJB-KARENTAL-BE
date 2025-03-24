@@ -1,4 +1,4 @@
-package com.mp.karental.dto.response;
+package com.mp.karental.dto.response.car;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -25,8 +25,8 @@ public class CarDetailResponse {
     int productionYear;
     float mileage;
     float fuelConsumption;
-    int basePrice;
-    int deposit;
+    long basePrice;
+    long deposit;
     String address;
     String description;
     String additionalFunction;
@@ -49,5 +49,7 @@ public class CarDetailResponse {
     String carImageRight;
 
     long noOfRides;
+    boolean isBooked;
+    boolean isAvailable;
 
 }

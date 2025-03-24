@@ -1,13 +1,10 @@
 package com.mp.karental.mapper;
 
-import com.mp.karental.dto.request.AccountRegisterRequest;
-import com.mp.karental.dto.request.AddCarRequest;
-import com.mp.karental.dto.request.EditProfileRequest;
-import com.mp.karental.dto.response.CarResponse;
-import com.mp.karental.dto.response.EditProfileResponse;
-import com.mp.karental.dto.response.UserResponse;
+import com.mp.karental.dto.request.user.AccountRegisterRequest;
+import com.mp.karental.dto.request.user.EditProfileRequest;
+import com.mp.karental.dto.response.user.EditProfileResponse;
+import com.mp.karental.dto.response.user.UserResponse;
 import com.mp.karental.entity.Account;
-import com.mp.karental.entity.Car;
 import com.mp.karental.entity.UserProfile;
 import org.mapstruct.*;
 
@@ -25,10 +22,6 @@ public interface UserMapper {
      *
      * @param request the account registration request containing user input data
      * @return an {@code Account} entity constructed from the provided request data
-     *
-     * @author DieuTTH4
-     *
-     * @version 1.0
      */
     Account toAccount(AccountRegisterRequest request);
 
@@ -37,10 +30,6 @@ public interface UserMapper {
      *
      * @param request the account registration request containing user input data
      * @return a {@code UserProfile} entity constructed from the provided request data
-     *
-     * @author DieuTTH4
-     *
-     * @version 1.0
      */
     UserProfile toUserProfile(AccountRegisterRequest request);
 
@@ -59,10 +48,6 @@ public interface UserMapper {
      * @param account the account entity containing authentication and role information
      * @param userProfile the user profile entity containing personal details
      * @return a {@code UserResponse} DTO combining information from both the account and profile
-     *
-     * @author DieuTTH4
-     *
-     * @version 1.0
      */
     @Mapping(target = "fullName", source = "userProfile.fullName")
     @Mapping(target = "email", source = "account.email")

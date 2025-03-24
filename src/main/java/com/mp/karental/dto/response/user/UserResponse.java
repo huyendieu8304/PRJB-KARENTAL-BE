@@ -1,4 +1,4 @@
-package com.mp.karental.dto.response;
+package com.mp.karental.dto.response.user;
 
 import com.mp.karental.entity.Role;
 import lombok.*;
@@ -24,6 +24,6 @@ public class UserResponse {
     String fullName;
     String email;
     String phoneNumber;
-    Role role;
+    String role;
 
 }

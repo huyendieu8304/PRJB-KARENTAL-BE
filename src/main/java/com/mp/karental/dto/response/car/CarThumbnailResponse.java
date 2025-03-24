@@ -1,4 +1,4 @@
-package com.mp.karental.dto.response;
+package com.mp.karental.dto.response.car;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -23,12 +23,12 @@ public class CarThumbnailResponse {
     private int productionYear;
     private String status;
     private float mileage;
-    private int basePrice;
+    private long basePrice;
     private String address;
     private String carImageFront;
     private String carImageRight;
     private String carImageLeft;
     private String carImageBack;
-
+    long noOfRides;
 
 }

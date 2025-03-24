@@ -53,6 +53,9 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
             return;
         }
 
+        log.error(authException.getMessage(), authException);
+        log.error(authException.getStackTrace().toString());
+
         ErrorCode errorCode = ErrorCode.UNAUTHENTICATED; //by default, it would be ErrorCode.UNAUTHENTICATED
 
         //Iterate through cause to found AppException

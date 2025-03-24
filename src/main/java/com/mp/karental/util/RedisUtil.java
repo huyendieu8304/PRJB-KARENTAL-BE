@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -20,12 +21,13 @@ public class RedisUtil {
     RedisTemplate<String, String> redisTemplate;
 
     private static final String BOOKING_SEQUENCE_KEY = "booking-sequence";
+    private static final String PENDING_DEPOSIT_BOOKING_KEY = "booking:";
     private static final String VERIFY_EMAIL_TOKEN_PREFIX = "verify-email-tk:";
     private static final String FORGOT_PASSWORD_TOKEN_PREFIX = "forgot-password-tk:";
 
     public String generateBookingNumber() {
         Long sequence = redisTemplate.opsForValue().increment(BOOKING_SEQUENCE_KEY, 1);
-        if(sequence!= null && sequence == 1){ //the first booking is placed
+        if(Objects.equals(sequence, 1L)){ //the first booking is placed
             //reset sequence every day
             redisTemplate.expireAt(BOOKING_SEQUENCE_KEY, new Date(System.currentTimeMillis() + 86400000));
             //TODO: FOR TEST ONLY
@@ -76,6 +78,17 @@ public class RedisUtil {
 
    public void deleteForgotPasswordToken(String token){
         String key = FORGOT_PASSWORD_TOKEN_PREFIX + token;
+        redisTemplate.delete(key);
+   }
+
+   public void cachePendingDepositBooking(String bookingNumber){
+        String key = PENDING_DEPOSIT_BOOKING_KEY + bookingNumber;
+       redisTemplate.opsForValue().set(key, key, 1, TimeUnit.HOURS);
+//       redisTemplate.opsForValue().set(key, key, 20, TimeUnit.SECONDS);
+   }
+
+   public void removeCachePendingDepositBooking(String bookingNumber){
+        String key = PENDING_DEPOSIT_BOOKING_KEY + bookingNumber;
         redisTemplate.delete(key);
    }
 

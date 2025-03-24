@@ -1,6 +1,7 @@
 package com.mp.karental.service;
 
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -12,9 +13,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,7 +28,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ExcelService {
+    /**
+     * -- GETTER --
+     *  Retrieves the entire brand-model mapping.
+     *
+     */
     // Map to store car brands and their corresponding models
+    @Getter
     Map<String, Set<String>> brandModelMap = new HashMap<>();
 
     // Sets to store unique wards, districts, and cities
@@ -42,93 +48,67 @@ public class ExcelService {
 
     // Constructor to initialize and load Excel data
     public ExcelService() {
-        try {
-            loadExcelDataCar("xls/Car Rentals_Value list_Brand and model.xlsx");
-            loadExcelDataAddress("xls/Address value list.xls");
+        loadExcelData("xls/Car Rentals_Value list_Brand and model.xlsx","car");
+        loadExcelData("xls/Address value list.xls","address");
+    }
+    /**
+     * Loads Excel data based on the specified data type ("car" or "address").
+     *
+     * @param filePath Path to the Excel file.
+     * @param dataType Type of data ("car" for car brands/models, "address" for location data).
+     */
+    public void loadExcelData(String filePath, String dataType) {
+        try (InputStream inputStream = new ClassPathResource(filePath).getInputStream();
+             //HSS for xls and XSS for xlsx
+             Workbook workbook = filePath.endsWith(".xls") ? new HSSFWorkbook(inputStream) : new XSSFWorkbook(inputStream)) {
+
+            Sheet sheet = workbook.getSheetAt(0); // Get the first sheet in the Excel file
+
+            // Iterate through each row in the sheet
+            for (Row row : sheet) {
+                if (row.getRowNum() == 0) continue; // Skip the header row
+
+                // Process car brand and model data
+                if ("car".equalsIgnoreCase(dataType)) {
+                    String brand = getCellValue(row.getCell(1)).trim(); // Get brand name from column 1
+                    String model = getCellValue(row.getCell(2)).trim(); // Get model name from column 2
+
+                    // Only add to the map if both brand and model are not empty
+                    if (!brand.isEmpty() && !model.isEmpty()) {
+                        brandModelMap.computeIfAbsent(brand, k -> new HashSet<>()).add(model);
+                    }
+                }
+                // Process address data (wards, districts, cities)
+                else if ("address".equalsIgnoreCase(dataType)) {
+                    String ward = getCellValue(row.getCell(1)).trim(); // Get ward name from column 1
+                    String district = getCellValue(row.getCell(3)).trim(); // Get district name from column 3
+                    String cityProvince = getCellValue(row.getCell(5)).trim(); // Get city/province name from column 5
+
+                    // Add extracted values to respective sets
+                    wards.add(ward);
+                    districts.add(district);
+                    cities.add(cityProvince);
+
+                    // Build a mapping of districts grouped by city/province
+                    if (!district.isEmpty() && !cityProvince.isEmpty()) {
+                        districtsByCity.computeIfAbsent(cityProvince, k -> new HashSet<>()).add(district);
+                    }
+
+                    // Build a mapping of wards grouped by district
+                    if (!ward.isEmpty() && !district.isEmpty()) {
+                        wardsByDistrict.computeIfAbsent(district, k -> new HashSet<>()).add(ward);
+                    }
+                }
+                // Throw an exception if an invalid data type is provided
+                else {
+                    throw new IllegalArgumentException("Invalid dataType: " + dataType);
+                }
+            }
         } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    /**
-     * Loads car brand and model data from an Excel file and populates the brandModelMap.
-     * @param filePath Path to the Excel file.
-     * @throws IOException If there is an issue reading the file.
-     */
-    public void loadExcelDataCar(String filePath) throws IOException {
-        // Retrieve the file from the classpath (resource folder in the application)
-        File file = new ClassPathResource(filePath).getFile();
-
-        // Read the Excel file using FileInputStream and XSSFWorkbook for .xlsx format
-        try (FileInputStream fis = new FileInputStream(file);
-             Workbook workbook = new XSSFWorkbook(fis)) {
-
-            Sheet sheet = workbook.getSheetAt(0); // Get the first sheet in the Excel file
-
-            // Iterate through each row in the sheet
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Skip the header row
-
-                // Retrieve values from the "Brand" (column 1) and "Model" (column 2)
-                String brand = getCellValue(row.getCell(1)).trim();
-                String model = getCellValue(row.getCell(2)).trim();
-
-                // Only add to the map if both brand and model are not empty
-                if (!brand.isEmpty() && !model.isEmpty()) {
-                    // If the brand is not in the map, add it with a HashSet to store unique models
-                    brandModelMap.computeIfAbsent(brand, k -> new HashSet<>()).add(model);
-                }
-            }
+            throw new RuntimeException("Failed to load Excel data from file: " + filePath, e);
         }
     }
 
-    /**
-     * Loads address data (wards, districts, cities) from an Excel file and populates related collections.
-     * @param filePath Path to the Excel file.
-     * @throws IOException If there is an issue reading the file.
-     */
-    public void loadExcelDataAddress(String filePath) throws IOException {
-        // Retrieve the file from the classpath
-        File file = new ClassPathResource(filePath).getFile();
-
-        // Read the Excel file using FileInputStream
-        try (FileInputStream fis = new FileInputStream(file)) {
-            Workbook workbook;
-
-            // Check the Excel file format (.xls or .xlsx) and create the appropriate Workbook
-            if (file.getName().endsWith(".xls")) {
-                workbook = new HSSFWorkbook(fis); // Read old Excel format (.xls)
-            } else {
-                workbook = new XSSFWorkbook(fis); // Read new Excel format (.xlsx)
-            }
-
-            Sheet sheet = workbook.getSheetAt(0); // Get the first sheet in the Excel file
-
-            // Iterate through each row in the sheet
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Skip the header row
-
-                // Extract data from the corresponding columns
-                String ward = getCellValue(row.getCell(1)).trim(); // Ward column
-                String district = getCellValue(row.getCell(3)).trim(); // District column
-                String cityProvince = getCellValue(row.getCell(5)).trim(); // City/Province column
-
-                // Add extracted values to the respective sets
-                wards.add(ward);
-                districts.add(district);
-                cities.add(cityProvince);
-
-                // Build a map grouping districts by city/province
-                if (!district.isEmpty() && !cityProvince.isEmpty()) {
-                    districtsByCity.computeIfAbsent(cityProvince, k -> new HashSet<>()).add(district);
-                }
-
-                // Build a map grouping wards by district
-                if (!ward.isEmpty() && !district.isEmpty()) {
-                    wardsByDistrict.computeIfAbsent(district, k -> new HashSet<>()).add(ward);
-                }
-            }
-        }
-    }
 
     /**
      * Retrieves the value of a given Excel cell as a String.
@@ -194,14 +174,6 @@ public class ExcelService {
      */
     public Set<String> getDistrictsByCity(String city) {
         return districtsByCity.getOrDefault(city, Collections.emptySet());
-    }
-
-    /**
-     * Retrieves the entire brand-model mapping.
-     * @return A map where the key is the brand name and the value is a set of model names.
-     */
-    public Map<String, Set<String>> getBrandModelMap() {
-        return brandModelMap;
     }
 
     /**

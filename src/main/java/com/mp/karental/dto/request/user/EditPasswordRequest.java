@@ -1,4 +1,4 @@
-package com.mp.karental.dto.request;
+package com.mp.karental.dto.request.user;
 
 import com.mp.karental.validation.RequiredField;
 import jakarta.validation.constraints.Pattern;

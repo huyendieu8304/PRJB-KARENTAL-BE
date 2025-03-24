@@ -1,7 +1,7 @@
 package com.mp.karental.validation.validator;
 
 import com.mp.karental.validation.ValidBrandModel;
-import com.mp.karental.dto.request.AddCarRequest;
+import com.mp.karental.dto.request.car.AddCarRequest;
 import com.mp.karental.service.ExcelService;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
