@@ -19,6 +19,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -203,5 +204,146 @@ class VNPayServiceTest {
         
         assertEquals(expectedReturnUrl, actualReturnUrl,
             "Return URL in payment URL should match expected format");
+    }
+
+    @Test
+    void verifyIpn_WithNullValues_ShouldSkipNullFields() {
+        // Arrange
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_Amount", "100000000");
+        params.put("vnp_TxnRef", null);
+        params.put(VNPayParams.SECURE_HASH, TEST_SECURE_HASH);
+        
+        // Use ArgumentMatcher to match the string containing "vnp_Amount=100000000"
+        when(cryptoService.sign(argThat(str -> 
+            str.contains("vnp_Amount=100000000"))))
+            .thenReturn(TEST_SECURE_HASH);
+
+        // Act
+        boolean result = vnPayService.verifyIpn(params);
+
+        // Assert
+        assertTrue(result);
+        verify(cryptoService).sign(argThat(str -> 
+            str.contains("vnp_Amount=100000000")));
+    }
+
+    @Test
+    void verifyIpn_WithEmptyParams_ShouldHandleGracefully() {
+        // Arrange
+        Map<String, String> params = new HashMap<>();
+        params.put(VNPayParams.SECURE_HASH, TEST_SECURE_HASH);
+        
+        // Use lenient stubbing for empty string
+        lenient().when(cryptoService.sign("")).thenReturn(TEST_SECURE_HASH);
+
+        // Act
+        boolean result = vnPayService.verifyIpn(params);
+
+        // Assert
+        assertTrue(result);
+        verify(cryptoService).sign("");
+    }
+
+    @Test
+    void initPayment_ShouldIncludeCorrectTimeoutValue() {
+        // Arrange
+        InitPaymentRequest request = InitPaymentRequest.builder()
+                .amount(1000000L)
+                .txnRef("TXN123")
+                .requestId("REQ123")
+                .ipAddress("127.0.0.1")
+                .build();
+
+        when(cryptoService.sign(any())).thenReturn(TEST_SECURE_HASH);
+
+        // Act
+        InitPaymentResponse response = vnPayService.initPayment(request);
+
+        // Assert
+        String url = response.getVnpUrl();
+        String createDate = extractUrlParameter(url, "vnp_CreateDate");
+        String expireDate = extractUrlParameter(url, "vnp_ExpireDate");
+        
+        assertNotNull(createDate, "Create date should not be null");
+        assertNotNull(expireDate, "Expire date should not be null");
+        assertEquals(14, createDate.length(), "Create date should be in yyyyMMddHHmmss format");
+        assertEquals(14, expireDate.length(), "Expire date should be in yyyyMMddHHmmss format");
+    }
+
+    @Test
+    void initPayment_ShouldIncludeAllRequiredParameters() {
+        // Arrange
+        InitPaymentRequest request = InitPaymentRequest.builder()
+                .amount(1000000L)
+                .txnRef("TXN123")
+                .requestId("REQ123")
+                .ipAddress("127.0.0.1")
+                .build();
+
+        when(cryptoService.sign(any())).thenReturn(TEST_SECURE_HASH);
+
+        // Act
+        InitPaymentResponse response = vnPayService.initPayment(request);
+
+        // Assert
+        String url = response.getVnpUrl();
+        
+        // Verify all required parameters are present
+        assertNotNull(extractUrlParameter(url, "vnp_Version"));
+        assertNotNull(extractUrlParameter(url, "vnp_Command"));
+        assertNotNull(extractUrlParameter(url, "vnp_TmnCode"));
+        assertNotNull(extractUrlParameter(url, "vnp_Amount"));
+        assertNotNull(extractUrlParameter(url, "vnp_CurrCode"));
+        assertNotNull(extractUrlParameter(url, "vnp_TxnRef"));
+        assertNotNull(extractUrlParameter(url, "vnp_OrderInfo"));
+        assertNotNull(extractUrlParameter(url, "vnp_OrderType"));
+        assertNotNull(extractUrlParameter(url, "vnp_Locale"));
+        assertNotNull(extractUrlParameter(url, "vnp_ReturnUrl"));
+        assertNotNull(extractUrlParameter(url, "vnp_IpAddr"));
+        assertNotNull(extractUrlParameter(url, "vnp_CreateDate"));
+        assertNotNull(extractUrlParameter(url, "vnp_ExpireDate"));
+        assertNotNull(extractUrlParameter(url, "vnp_SecureHash"));
+    }
+
+    @Test
+    void initPayment_ShouldUseCorrectLocaleAndCurrency() {
+        // Arrange
+        InitPaymentRequest request = InitPaymentRequest.builder()
+                .amount(1000000L)
+                .txnRef("TXN123")
+                .requestId("REQ123")
+                .ipAddress("127.0.0.1")
+                .build();
+
+        when(cryptoService.sign(any())).thenReturn(TEST_SECURE_HASH);
+
+        // Act
+        InitPaymentResponse response = vnPayService.initPayment(request);
+
+        // Assert
+        String url = response.getVnpUrl();
+        assertEquals("en", extractUrlParameter(url, "vnp_Locale"));
+        assertEquals("VND", extractUrlParameter(url, "vnp_CurrCode"));
+    }
+
+    @Test
+    void initPayment_ShouldUseCorrectOrderType() {
+        // Arrange
+        InitPaymentRequest request = InitPaymentRequest.builder()
+                .amount(1000000L)
+                .txnRef("TXN123")
+                .requestId("REQ123")
+                .ipAddress("127.0.0.1")
+                .build();
+
+        when(cryptoService.sign(any())).thenReturn(TEST_SECURE_HASH);
+
+        // Act
+        InitPaymentResponse response = vnPayService.initPayment(request);
+
+        // Assert
+        String url = response.getVnpUrl();
+        assertEquals(VNPayService.ORDER_TYPE, extractUrlParameter(url, "vnp_OrderType"));
     }
 } 

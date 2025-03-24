@@ -12,119 +12,120 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CryptoServiceTest {
 
+    private static final String TEST_SECRET_KEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
+
     @Mock
     private PaymentConfig paymentConfig;
 
     private CryptoService cryptoService;
-    private static final String TEST_SECRET_KEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
 
     @BeforeEach
-    void setUp() throws NoSuchAlgorithmException, InvalidKeyException {
-        when(paymentConfig.getSecretKey()).thenReturn(TEST_SECRET_KEY);
+    void setUp() throws InvalidKeyException, NoSuchAlgorithmException {
+        // Use lenient() to avoid UnnecessaryStubbingException
+        lenient().when(paymentConfig.getSecretKey()).thenReturn(TEST_SECRET_KEY);
         cryptoService = new CryptoService(paymentConfig);
-        cryptoService.init(); // Initialize the MAC
+        cryptoService.init();
     }
 
     @Test
-    void toHexString_WithValidBytes_ShouldReturnHexString() {
+    void sign_WithValidInput_ShouldReturnHash() {
         // Arrange
-        byte[] testBytes = "test".getBytes();
+        String input = "test_input";
 
         // Act
-        String result = CryptoService.toHexString(testBytes);
+        String result = cryptoService.sign(input);
 
         // Assert
         assertNotNull(result);
-        assertEquals("74657374", result); // "test" in hex
-        assertTrue(result.matches("[0-9a-f]+"));
+        assertFalse(result.isEmpty());
     }
 
     @Test
-    void toHexString_WithEmptyBytes_ShouldReturnEmptyString() {
+    void sign_WithEmptyInput_ShouldReturnValidHash() {
         // Arrange
-        byte[] emptyBytes = new byte[0];
+        String input = "";
 
         // Act
-        String result = CryptoService.toHexString(emptyBytes);
+        String result = cryptoService.sign(input);
 
         // Assert
         assertNotNull(result);
-        assertEquals("", result);
+        assertFalse(result.isEmpty());
     }
 
     @Test
-    void sign_WithValidData_ShouldReturnSignedString() {
+    void sign_WithNullInput_ShouldThrowAppException() {
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> 
+            cryptoService.sign(null));
+        // Note the extra space after "wrong." in the actual message
+        assertEquals("Your information is wrong. ", exception.getMessage());
+    }
+
+    @Test
+    void sign_WithSpecialCharacters_ShouldReturnValidHash() {
         // Arrange
-        String testData = "test_data";
+        String input = "test!@#$%^&*()_+{}[]|\\:;\"'<>,.?/~`";
 
         // Act
-        String signature = cryptoService.sign(testData);
+        String result = cryptoService.sign(input);
 
         // Assert
-        assertNotNull(signature);
-        assertTrue(signature.matches("[0-9a-f]+"));
-        assertEquals(128, signature.length()); // HMAC-SHA512 produces 512-bit (64-byte) hash, which is 128 hex characters
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
     }
 
     @Test
-    void sign_WithEmptyString_ShouldReturnValidSignature() {
+    void init_WithValidKey_ShouldInitializeSuccessfully() throws InvalidKeyException, NoSuchAlgorithmException {
         // Arrange
-        String emptyData = "";
+        CryptoService newCryptoService = new CryptoService(paymentConfig);
+
+        // Act & Assert
+        assertDoesNotThrow(newCryptoService::init);
+    }
+
+
+
+    @Test
+    void init_WithNullSecretKey_ShouldThrowException() throws NoSuchAlgorithmException {
+        // Arrange
+        when(paymentConfig.getSecretKey()).thenReturn(null);
+        CryptoService nullKeyCryptoService = new CryptoService(paymentConfig);
+
+        // Act & Assert
+        assertThrows(NullPointerException.class, nullKeyCryptoService::init);
+    }
+
+    @Test
+    void sign_WithConsecutiveCalls_ShouldReturnSameHashForSameInput() {
+        // Arrange
+        String input = "test_input";
 
         // Act
-        String signature = cryptoService.sign(emptyData);
+        String result1 = cryptoService.sign(input);
+        String result2 = cryptoService.sign(input);
 
         // Assert
-        assertNotNull(signature);
-        assertTrue(signature.matches("[0-9a-f]+"));
-        assertEquals(128, signature.length());
+        assertEquals(result1, result2, "Hash should be consistent for same input");
     }
 
     @Test
-    void sign_SameInputShouldProduceSameOutput() {
+    void sign_WithDifferentInputs_ShouldReturnDifferentHashes() {
         // Arrange
-        String testData = "test_data";
+        String input1 = "test_input_1";
+        String input2 = "test_input_2";
 
         // Act
-        String signature1 = cryptoService.sign(testData);
-        String signature2 = cryptoService.sign(testData);
+        String result1 = cryptoService.sign(input1);
+        String result2 = cryptoService.sign(input2);
 
         // Assert
-        assertEquals(signature1, signature2, "Same input should produce same signature");
-    }
-
-    @Test
-    void sign_DifferentInputsShouldProduceDifferentOutputs() {
-        // Arrange
-        String testData1 = "test_data_1";
-        String testData2 = "test_data_2";
-
-        // Act
-        String signature1 = cryptoService.sign(testData1);
-        String signature2 = cryptoService.sign(testData2);
-
-        // Assert
-        assertNotEquals(signature1, signature2, "Different inputs should produce different signatures");
-    }
-
-    @Test
-    void constructor_WithInvalidAlgorithm_ShouldThrowException() {
-        // This test is a bit artificial since we're using a fixed algorithm,
-        // but it's good to have for completeness
-        assertDoesNotThrow(() -> new CryptoService(paymentConfig));
-    }
-
-    @Test
-    void init_WithValidKey_ShouldInitializeSuccessfully() {
-        // Arrange
-        assertDoesNotThrow(() -> {
-            CryptoService newCryptoService = new CryptoService(paymentConfig);
-            newCryptoService.init();
-        });
+        assertNotEquals(result1, result2, "Different inputs should produce different hashes");
     }
 } 

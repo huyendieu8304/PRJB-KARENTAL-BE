@@ -120,9 +120,7 @@ public class VNPayService implements PaymentService{
     private String buildReturnUrl(String txnRef) {
         return String.format(returnUrlFormat, txnRef);
     }
-    private String buildPaymentDetail(InitPaymentRequest request) {
-        return String.format("Thanh toan transaction %s", request.getTxnRef());
-    }
+
     @SneakyThrows
     private String buildInitPaymentUrl(Map<String, String> params) {
         var hashPayload = new StringBuilder();
