@@ -40,7 +40,7 @@ public class EditBookingRequest {
     @ValidAge(min = 18)
     LocalDate driverDob;
 
-    @Email(message = "Invalid email format")
+    @Email(message = "INVALID_EMAIL")
     String driverEmail;
 
     @ValidDocument(message = "INVALID_DOCUMENT_FILE")
