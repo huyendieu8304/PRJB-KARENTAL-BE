@@ -4,6 +4,7 @@ server:
     context-path: /karental
 
 application:
+  email: ${APPLICATION_EMAIL}
   security:
     jwt:
       access-token-secret-key: ${JWT_ACCESS_SECRET_KEY}
@@ -57,7 +58,7 @@ spring:
     default-encoding: UTF-8
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      host: localhost
       port: 6379
       password:
       timeout: 6000
@@ -74,7 +75,7 @@ cloud:
       buckets:
         name: karental
 front-end:
-  domain-name: ${FE_DOMAIN_NAME:http://localhost:3000}
+  domain-name: http://localhost:3000
 
 payment:
   vnpay:

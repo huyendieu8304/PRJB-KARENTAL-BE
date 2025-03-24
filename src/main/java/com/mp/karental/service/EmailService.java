@@ -6,6 +6,7 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -31,8 +32,9 @@ public class EmailService {
 
     JavaMailSender mailSender;
 
-//    @Value("${spring.mail.username}")
-    private static String fromEmail = "childrencaresystemse1874@gmail.com"; // replace with your email
+    @Value("${application.email}")
+    @NonFinal
+    private String fromEmail;
 
     //REGISTER
     /**

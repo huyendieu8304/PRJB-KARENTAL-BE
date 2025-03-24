@@ -5,8 +5,6 @@ services:
     image: redis:7.4.2
     container_name: redis7
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
       - ../redis.conf:/usr/local/etc/redis/redis.conf  # Mount file config
@@ -33,6 +31,11 @@ services:
       JWT_ACCESS_SECRET_KEY: ${JWT_ACCESS_SECRET_KEY}
       JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY}
       SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST}
+      TMN_CODE: ${TMN_CODE}
+      VNPAY_SECRET_KEY: ${VNPAY_SECRET_KEY}
+      APPLICATION_EMAIL: ${APPLICATION_EMAIL}
+      FE_DOMAIN_NAME: ${FE_DOMAIN_NAME}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL}
     depends_on:
       - redis
     networks:

@@ -4,6 +4,9 @@ spring:
     driverClassName: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
   mail:
     host: smtp.gmail.com
     port: 587
@@ -15,3 +18,8 @@ spring:
           auth: true
           starttls:
             enable: true
+front-end:
+  domain-name: ${FE_DOMAIN_NAME}
+payment:
+  vnpay:
+    return-url: ${VNPAY_RETURN_URL}
