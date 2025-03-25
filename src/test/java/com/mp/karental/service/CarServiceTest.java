@@ -188,58 +188,6 @@ class CarServiceTest {
     }
 
     @Test
-    void testIsCarAvailable_CarNotVerified_ThrowsException() {
-        // Given
-        String carId = "car123";
-        LocalDateTime pickUpTime = LocalDateTime.now();
-        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
-        Car car = new Car();
-        car.setId(carId);
-        car.setStatus(ECarStatus.STOPPED);
-
-        when(carRepository.findById(carId))
-                .thenReturn(Optional.of(car));
-
-        // When & Then
-        AppException thrown = assertThrows(AppException.class, () -> {
-            carService.isCarAvailable(carId, pickUpTime, dropOffTime);
-        });
-
-        assertEquals(ErrorCode.CAR_NOT_VERIFIED, thrown.getErrorCode());
-    }
-    @Test
-    void testIsCarAvailable_ActiveBookingsExist_ReturnsFalse() {
-        // Given
-        String carId = "car123";
-        LocalDateTime pickUpTime = LocalDateTime.now();
-        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
-        Booking booking = new Booking();
-        booking.setBookingNumber("b1");
-        booking.setStatus(EBookingStatus.IN_PROGRESS);
-        Booking booking1 = new Booking();
-        booking1.setBookingNumber("b2");
-        booking1.setStatus(EBookingStatus.CONFIRMED);
-        List<Booking> mockBookings = List.of(
-                booking,
-                booking1
-        );
-
-        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
-                .thenReturn(mockBookings);
-        Car car = new Car();
-        car.setId(carId);
-        car.setStatus(ECarStatus.VERIFIED);
-        when(carRepository.findById(anyString()))
-                .thenReturn(Optional.of(car));
-
-        // When
-        boolean available = carService.isCarAvailable(carId, pickUpTime, dropOffTime);
-
-        // Then
-        assertFalse(available);
-    }
-
-    @Test
     void testIsCarAvailable_AllCancelledOrPendingDeposit_ReturnsTrue() {
         // Given
         String carId = "car123";

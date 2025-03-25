@@ -3,6 +3,7 @@ package com.mp.karental.dto.response.feedback;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -14,9 +15,10 @@ import java.time.LocalDateTime;
  * @author AnhHP9
  * @version 1.0
  */
-@Data
-@Builder
 @AllArgsConstructor
+@Builder
+@Data
+@NoArgsConstructor
 public class FeedbackDetailResponse {
 
     String bookingId;

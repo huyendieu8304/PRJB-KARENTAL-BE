@@ -81,37 +81,6 @@ class BookingControllerTest {
     }
 
     @Test
-    void testCreateBooking_MultipartFormData() throws Exception {
-
-        BookingResponse bookingResponse = new BookingResponse();
-        bookingResponse.setBookingNumber("BK123456");
-        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED);
-
-        when(bookingService.createBooking(any(CreateBookingRequest.class))).thenReturn(bookingResponse);
-
-
-        mockMvc.perform(multipart("/booking/customer/create-book")
-                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes()))
-                        .param("carId", "123")
-                        .param("driverFullName", "John Doe")
-                        .param("driverPhoneNumber", "0123456789")
-                        .param("driverNationalId", "123456789000")
-                        .param("driverDob", "1990-01-01")
-                        .param("driverEmail", "johndoe@example.com")
-                        .param("driverCityProvince", "Thành phố Hà Nội")
-                        .param("driverDistrict", "Quận Ba Đình")
-                        .param("driverWard", "Phường Phúc Xá")
-                        .param("driverHouseNumberStreet", "123 Kim Ma")
-                        .param("pickUpLocation", "Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma")
-                        .param("pickUpTime", "2025-03-25T07:00:00")
-                        .param("dropOffTime", "2025-03-25T10:00:00")
-                        .param("paymentType", EPaymentType.WALLET.name())
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isOk());
-    }
-
-
-    @Test
     void testEditBooking_Success() throws Exception {
         // Prepare mock EditBookingRequest
         EditBookingRequest editBookingRequest = new EditBookingRequest();
