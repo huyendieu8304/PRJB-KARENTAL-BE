@@ -176,4 +176,11 @@ public class BookingController {
                 .build();
     }
 
+    @PutMapping("/car-owner/confirm-early-return/{bookingNumber}")
+    public ApiResponse<BookingResponse> confirmEarlyReturnCar(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.confirmEarlyReturnCar(bookingNumber))
+                .build();
+    }
+
 }

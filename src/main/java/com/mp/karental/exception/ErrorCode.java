@@ -83,7 +83,7 @@ public enum ErrorCode {
     BOOKING_EXPIRED(3021, "This booking has expired and cannot be confirmed.", HttpStatus.BAD_REQUEST),
 
     EMAIL_NOT_USED_BY_ANY_ACCOUNT(3022, "The email address you’ve entered does not exist. Please try again.", HttpStatus.BAD_REQUEST),
-    BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
+    BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed,waiting_confirmed_return_car or cancelled.", HttpStatus.FORBIDDEN),
     BOOKING_CANNOT_PICKUP(3024,"The booking cannot be pickup when status not confirmed, from 30 minutes before the pickup time and before the drop-off time.", HttpStatus.FORBIDDEN),
     SEND_CANCELLED_BOOKING_EMAIL_FAIL(3025,"There was error during sending cancelLed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_WAITING_CONFIRM_EMAIL_FAIL(3026,"There was error during sending waiting confirm email to user.", HttpStatus.SERVICE_UNAVAILABLE),
@@ -91,9 +91,9 @@ public enum ErrorCode {
     SEND_CONFIRMED_BOOKING_EMAIL_FAIL(3028,"There was error during sending confirmed booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_COMPLETED_BOOKING_EMAIL_FAIL(3029,"There was error during sending completed booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL(3030,"There was error during sending pending payment booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
-    CAR_CANNOT_RETURN(3036,"The car cannot be return when booking status is not in-progress and cannot return before the drop off time", HttpStatus.FORBIDDEN),
+    CAR_CANNOT_RETURN(3036,"The car cannot be return when booking status is not in-progress", HttpStatus.FORBIDDEN),
     CAR_CANNOT_STOPPED(3037,"The car cannot be stopped when has on-time booking", HttpStatus.FORBIDDEN),
-
+    SEND_WAITING_CONFIRMED_RETURN_CAR_BOOKING_EMAIL_FAIL(3038,"There was error during sending waiting confirmed return car to user", HttpStatus.SERVICE_UNAVAILABLE),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),

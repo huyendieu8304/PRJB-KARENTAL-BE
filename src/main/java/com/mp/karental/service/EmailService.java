@@ -281,6 +281,27 @@ public class EmailService {
         }
     }
 
+    public void sendWaitingConfirmReturnCarEmail(String to, String bookingNumber) {
+        String subject = "Early Car Return Request - Booking No: " + bookingNumber;
+        String body = String.format(
+                "Dear Car Owner,\n\n"
+                        + "The customer has requested to return the car earlier than scheduled for Booking No: %s.\n"
+                        + "Please review the car condition and confirm the return.\n\n"
+                        + "If you approve, you will still receive 92%% of the original total payment, and you and the customer "
+                        + "can settle any additional adjustments between yourselves.\n"
+                        + "If you reject, the customer will keep the car until the scheduled drop-off time.\n\n"
+                        + "Please respond as soon as possible.\n\n"
+                        + "Thank you!\n"
+                        + "Best regards,\n"
+                        + "Your Car Rental Team",
+                bookingNumber);
+        try {
+            sendEmail(to, subject, body);
+        } catch (MessagingException e) {
+            throw new AppException(ErrorCode.SEND_WAITING_CONFIRMED_RETURN_CAR_BOOKING_EMAIL_FAIL);
+        }
+    }
+
 
     /**
      * Helper method to send an email with the given parameters.

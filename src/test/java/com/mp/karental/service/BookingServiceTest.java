@@ -194,32 +194,6 @@ class BookingServiceTest {
         assertEquals(EBookingStatus.PENDING_PAYMENT, booking.getStatus());
         verify(emailService, times(1)).sendPendingPaymentEmail(booking.getAccount().getEmail(), bookingNumber, -remaining);
     }
-
-
-    @Test
-    void testReturnCar_InvalidDropOff_ShouldThrowException() {
-        
-        Account account = new Account();
-        account.setId(accountId);
-        Car car = new Car();
-        car.setId("123");
-        car.setAccount(account);
-
-        Booking existingBooking = new Booking();
-        existingBooking.setBookingNumber("BK123");
-        existingBooking.setAccount(account);
-        existingBooking.setCar(car);
-        existingBooking.setStatus(EBookingStatus.IN_PROGRESS);
-        existingBooking.setDropOffTime(LocalDateTime.now().plusDays(1));
-
-        when(bookingRepository.findBookingByBookingNumber("BK123")).thenReturn(existingBooking);
-        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(account);
-
-        // Act & Assert
-        AppException exception = assertThrows(AppException.class, () -> bookingService.returnCar("BK123"));
-        assertEquals(ErrorCode.CAR_CANNOT_RETURN, exception.getErrorCode());
-    }
-
     @ParameterizedTest
     @CsvSource({
             "PENDING_DEPOSIT", //booked but hasn't paid deposit yet
