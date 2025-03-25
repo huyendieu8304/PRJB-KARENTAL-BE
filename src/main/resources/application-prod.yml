@@ -19,7 +19,9 @@ spring:
           starttls:
             enable: true
 front-end:
-  domain-name: ${FE_DOMAIN_NAME}
+  domain-url: ${FE_DOMAIN_NAME}
 payment:
   vnpay:
     return-url: ${VNPAY_RETURN_URL}
+application:
+  domain: ${DOMAIN_NAME}

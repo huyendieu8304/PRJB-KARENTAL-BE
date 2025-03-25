@@ -36,6 +36,7 @@ services:
       APPLICATION_EMAIL: ${APPLICATION_EMAIL}
       FE_DOMAIN_NAME: ${FE_DOMAIN_NAME}
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL}
+      DOMAIN_NAME: ${DOMAIN_NAME}
     depends_on:
       - redis
     networks:

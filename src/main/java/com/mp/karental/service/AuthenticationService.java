@@ -49,11 +49,9 @@ import org.springframework.web.util.WebUtils;
 @Slf4j
 public class AuthenticationService {
 
-    //TODO: sửa lại khi deploy
-//    private static final String DOMAIN_NAME = "http://localhost:8080/karental";
-    @Value("${front-end.domain-name}")
+    @Value("${front-end.domain-url}")
     @NonFinal
-    private String frontEndDomainName;
+    private String frontEndDomainUrl;
 
     @Value("${application.security.jwt.access-token-cookie-name}")
     @NonFinal
@@ -78,9 +76,9 @@ public class AuthenticationService {
     @NonFinal
     private long refreshTokenExpiration;
     //=======================================
-    //TODO: check this again
+    @Value("${application.domain}")
     @NonFinal
-    private String logoutUrl = "/karental/auth/logout";
+    private String domain;
 
 
     AuthenticationManager authenticationManager;
@@ -231,6 +229,7 @@ public class AuthenticationService {
         return ResponseCookie
                 .from(cookieName, cookieValue)
                 .path(path)
+                .domain(domain)
                 .maxAge(maxAgeMiliseconds / 1000) // seconds ~ 1days
                 .httpOnly(true)
                 .secure(true)
@@ -270,7 +269,7 @@ public class AuthenticationService {
 
         //send email
         String changePasswordToken = redisUtil.generateForgotPasswordToken(account.getId());
-        String forgotPasswordUrl = frontEndDomainName + "/auth/forgot-password/verify?t=" + changePasswordToken;
+        String forgotPasswordUrl = frontEndDomainUrl + "/auth/forgot-password/verify?t=" + changePasswordToken;
         log.info("Verify email url: {}", forgotPasswordUrl);
         try {
             emailService.sendForgotPasswordEmail(email, forgotPasswordUrl);

@@ -44,6 +44,13 @@ import java.util.*;
 @Profile("!testfe")
 public class SecurityConfig{
 
+    @Value("${front-end.domain-url}")
+    @NonFinal
+    private String frontendDomainUrl;
+
+    @Value("${application.domain}")
+    @NonFinal
+    private String applicationDomain;
 
     /**
      * Define public endpoints, the endpoint that could be accessed without needing to provide any authentication header

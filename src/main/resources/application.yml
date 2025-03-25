@@ -4,6 +4,7 @@ server:
     context-path: /karental
 
 application:
+  domain: localhost
   email: ${APPLICATION_EMAIL}
   security:
     jwt:
@@ -75,7 +76,7 @@ cloud:
       buckets:
         name: karental
 front-end:
-  domain-name: http://localhost:3000
+  domain-url: http://localhost:3000
 
 payment:
   vnpay:

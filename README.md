@@ -70,8 +70,14 @@ If you see `aof_enabled:1` and `rdb_changes_since_last_save` then every thing is
 
 ## Build application
 `mvn clean package`
-Or you want to build the project for production environment
-`mvn clean package -DskipTests -Pprod`
-
+Or you want to build the project but skip testing
+`mvn clean package -DskipTests`
 
 ## Build docker image
+In root directory of the source code run `docker build -t huyendieu8304/karental:<tagname> .`
+then push the image to docker hub `docker push huyendieu8304/karental:<tagname>`
+## Run docker compose
+To run docker compose you have to :
+1. cd deploy
+2. add content file ".env" contain environment variables of the application
+3. run `docker compose down` then `docker compose up -d`

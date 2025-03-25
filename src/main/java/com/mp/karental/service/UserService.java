@@ -47,7 +47,7 @@ import java.util.Optional;
 public class UserService {
 
     //TODO: sửa lại khi deploy
-    @Value("${front-end.domain-name}")
+    @Value("${front-end.domain-url}")
     @NonFinal
     private String frontEndDomainName;
 

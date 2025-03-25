@@ -81,6 +81,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         Cookie cookie = WebUtils.getCookie(request, accessTokenCookieName);
         if (cookie != null) {
             jwt = cookie.getValue();
+            log.info("cookie found: {}", jwt);
         } else {
             log.info("Missing access token cookie");
             throw new AppException(ErrorCode.UNAUTHENTICATED);
