@@ -100,7 +100,7 @@ class AuthenticationServiceTest {
         ReflectionTestUtils.setField(authenticationService, "accessTokenExpiration", 3600L);
         ReflectionTestUtils.setField(authenticationService, "refreshTokenExpiration", 7200L);
         ReflectionTestUtils.setField(authenticationService, "refreshTokenUrl", "/karental/auth/refresh-token");
-        ReflectionTestUtils.setField(authenticationService, "logoutUrl", "/karental/auth/logout");
+
     }
 
 
@@ -157,7 +157,7 @@ class AuthenticationServiceTest {
         List<String> setCookieHeaders = responseEntity.getHeaders().get(HttpHeaders.SET_COOKIE);
         assertNotNull(setCookieHeaders);
         //  sendApiResponseResponseEntity has 4 header SET_COOKIE
-        assertEquals(3, setCookieHeaders.size());
+        assertEquals(2, setCookieHeaders.size());
         // check cookies' name contains "accessToken" and "refreshToken"
         boolean hasAccessTokenCookie = setCookieHeaders.stream().anyMatch(cookie -> cookie.contains("accessToken"));
         boolean hasRefreshTokenCookie = setCookieHeaders.stream().anyMatch(cookie -> cookie.contains("refreshToken"));

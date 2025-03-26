@@ -62,7 +62,7 @@ public class TransactionController {
                 .build();
     }
     @PostMapping("/withdraw")
-    public ApiResponse<TransactionPaymentURLResponse> withdraw(@RequestBody @Valid TransactionRequest transactionRequest, HttpServletRequest httpServletRequest) {
+    public ApiResponse<TransactionResponse> withdraw(@RequestBody @Valid TransactionRequest transactionRequest, HttpServletRequest httpServletRequest) {
         var ipAddress = RequestUtil.getIpAddress(httpServletRequest);
         transactionRequest.setIpAddress(ipAddress);
         log.info("Transaction Request: {}", transactionRequest);

@@ -126,7 +126,7 @@ public class AuthenticationService {
                 .data(new LoginResponse(role, fullName))
                 .build();
         log.info("Account with email={} logged in successfully", request.getEmail());
-        return  sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);
+        return sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);
     }
 
     private <T> ResponseEntity<ApiResponse<T>> sendApiResponseResponseEntity(String accessToken, String refreshToken, ApiResponse<T> apiResponse) {
@@ -271,18 +271,14 @@ public class AuthenticationService {
         String changePasswordToken = redisUtil.generateForgotPasswordToken(account.getId());
         String forgotPasswordUrl = frontEndBaseUrl + "/auth/forgot-password/verify?t=" + changePasswordToken;
         log.info("Verify email url: {}", forgotPasswordUrl);
-        try {
-            emailService.sendForgotPasswordEmail(email, forgotPasswordUrl);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL);
-        }
+        emailService.sendForgotPasswordEmail(email, forgotPasswordUrl);
     }
 
     /**
      * verify that the user really forgot the password
      *
      * @param forgotPasswordToken
-     * @return  change password token if the token is valid
+     * @return change password token if the token is valid
      */
     public String verifyForgotPassword(String forgotPasswordToken) {
         log.info("user with token={} request to change password.", forgotPasswordToken);
