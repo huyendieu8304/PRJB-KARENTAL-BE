@@ -13,13 +13,11 @@ import com.mp.karental.entity.*;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.BookingMapper;
-import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
 import com.mp.karental.repository.WalletRepository;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.util.RedisUtil;
-import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,7 +26,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -56,7 +53,6 @@ public class BookingService {
     BookingMapper bookingMapper;
     RedisUtil redisUtil;
     WalletRepository walletRepository;
-    AccountRepository accountRepository;
     FileService fileService;
     CarService carService;
     TransactionService transactionService;
@@ -71,10 +67,9 @@ public class BookingService {
      *
      * @param createBookingRequest The booking request details.
      * @return BookingResponse containing booking details.
-     * @throws AppException       if there are validation issues or car availability problems.
-     * @throws MessagingException if booking successful or expired booking
+     * @throws AppException if there are validation issues or car availability problems.
      */
-    public BookingResponse createBooking(CreateBookingRequest createBookingRequest) throws AppException, MessagingException {
+    public BookingResponse createBooking(CreateBookingRequest createBookingRequest) throws AppException {
         // Get the current logged-in user's account ID and account details
         Account customerAccount = prepareBooking();
         String customerAccountId = customerAccount.getId();
@@ -82,7 +77,6 @@ public class BookingService {
         // Retrieve car details from the database, throw an exception if not found.
         Car car = carRepository.findById(createBookingRequest.getCarId())
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
-
         // Retrieve the customer's wallet, throw an exception if not found.
         Wallet walletCustomer = walletRepository.findById(customerAccountId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
@@ -97,7 +91,7 @@ public class BookingService {
         booking.setBookingNumber(redisUtil.generateBookingNumber());
 
         // Upload the driver's license to S3 storage.
-        String drivingLicenseKey ;
+        String drivingLicenseKey;
 
         // Upload the driver's license to S3 storage if the driver information is provided.
         if (createBookingRequest.isDriver()) {
@@ -137,62 +131,84 @@ public class BookingService {
         if (booking.getPaymentType().equals(EPaymentType.WALLET)
                 && walletCustomer.getBalance() >= car.getDeposit()) {
             // If the customer using wallet and has enough balance in the wallet
-            payBookingDepositUsingWallet(booking, customerAccount);
+            payBookingDepositUsingWallet(booking);
         } else {
             // the customer not using wallet to pay deposit or the wallet's balance is not enough
             booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
             redisUtil.cachePendingDepositBooking(booking.getBookingNumber());
         }
-
         // Save the booking to the database.
         bookingRepository.save(booking);
 
         return buildBookingResponse(booking, drivingLicenseKey);
     }
 
+    /**
+     * Uploads the driver's driving license for a booking.
+     * Validates if a driving license file is provided and then uploads it to a designated location.
+     *
+     * @param drivingLicense The uploaded file containing the driver's driving license.
+     * @param booking        The booking associated with the driver's license.
+     * @return The generated file key for the uploaded license.
+     * @throws AppException If the driving license is not provided.
+     */
     private String uploadDriverDrivingLicense(MultipartFile drivingLicense, Booking booking) {
         if (drivingLicense == null || drivingLicense.isEmpty()) {
-            // renter did not provide driver's driving lícense
+            // Renter did not provide a driver's driving license
             throw new AppException(ErrorCode.INVALID_DRIVER_INFO); // Validate driver's license is provided.
         }
-        //upload driver's driving lícense
+        // Generate a unique key for storing the driver's license file
         String drivingLicenseKey = "booking/" + booking.getBookingNumber() + "/driver-driving-license"
                 + fileService.getFileExtension(drivingLicense);
+
+        // Upload the driver's license file
         fileService.uploadFile(drivingLicense, drivingLicenseKey);
+
         return drivingLicenseKey;
     }
 
-    private void payBookingDepositUsingWallet(Booking booking,Account customerAccount) throws MessagingException {
-        transactionService.payDeposit(customerAccount.getId(), booking.getDeposit(), booking);
+    /**
+     * Processes the booking deposit payment using the customer's wallet.
+     * Updates the booking status and cancels overlapping pending deposit bookings.
+     * Notifies affected customers via email and removes cached pending deposit bookings.
+     *
+     * @param booking The booking for which the deposit payment is being processed.
+     * @throws AppException If email notifications fail to send.
+     */
+    private void payBookingDepositUsingWallet(Booking booking) {
+        // Process the deposit payment and update the booking status
+        transactionService.payDeposit(booking);
         booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
 
-        //cancelled pending_deposit bookings, which has pickUpTime and dropOffTime overlap this booking
+        // Cancel overlapping pending deposit bookings for the same car
         List<Booking> overlappingBookings = bookingRepository.findByCarIdAndStatusAndTimeOverlap(
                 booking.getCar().getId(),
                 EBookingStatus.PENDING_DEPOSIT,
                 booking.getPickUpTime(),
                 booking.getDropOffTime()
         );
+
         for (Booking pendingBooking : overlappingBookings) {
             pendingBooking.setStatus(EBookingStatus.CANCELLED);
             bookingRepository.saveAndFlush(pendingBooking);
 
+            // Notify the customer about the cancellation
             String reason = "Your booking has been canceled because another customer has successfully placed a deposit for this car within the same rental period.";
-            emailService.sendSystemCanceledBookingEmail(pendingBooking.getAccount().getEmail(),
+            emailService.sendCancelledBookingEmail(pendingBooking.getAccount().getEmail(),
                     pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
                     reason);
+
         }
 
-        //remove the cache pending deposit
+        // Remove the cached pending deposit booking from Redis
         redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
 
-        Car car = booking.getCar();
-        //sending email to customer and carOwner
-        emailService.sendBookingWaitingForConfirmationEmail(customerAccount.getEmail(),
-                car.getBrand() + " " + car.getModel(), booking.getBookingNumber());
-        emailService.sendCarOwnerConfirmationRequestEmail(car.getAccount().getEmail(),
-                car.getBrand() + " " + car.getModel(), car.getLicensePlate());
-
+        // Send confirmation emails to both the customer and car owner
+        emailService.sendWaitingConfirmedEmail(booking.getAccount().getEmail(),
+                booking.getCar().getAccount().getEmail(),
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                booking.getBookingNumber()
+        );
     }
 
 
@@ -202,25 +218,11 @@ public class BookingService {
      * @param editBookingRequest The request details for updating the booking, including new car information and driver’s license.
      * @param bookingNumber      The booking number of the booking to be edited.
      * @return BookingResponse containing the updated booking details.
-     * @throws AppException       If there are any validation issues, the booking is not found, or the user doesn’t have access to edit the booking.
-     * @throws MessagingException if have any expired booking
+     * @throws AppException If there are any validation issues, the booking is not found, or the user doesn’t have access to edit the booking.
      */
-    public BookingResponse editBooking(EditBookingRequest editBookingRequest, String bookingNumber) throws AppException, MessagingException {
-        // Get the current logged-in user's account ID and account details
-        Account accountCustomer = prepareBooking();
-        String accountId = accountCustomer.getId();
+    public BookingResponse editBooking(EditBookingRequest editBookingRequest, String bookingNumber) throws AppException {
+        Booking booking = validateAndGetBooking(bookingNumber);
 
-        // Retrieve booking details from the database
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if (booking == null) {
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-        }
-        if (!booking.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
-        }
-        if (!editBookingRequest.getCarId().equals(booking.getCar().getId())) {
-            throw new AppException(ErrorCode.CAR_NOT_AVAILABLE);
-        }
         //do not allow edit
         if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
                 booking.getStatus() == EBookingStatus.PENDING_PAYMENT ||
@@ -233,7 +235,7 @@ public class BookingService {
         bookingMapper.editBooking(booking, editBookingRequest);
 
         //Update the booking uri
-        String drivingLicenseKey ;
+        String drivingLicenseKey;
 
         // If the driver is provided, validate and possibly upload a new driver's license.
         if (editBookingRequest.isDriver()) {
@@ -254,8 +256,8 @@ public class BookingService {
             drivingLicenseKey = uploadDriverDrivingLicense(drivingLicense, booking);
         } else {
             // Use existing license URI from account profile if the driver is same as the renter
-            drivingLicenseKey = accountCustomer.getProfile().getDrivingLicenseUri();
-            setAccountProfileToDriver(booking, accountCustomer); // Set the profile information to the booking.
+            drivingLicenseKey = booking.getAccount().getProfile().getDrivingLicenseUri();
+            setAccountProfileToDriver(booking, booking.getAccount()); // Set the profile information to the booking.
         }
 
         booking.setDriverDrivingLicenseUri(drivingLicenseKey);
@@ -266,7 +268,6 @@ public class BookingService {
         return buildBookingResponse(booking, drivingLicenseKey);
     }
 
-
     /**
      * Prepares the booking by ensuring the account is valid and the profile is complete.
      * This method updates the status of existing bookings and retrieves the current logged-in user's account details.
@@ -276,10 +277,6 @@ public class BookingService {
      * @throws AppException If the account's profile is incomplete or any error occurs during the booking preparation.
      */
     private Account prepareBooking() throws AppException {
-        //TODO: remove this
-//        // Update expired bookings before creating or editing a booking
-//        updateStatusBookings();
-
         // Get the current logged-in user's account ID and account details
         Account accountCustomer = SecurityUtil.getCurrentAccount();
 
@@ -290,7 +287,6 @@ public class BookingService {
 
         return accountCustomer;
     }
-
 
     /**
      * Builds a BookingResponse object containing the booking details and additional calculated data.
@@ -328,7 +324,6 @@ public class BookingService {
         return str == null || str.trim().isEmpty();
     }
 
-
     /**
      * Sets the driver's profile information to the booking object.
      * This method takes an Account object, which contains the user's profile details, and updates the corresponding
@@ -351,7 +346,6 @@ public class BookingService {
         booking.setDriverHouseNumberStreet(account.getProfile().getHouseNumberStreet());
     }
 
-
     /**
      * Validates driver information to ensure all required fields are provided.
      *
@@ -369,18 +363,6 @@ public class BookingService {
     private void validateDriverInfo(String fullName, String phoneNumber, String nationalId,
                                     LocalDate dob, String email, String city, String district,
                                     String ward, String houseNumberStreet) {
-//        if (isNullOrEmpty(fullName) ||
-//                isNullOrEmpty(phoneNumber) ||
-//                isNullOrEmpty(nationalId) ||
-//                dob == null ||
-//                isNullOrEmpty(email) ||
-//                isNullOrEmpty(city) ||
-//                isNullOrEmpty(district) ||
-//                isNullOrEmpty(ward) ||
-//                isNullOrEmpty(houseNumberStreet)) {
-//            throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
-//        }
-
         boolean isValid = Stream.of(
                 fullName,
                 phoneNumber,
@@ -394,6 +376,15 @@ public class BookingService {
         if (dob == null || !isValid) {
             throw new AppException(ErrorCode.INVALID_DRIVER_INFO);
         }
+        // Validate phone number format (must be exactly 10 digits)
+        if (!phoneNumber.matches("^0\\d{9}$")) {
+            throw new AppException(ErrorCode.INVALID_PHONE_NUMBER);
+        }
+
+        // Validate national ID format (must be between 9 and 12 digits)
+        if (!nationalId.matches("\\d{9,12}")) {
+            throw new AppException(ErrorCode.INVALID_NATIONAL_ID);
+        }
     }
 
     /**
@@ -403,15 +394,6 @@ public class BookingService {
      * @return the profile with full information
      */
     private boolean isProfileComplete(UserProfile profile) {
-//        return profile.getNationalId() != null && !profile.getNationalId().isEmpty()
-//                && profile.getDrivingLicenseUri() != null && !profile.getDrivingLicenseUri().isEmpty()
-//                && profile.getPhoneNumber() != null && !profile.getPhoneNumber().isEmpty()
-//                && profile.getCityProvince() != null && !profile.getCityProvince().isEmpty()
-//                && profile.getDistrict() != null && !profile.getDistrict().isEmpty()
-//                && profile.getWard() != null && !profile.getWard().isEmpty()
-//                && profile.getHouseNumberStreet() != null && !profile.getHouseNumberStreet().isEmpty()
-//                && profile.getFullName() != null && !profile.getFullName().isEmpty();
-
         return Stream.of(
                 profile.getNationalId(),
                 profile.getDrivingLicenseUri(),
@@ -576,8 +558,7 @@ public class BookingService {
     private EBookingStatus parseStatus(String statusStr) {
         try {
             // Convert the input string to an EBookingStatus enum
-            EBookingStatus bookingStatus = EBookingStatus.valueOf(statusStr.toUpperCase());
-            return bookingStatus;
+            return EBookingStatus.valueOf(statusStr.toUpperCase());
 
         } catch (Exception e) {
             log.info("parsing booking status {} to enum fail", statusStr);
@@ -662,23 +643,9 @@ public class BookingService {
      * @return BookingResponse containing updated booking details.
      * @throws AppException if validation fails.
      */
-    public BookingResponse confirmBooking(String bookingNumber) throws MessagingException {
+    public BookingResponse confirmBooking(String bookingNumber) {
         log.info("Car owner {} is confirming booking {}", SecurityUtil.getCurrentAccount().getId(), bookingNumber);
-
-        // Get booking by bookingNumber
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if (booking == null) {
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-        }
-
-        // Get the current logged-in account
-        Account account = SecurityUtil.getCurrentAccount();
-
-
-        // Ensure the booking belongs to the current car owner
-        if (!booking.getCar().getAccount().getId().equals(account.getId())) {
-            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
-        }
+        Booking booking = validateAndGetBooking(bookingNumber);
 
         // Ensure the booking status is valid for confirmation
         if (booking.getStatus() == null || !EBookingStatus.WAITING_CONFIRMED.equals(booking.getStatus())) {
@@ -695,11 +662,12 @@ public class BookingService {
         // Update the booking status to CONFIRMED
         booking.setStatus(EBookingStatus.CONFIRMED);
         bookingRepository.saveAndFlush(booking);
-        emailService.sendConfirmPickUpEmail(booking.getAccount().getEmail(),
+
+        emailService.sendConfirmBookingEmail(booking.getAccount().getEmail(),
                 booking.getCar().getBrand() + " " + booking.getCar().getModel(),
                 booking.getBookingNumber());
 
-        log.info("Booking {} confirmed successfully by car owner {}", bookingNumber, account.getId());
+        log.info("Booking {} confirmed successfully by car owner {}", bookingNumber, booking.getAccount().getId());
 
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
@@ -712,39 +680,11 @@ public class BookingService {
      *
      * @param bookingNumber The unique identifier of the booking to be canceled.
      * @return A {@link BookingResponse} containing the updated booking details.
-     * @throws MessagingException If there is an issue sending the cancellation email.
-     * @throws AppException       If the booking is not found, the user is unauthorized to cancel,
-     *                            or the booking is in a non-cancellable state.
+     * @throws AppException If the booking is not found, the user is unauthorized to cancel,
+     *                      or the booking is in a non-cancellable state.
      */
-    public BookingResponse cancelBooking(String bookingNumber) throws MessagingException {
-        // Get the currently logged-in account ID
-        String accountId = SecurityUtil.getCurrentAccountId();
-        // Retrieve the account details of the logged-in user
-        Account accountCustomer = SecurityUtil.getCurrentAccount();
-
-        // Find the booking by booking number
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if (booking == null) {
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB); // Throw an error if booking is not found
-        }
-
-        // Ensure that the booking belongs to the logged-in user
-        if (!booking.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS); // Throw an error if user tries to cancel someone else's booking
-        }
-
-        // Retrieve car and car owner information from the booking
-        Car car = booking.getCar();
-        Account accountCarOwner = car.getAccount();
-
-        // Retrieve the customer's wallet, throw an error if not found
-        Wallet walletCustomer = walletRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
-
-        // Get the admin account ID (assuming the admin has roleId = 3)
-        String accountIdAdmin = accountRepository.findByRoleId(3).getId();
-        Wallet walletAdmin = walletRepository.findById(accountIdAdmin)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
+    public BookingResponse cancelBooking(String bookingNumber) {
+        Booking booking = validateAndGetBooking(bookingNumber);
 
         // Check if the booking is in a state that cannot be canceled
         if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
@@ -754,39 +694,24 @@ public class BookingService {
             throw new AppException(ErrorCode.BOOKING_CANNOT_CANCEL);
         }
 
-        // If the booking is in PENDING_DEPOSIT status, only send a cancellation email to the customer
-        if (booking.getStatus() == EBookingStatus.PENDING_DEPOSIT) {
-            emailService.sendCustomerBookingCanceledEmail(accountCustomer.getEmail(),
-                    booking.getCar().getBrand() + " " + booking.getCar().getModel());
-        }
+        EBookingStatus bookingStatus = booking.getStatus();
+        String carName = booking.getCar().getBrand() + " " + booking.getCar().getModel();
+        String customerId = SecurityUtil.getCurrentAccountId();
 
         // If the booking is in WAITING_CONFIRMED status, refund the full deposit to the customer
-        else if (booking.getStatus() == EBookingStatus.WAITING_CONFIRMED) {
-            // Refund the full deposit amount to the customer's wallet
-            walletCustomer.setBalance(booking.getDeposit() + walletCustomer.getBalance());
-            // Deduct the refunded amount from the admin's wallet
-            walletAdmin.setBalance(walletAdmin.getBalance() - booking.getDeposit());
-
-            // Send an email notification to the customer about the full refund
-            emailService.sendCustomerBookingCanceledWithFullRefundEmail(accountCustomer.getEmail(),
-                    booking.getCar().getBrand() + " " + booking.getCar().getModel());
+        if (bookingStatus == EBookingStatus.WAITING_CONFIRMED) {
+            transactionService.refundAllDeposit(booking);
         }
 
         // If the booking is in CONFIRMED status, refund 70% of the deposit and notify the car owner
-        else if (booking.getStatus() == EBookingStatus.CONFIRMED) {
-            // Refund 70% of the deposit amount to the customer's wallet
-            walletCustomer.setBalance((long) (booking.getDeposit() * 0.7) + walletCustomer.getBalance());
-            // Deduct the refunded amount from the admin's wallet
-            walletAdmin.setBalance(walletAdmin.getBalance() - (long) (booking.getDeposit() * 0.7));
-
+        if (bookingStatus == EBookingStatus.CONFIRMED) {
+            transactionService.refundPartialDeposit(booking);
             // Send an email notification to the customer about the partial refund (70%)
-            emailService.sendCustomerBookingCanceledWithPartialRefundEmail(accountCustomer.getEmail(),
-                    booking.getCar().getBrand() + " " + booking.getCar().getModel());
-
-            // Notify the car owner about the cancellation and inform them about the system's revenue share
-            emailService.sendCarOwnerBookingCanceledEmail(accountCarOwner.getEmail(),
-                    booking.getCar().getBrand() + " " + booking.getCar().getModel());
+            emailService.sendBookingCancellationEmailToCarOwner(booking.getCar().getAccount().getEmail(), bookingNumber, carName);
         }
+
+        //the booking is in PENDING_DEPOSIT status, only send a cancellation email to the customer
+        emailService.sendBookingCancellationEmailToCustomer(customerId, bookingStatus, bookingNumber, carName);
 
         // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
@@ -837,126 +762,94 @@ public class BookingService {
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
-    public BookingResponse returnCar(String bookingNumber) throws MessagingException {
-//        processPendingPayments();
-        // Get the currently logged-in account ID
-        String accountId = SecurityUtil.getCurrentAccountId();
-
-        // Find the booking by its booking number
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if (booking == null) {
-            // Throw an exception if the booking does not exist
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+    /**
+     * Handles the process of returning a car after a booking.
+     * This method validates the booking, checks the payment status,
+     * processes refunds or payments, updates the booking status, and sends email notifications.
+     *
+     * @param bookingNumber The unique identifier of the booking.
+     * @return BookingResponse containing updated booking details.
+     * @throws AppException If the booking is not found, unauthorized access is detected,
+     *                      payment processing fails, or email notifications cannot be sent.
+     */
+    public BookingResponse returnCar(String bookingNumber) {
+        // Validate and retrieve the booking
+        Booking booking = validateAndGetBooking(bookingNumber);
+        String customerEmail = SecurityUtil.getCurrentEmail();
+        String carOwnerEmail = booking.getCar().getAccount().getEmail();
+        // Ensure the booking is in progress and before drop-off time is not exceeded
+        if (booking.getStatus() != EBookingStatus.IN_PROGRESS ||
+                LocalDate.now().isBefore(booking.getDropOffTime().toLocalDate())) {
+            throw new AppException(ErrorCode.CAR_CANNOT_RETURN);
         }
 
-        // Ensure the logged-in user is the owner of the booking
-        if (!booking.getAccount().getId().equals(accountId)) {
-            // Throw an exception if the user does not have permission to confirm this booking
-            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
-        }
-        // Validate if the booking is eligible for pick-up confirmation
-        if (booking.getStatus() != EBookingStatus.IN_PROGRESS || // Must be in CONFIRMED status
-                LocalDateTime.now().isAfter(booking.getDropOffTime())) { // Cannot confirm pick-up after drop-off time
-            throw new AppException(ErrorCode.BOOKING_CANNOT_PICKUP);
-        }
-        // Retrieve the user's wallet, throw an exception if not found.
-        Wallet walletCustomer = walletRepository.findById(accountId)
+        // Retrieve the customer's wallet, throw an exception if not found
+        Wallet walletCustomer = walletRepository.findById(booking.getAccount().getId())
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
-        // Get the admin account ID (assuming the admin has roleId = 3)
-        String accountIdAdmin = accountRepository.findByRoleId(3).getId();
-        Wallet walletAdmin = walletRepository.findById(accountIdAdmin)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
-        String accountIdCarOwner = booking.getCar().getAccount().getId();
-        Wallet walletCarOwner = walletRepository.findById(accountIdCarOwner)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
-        // Return the updated booking details along with the driver's license URI (if applicable)
+
+        // Build the initial booking response
         BookingResponse response = buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+
+        // Calculate the car owner's share (92% of the total payment)
         long totalPayment = response.getTotalPrice();
-        if (booking.getDeposit() >= totalPayment) {
-            long remainingMoney = booking.getDeposit() - totalPayment;
+        long carOwnerShare = (long) (0.92 * totalPayment);
 
-            walletCustomer.setBalance(walletCustomer.getBalance() + remainingMoney);
-            walletAdmin.setBalance(walletAdmin.getBalance() - remainingMoney);
-            // Calculate the shares for car owner and admin
-            long carOwnerShare = (long) (0.92 * totalPayment);
-            long adminShare = totalPayment - carOwnerShare; // 8% of the total payment
-            // Update wallet balances
-            walletCarOwner.setBalance(walletCarOwner.getBalance() + carOwnerShare);
-            walletAdmin.setBalance(walletAdmin.getBalance() + adminShare);
-            booking.setStatus(EBookingStatus.COMPLETED);
-            emailService.sendCustomerDepositRefundEmail(booking.getAccount().getEmail(), booking.getBookingNumber(),
-                    remainingMoney);
-            emailService.sendCarOwnerCompletedPaymentEmail(booking.getCar().getAccount().getEmail(), booking.getBookingNumber(),
-                    carOwnerShare);
-        } else {
-            long paymentMoney = totalPayment - booking.getDeposit();
-            if (walletCustomer.getBalance() >= paymentMoney) {
-                walletCustomer.setBalance(walletCustomer.getBalance() - paymentMoney);
-                booking.setStatus(EBookingStatus.COMPLETED);
-                long carOwnerShare = (long) (0.92 * totalPayment);
-                long adminShare = totalPayment - carOwnerShare; // 8% of the total payment
-                // Update wallet balances
-                walletCarOwner.setBalance(walletCarOwner.getBalance() + carOwnerShare);
-                walletAdmin.setBalance(walletAdmin.getBalance() + adminShare);
-                emailService.sendCustomerWalletDeductionEmail(booking.getAccount().getEmail(), booking.getBookingNumber(),
-                        paymentMoney);
-                emailService.sendCarOwnerCompletedPaymentEmail(booking.getCar().getAccount().getEmail(), booking.getBookingNumber(),
-                        (long) (0.92 * totalPayment));
-            } else {
-                booking.setStatus(EBookingStatus.PENDING_PAYMENT);
-                emailService.sendCustomerPendingPaymentEmail(booking.getAccount().getEmail(), booking.getBookingNumber(),
-                        paymentMoney);
-            }
+
+        long remainingMoney = booking.getDeposit() - totalPayment;
+
+        if (remainingMoney < 0 && walletCustomer.getBalance() < -remainingMoney) {
+            // Mark the booking as pending payment due to insufficient balance
+            booking.setStatus(EBookingStatus.PENDING_PAYMENT);
+
+            // Notify the customer to complete the payment
+            emailService.sendPendingPaymentEmail(customerEmail, bookingNumber, -remainingMoney);
         }
-        bookingRepository.saveAndFlush(booking); // Save the updated booking
+        else {
+            // Offset the final payment transactions
+            transactionService.offsetFinalPayment(booking);
+            // Mark the booking as completed
+            booking.setStatus(EBookingStatus.COMPLETED);
+            emailService.sendPaymentEmailToCarOwner(carOwnerEmail, bookingNumber, carOwnerShare);
+            emailService.sendPaymentEmailToCustomer(
+                    booking.getAccount().getEmail(),
+                    booking.getBookingNumber(),
+                    remainingMoney,
+                    remainingMoney >= 0
+            );
+        }
+        // Save the updated booking details to the database
+        bookingRepository.saveAndFlush(booking);
 
-        // Now map to BookingResponse with updated status
+        // Return the updated booking response
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
-//    @Scheduled(fixedRate = 10000) // Runs every 10 seconds
-//    private void processPendingPayments() throws MessagingException {
-//        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
-//
-//        // Find PENDING_PAYMENT bookings that have been pending for at least 1 hour
-//        List<Booking> pendingPaymentBookings = bookingRepository.findPendingPaymentBookings(oneHourAgo);
-//
-//        for (Booking booking : pendingPaymentBookings) {
-//            Wallet walletCustomer = walletRepository.findById(booking.getAccount().getId())
-//                    .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
-//            long minutes = Duration.between(booking.getPickUpTime(), booking.getDropOffTime()).toMinutes();
-//            long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
-//            long totalPayment = booking.getBasePrice() * days;
-//            long remainingPayment = totalPayment - booking.getDeposit();
-//
-//            if (walletCustomer.getBalance() >= remainingPayment) {
-//                // Deduct the remaining payment from the customer's wallet
-//                walletCustomer.setBalance(walletCustomer.getBalance() - remainingPayment);
-//
-//                // Process payment for car owner (92%)
-//                Wallet walletCarOwner = walletRepository.findById(booking.getCar().getAccount().getId())
-//                        .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
-//                long carOwnerShare = (long) (0.92 * totalPayment);
-//                walletCarOwner.setBalance(walletCarOwner.getBalance() + carOwnerShare);
-//
-//                // Mark the booking as completed
-//                booking.setStatus(EBookingStatus.COMPLETED);
-//                booking.setUpdatedAt(LocalDateTime.now());
-//
-//                // Save wallet and booking updates
-//                walletRepository.save(walletCustomer);
-//                walletRepository.save(walletCarOwner);
-//                bookingRepository.saveAndFlush(booking);
-//
-//                // Send notification emails
-//                emailService.sendCustomerWalletDeductionEmail(booking.getAccount().getEmail(),
-//                        booking.getBookingNumber(), remainingPayment);
-//
-//                emailService.sendCarOwnerCompletedPaymentEmail(booking.getCar().getAccount().getEmail(),
-//                        booking.getBookingNumber(), carOwnerShare);
-//            }
-//        }
-//    }
+    /**
+     * Validates and retrieves a booking based on the booking number.
+     * Ensures that the booking exists and belongs to the currently authenticated user.
+     *
+     * @param bookingNumber The unique identifier of the booking.
+     * @return The validated Booking object.
+     * @throws AppException If the booking is not found or the user does not have permission to access it.
+     */
+    private Booking validateAndGetBooking(String bookingNumber) {
+        // Retrieve the currently authenticated account
+        Account account = SecurityUtil.getCurrentAccount();
+
+        // Fetch the booking from the database using the booking number
+        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+
+        // If no booking is found, throw an exception
+        if (booking == null) {
+            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+        }
+
+        // Ensure the booking belongs to the current authenticated user
+        if (!booking.getAccount().getId().equals(account.getId())) {
+            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
+        }
+        return booking;
+    }
 
 
 }

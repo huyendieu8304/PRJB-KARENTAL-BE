@@ -85,8 +85,14 @@ public enum ErrorCode {
     EMAIL_NOT_USED_BY_ANY_ACCOUNT(3022, "The email address you’ve entered does not exist. Please try again.", HttpStatus.BAD_REQUEST),
     BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
     BOOKING_CANNOT_PICKUP(3024,"The booking cannot be pickup when status not confirmed, from 30 minutes before the pickup time and before the drop-off time.", HttpStatus.FORBIDDEN),
-    SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL(3025,"There was error during sending system cancel booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
-
+    SEND_CANCELLED_BOOKING_EMAIL_FAIL(3025,"There was error during sending cancelLed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_WAITING_CONFIRM_EMAIL_FAIL(3026,"There was error during sending waiting confirm email to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_WALLET_UPDATE_EMAIL_FAIL(3027,"There was error during sending wallet update email to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_CONFIRMED_BOOKING_EMAIL_FAIL(3028,"There was error during sending confirmed booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_COMPLETED_BOOKING_EMAIL_FAIL(3029,"There was error during sending completed booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL(3030,"There was error during sending pending payment booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    CAR_CANNOT_RETURN(3036,"The car cannot be return when booking status is not in-progress and cannot return before the drop off time", HttpStatus.FORBIDDEN),
+    CAR_CANNOT_STOPPED(3037,"The car cannot be stopped when has on-time booking", HttpStatus.FORBIDDEN),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -97,7 +103,6 @@ public enum ErrorCode {
     ACCESS_TOKEN_EXPIRED(4005, "The access token is expired. Please try again", HttpStatus.UNAUTHORIZED),
     ACCOUNT_IS_INACTIVE(4006, "Your account is inactive.", HttpStatus.FORBIDDEN),
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
-
     INVALID_REFRESH_TOKEN(4009, "Invalid refresh token. Please try again.", HttpStatus.UNAUTHORIZED),
     FORBIDDEN_CAR_ACCESS(4010, "Can not view detail/edit car of another account", HttpStatus.FORBIDDEN),
     INVALID_ONETIME_TOKEN(4011, "The token is invalid or this link has expired or has been used.", HttpStatus.BAD_REQUEST),

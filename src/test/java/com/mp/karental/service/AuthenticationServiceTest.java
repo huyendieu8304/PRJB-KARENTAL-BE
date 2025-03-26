@@ -491,33 +491,6 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    void sendForgotPasswordEmail_ShouldThrowException_WhenEmailSendingFails() throws Exception {
-        // Arrange
-        Account account = new Account();
-        account.setId(ACCOUNT_ID);
-        account.setEmailVerified(true);
-        account.setActive(true);
-
-        when(accountRepository.findByEmail(EMAIL)).thenReturn(Optional.of(account));
-        when(redisUtil.generateForgotPasswordToken(ACCOUNT_ID)).thenReturn("test-token");
-
-        // Mô phỏng lỗi khi gửi email
-        doThrow(new MessagingException("Failed to send email")).when(emailService)
-                .sendForgotPasswordEmail(anyString(), anyString());
-
-        // Act & Assert
-        AppException exception = assertThrows(AppException.class, () ->
-                authenticationService.sendForgotPasswordEmail(EMAIL)
-        );
-
-        // Check error code
-        assert(exception.getErrorCode()).equals(ErrorCode.SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL);
-        verify(accountRepository).findByEmail(EMAIL);
-        verify(redisUtil).generateForgotPasswordToken(ACCOUNT_ID);
-        verify(emailService).sendForgotPasswordEmail(anyString(), anyString());
-    }
-
-    @Test
     void verifyForgotPassword_ShouldReturnToken_WhenTokenIsValid() {
         // Arrange
         Account account = new Account();

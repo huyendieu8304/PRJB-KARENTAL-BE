@@ -124,11 +124,7 @@ public class UserService {
         String confirmUrl = frontEndBaseUrl + "/user/verify-email?t=" + verifyEmailToken;
         log.info("Verify email url: {}", confirmUrl);
         //sending email
-        try {
-            emailService.sendRegisterEmail(account.getEmail(), confirmUrl);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_VERIFY_EMAIL_TO_USER_FAIL);
-        }
+        emailService.sendRegisterEmail(account.getEmail(), confirmUrl);
     }
 
     public void verifyEmail(String verifyEmailToken){

@@ -32,7 +32,7 @@ import java.time.LocalDateTime;
 @ValidBookingTime(message = "INVALID_BOOKING_TIME")
 @ValidAddressComponent(message = "INVALID_ADDRESS_COMPONENT")
 public class CreateBookingRequest {
-    @RequiredField(fieldName = "car id")
+    @RequiredField(fieldName = "Car id")
     String carId;
 
     @CreationTimestamp
@@ -52,16 +52,14 @@ public class CreateBookingRequest {
     //=============================================================
     String driverFullName;
 
-    @Pattern(regexp = "\\d{10}", message = "Invalid phone number format")
     String driverPhoneNumber;
 
-    @Pattern(regexp = "\\d{9,12}", message = "Invalid national ID format")
     String driverNationalId;
 
     @ValidAge(min = 18)
     LocalDate driverDob;
 
-    @Email(message = "Invalid email format")
+    @Email(message = "INVALID_EMAIL")
     String driverEmail;
 
     @ValidDocument(message = "INVALID_DOCUMENT_FILE")

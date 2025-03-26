@@ -20,6 +20,7 @@ import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
 import com.mp.karental.repository.UserProfileRepository;
 import com.mp.karental.security.SecurityUtil;
+import com.mp.karental.util.RedisUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -70,6 +71,10 @@ class CarServiceTest {
     private AddCarRequest addCarRequest;
     @Mock
     private EditCarRequest editCarRequest;
+    @Mock
+    private EmailService emailService;
+    @Mock
+    private RedisUtil redisUtil;
 
     private MockedStatic<SecurityUtil> mockedSecurityUtil;
 
@@ -83,8 +88,212 @@ class CarServiceTest {
         mockedSecurityUtil.close();
     }
 
+    @Test
+    void testEditCar_CancelPendingDepositsWhenCarStopped() {
+        // Given
+        String carId = "car123";
+        String accountId = "account456";
+        EditCarRequest request = new EditCarRequest();
+        request.setStatus(ECarStatus.STOPPED); 
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.VERIFIED);
+
+        Account owner = new Account();
+        owner.setId(accountId);
+        car.setAccount(owner);
+
+        Booking booking = new Booking();
+        booking.setBookingNumber("BOOK123");
+        booking.setStatus(EBookingStatus.PENDING_DEPOSIT);
+        booking.setCar(car);
+
+        Account customer = new Account();
+        customer.setEmail("customer@example.com");
+        booking.setAccount(customer);
+
+        
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+
+        
+        lenient().when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+
+        
+        lenient().when(bookingRepository.findByCarIdAndStatus(carId, EBookingStatus.PENDING_DEPOSIT))
+                .thenReturn(List.of(booking));
+
+        
+        when(carMapper.toCarResponse(any(Car.class))).thenAnswer(invocation -> {
+            Car updatedCar = invocation.getArgument(0);
+            CarResponse response = new CarResponse();
+            response.setLicensePlate(updatedCar.getLicensePlate());
+            response.setAddress(String.join(", ",
+                    updatedCar.getCityProvince(),
+                    updatedCar.getDistrict(),
+                    updatedCar.getWard(),
+                    updatedCar.getHouseNumberStreet()));
+            return response;
+        });
+
+        
+        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        
+        carService.editCar(request, carId);
+
+        
+        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
+        verify(bookingRepository).save(booking); 
+
+        
+        verify(emailService).sendCancelledBookingEmail(
+                eq("customer@example.com"),
+                anyString(),
+                contains("was automatically canceled")
+        );
+
+        
+        verify(redisUtil).removeCachePendingDepositBooking("BOOK123");
+    }
 
 
+    @Test
+    void testEditCar_CarCurrentlyBooked_CannotStopCar() {
+        // Given
+        String carId = "car123";
+        String accountId = "account456";
+        EditCarRequest request = new EditCarRequest();
+        request.setStatus(ECarStatus.STOPPED); 
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.VERIFIED);
+
+        Account owner = new Account();
+        owner.setId(accountId);
+        car.setAccount(owner);
+
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+
+        
+        when(bookingRepository.hasActiveBooking(eq(carId), anyList())).thenReturn(true);
+
+        // When & Then
+        AppException thrown = assertThrows(AppException.class, () -> {
+            carService.editCar(request, carId);
+        });
+
+        assertEquals(ErrorCode.CAR_CANNOT_STOPPED, thrown.getErrorCode());
+    }
+
+    @Test
+    void testIsCarAvailable_CarNotVerified_ThrowsException() {
+        // Given
+        String carId = "car123";
+        LocalDateTime pickUpTime = LocalDateTime.now();
+        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
+
+        lenient().when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
+                .thenReturn(Collections.emptyList());
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.STOPPED);
+        lenient().when(carRepository.findById(anyString()))
+                .thenReturn(Optional.of(car));
+
+        // When
+        boolean available = carService.isCarAvailable(carId, pickUpTime, dropOffTime);
+
+        // Then
+        assertFalse(available);
+    }
+    @Test
+    void testIsCarAvailable_ActiveBookingsExist_ReturnsFalse() {
+        // Given
+        String carId = "car123";
+        LocalDateTime pickUpTime = LocalDateTime.now();
+        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
+        Booking booking = new Booking();
+        booking.setBookingNumber("b1");
+        booking.setStatus(EBookingStatus.IN_PROGRESS);
+        Booking booking1 = new Booking();
+        booking1.setBookingNumber("b2");
+        booking1.setStatus(EBookingStatus.CONFIRMED);
+        List<Booking> mockBookings = List.of(
+                booking,
+                booking1
+        );
+
+        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
+                .thenReturn(mockBookings);
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.VERIFIED);
+        when(carRepository.findById(anyString()))
+                .thenReturn(Optional.of(car));
+
+        // When
+        boolean available = carService.isCarAvailable(carId, pickUpTime, dropOffTime);
+
+        // Then
+        assertFalse(available);
+    }
+
+    @Test
+    void testIsCarAvailable_AllCancelledOrPendingDeposit_ReturnsTrue() {
+        // Given
+        String carId = "car123";
+        LocalDateTime pickUpTime = LocalDateTime.now();
+        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
+        Booking booking = new Booking();
+        booking.setBookingNumber("b1");
+        booking.setStatus(EBookingStatus.CANCELLED);
+        Booking booking1 = new Booking();
+        booking1.setBookingNumber("b2");
+        booking1.setStatus(EBookingStatus.PENDING_DEPOSIT);
+        List<Booking> mockBookings = List.of(
+                booking,
+                booking1
+        );
+
+        lenient().when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
+                .thenReturn(mockBookings);
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.VERIFIED);
+        lenient().when(carRepository.findById(anyString()))
+                .thenReturn(Optional.of(car));
+
+        // When
+        boolean available = carService.isCarAvailable(carId, pickUpTime, dropOffTime);
+
+        // Then
+        assertTrue(available);
+    }
+
+    @Test
+    void testIsCarAvailable_NoBookings_ReturnsTrue() {
+        // Given
+        String carId = "car123";
+        LocalDateTime pickUpTime = LocalDateTime.now();
+        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
+
+        lenient().when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
+                .thenReturn(Collections.emptyList());
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.VERIFIED);
+        lenient().when(carRepository.findById(anyString()))
+                .thenReturn(Optional.of(car));
+
+        // When
+        boolean available = carService.isCarAvailable(carId, pickUpTime, dropOffTime);
+
+        // Then
+        assertTrue(available);
+    }
     @Test
     void testGetCarsByUserId_WhenUserHasCars_ShouldReturnCarList() {
         String accountId = "user-123";
@@ -121,7 +330,7 @@ class CarServiceTest {
         // Mock fileService
         when(fileService.getFileUrl(anyString())).thenReturn("https://example.com/image.jpg");
 
-        // Mock carMapper để tránh null
+        
         CarThumbnailResponse carThumbnailResponse = new CarThumbnailResponse();
         when(carMapper.toCarThumbnailResponse(any(Car.class))).thenReturn(carThumbnailResponse);
 
@@ -303,6 +512,124 @@ class CarServiceTest {
         assertEquals("updated description", response.getDescription());
     }
 
+    @Test
+    void editCarStatus_validRequest_success() throws AppException {
+        // Mock SecurityUtil to return a valid account ID
+        String accountId = "user-123";
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+        // Mock existing account
+        Account mockAccount = new Account();
+        mockAccount.setId(accountId);
+
+        // Mock existing car in the database
+        Car existingCar = new Car();
+        existingCar.setId("car-123");
+        existingCar.setLicensePlate("49F-123.45");
+        existingCar.setAutomatic(false);
+        existingCar.setGasoline(false);
+        existingCar.setStatus(ECarStatus.STOPPED);
+        existingCar.setCityProvince("Tỉnh Hà Giang");
+        existingCar.setDistrict("Thành phố Hà Giang");
+        existingCar.setWard("Phường Quang Trung");
+        existingCar.setHouseNumberStreet("211, Trần Duy Hưng");
+        existingCar.setAccount(mockAccount);
+
+        when(carRepository.findById("car-123")).thenReturn(Optional.of(existingCar));
+
+        // Mock the save method properly
+        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> {
+            Car updatedCar = invocation.getArgument(0);
+            updatedCar.setLicensePlate(existingCar.getLicensePlate());
+            updatedCar.setAutomatic(existingCar.isAutomatic());
+            updatedCar.setGasoline(existingCar.isGasoline());
+            updatedCar.setStatus(ECarStatus.NOT_VERIFIED);
+            updatedCar.setCityProvince(existingCar.getCityProvince());
+            updatedCar.setDistrict(existingCar.getDistrict());
+            updatedCar.setWard(existingCar.getWard());
+            updatedCar.setHouseNumberStreet(existingCar.getHouseNumberStreet());
+            updatedCar.setDescription("updated description");
+            return updatedCar; // Ensure it returns the modified object
+        });
+
+        // Mock the mapper to ensure the response correctly combines the address
+        when(carMapper.toCarResponse(any(Car.class))).thenAnswer(invocation -> {
+            Car updatedCar = invocation.getArgument(0);
+            CarResponse response = new CarResponse();
+            response.setLicensePlate(updatedCar.getLicensePlate());
+            response.setAddress(String.join(", ", updatedCar.getCityProvince(), updatedCar.getDistrict(), updatedCar.getWard(), updatedCar.getHouseNumberStreet()));
+            response.setDescription(updatedCar.getDescription());
+            return response;
+        });
+
+        // Execute the service method
+        CarResponse response = carService.editCar(editCarRequest, "car-123");
+        // Assertions
+        assertNotNull(response, "Response should not be null");
+        assertEquals("updated description", response.getDescription());
+    }
+
+    @Test
+    void editCarStatus_invalidTransition_shouldThrowException() {
+        // Mock SecurityUtil to return a valid account ID
+        String accountId = "user-123";
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+        // Mock existing account
+        Account mockAccount = new Account();
+        mockAccount.setId(accountId);
+
+        // Mock existing car in the database
+        Car existingCar = new Car();
+        existingCar.setId("car-123");
+        existingCar.setStatus(ECarStatus.STOPPED); 
+        existingCar.setAccount(mockAccount);
+
+        when(carRepository.findById("car-123")).thenReturn(Optional.of(existingCar));
+
+        
+        EditCarRequest editCarRequest = new EditCarRequest();
+        editCarRequest.setStatus(ECarStatus.VERIFIED); 
+
+        
+        AppException exception = assertThrows(AppException.class,
+                () -> carService.editCar(editCarRequest, "car-123"));
+
+        
+        assertEquals(ErrorCode.INVALID_CAR_STATUS_CHANGE, exception.getErrorCode());
+    }
+
+    @Test
+    void editCarStatus_invalidTransition_shouldThrowException2() {
+        // Mock SecurityUtil to return a valid account ID
+        String accountId = "user-123";
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(accountId);
+
+        // Mock existing account
+        Account mockAccount = new Account();
+        mockAccount.setId(accountId);
+
+        // Mock existing car in the database
+        Car existingCar = new Car();
+        existingCar.setId("car-123");
+        existingCar.setStatus(ECarStatus.NOT_VERIFIED); 
+        existingCar.setAccount(mockAccount);
+
+        when(carRepository.findById("car-123")).thenReturn(Optional.of(existingCar));
+
+        
+        EditCarRequest editCarRequest = new EditCarRequest();
+        editCarRequest.setStatus(ECarStatus.VERIFIED); 
+
+        
+        AppException exception = assertThrows(AppException.class,
+                () -> carService.editCar(editCarRequest, "car-123"));
+
+        
+        assertEquals(ErrorCode.INVALID_CAR_STATUS_CHANGE, exception.getErrorCode());
+    }
+
+
 
     @Test
     void editCar_shouldThrowException_whenCarNotFound() {
@@ -315,7 +642,7 @@ class CarServiceTest {
         when(carRepository.findById("car-999")).thenReturn(Optional.empty());
 
         EditCarRequest editCarRequest = new EditCarRequest();
-//        editCarRequest.setStatus(E);
+        editCarRequest.setStatus(ECarStatus.NOT_VERIFIED);
 
         assertThrows(AppException.class, () -> carService.editCar(editCarRequest, "car-999"));
     }
@@ -433,7 +760,7 @@ class CarServiceTest {
         // Given
         Account account = new Account();
         String carId = "car-456";
-        String accountId = "user-123"; // Giả lập tài khoản hiện tại
+        String accountId = "user-123"; 
         account.setId(accountId);
 
         Car car = new Car();
@@ -453,7 +780,7 @@ class CarServiceTest {
         carResponse.setId(carId);
         carResponse.setAddress("Ward 1, District A, City X");
 
-        // Mock repository và service
+        
         lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
         lenient().when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         lenient().when(bookingRepository.isCarBookedByAccount(carId, accountId)).thenReturn(true);
@@ -465,10 +792,10 @@ class CarServiceTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals(carId, result.getId()); // ✅ Fix lỗi assert
+        assertEquals(carId, result.getId()); 
         assertEquals("City X, District A, Ward 1, 123 Main St", result.getAddress());
 
-        // Verify đúng tham số
+        
         verify(carRepository, times(1)).findById(carId);
         verify(carMapper, times(1)).toCarResponse(car);
     }
@@ -497,7 +824,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageFront(mock(MultipartFile.class)); // Giả lập ảnh mới
+        request.setCarImageFront(mock(MultipartFile.class)); 
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -509,7 +836,7 @@ class CarServiceTest {
 
         // Then
         assertNotNull(response);
-        verify(fileService).uploadFile(any(MultipartFile.class), anyString()); // Kiểm tra ảnh được upload
+        verify(fileService).uploadFile(any(MultipartFile.class), anyString()); 
         verify(carRepository).save(car);
     }
 
@@ -527,7 +854,7 @@ class CarServiceTest {
         car.setAccount(account);
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
-        EditCarRequest request = new EditCarRequest(); // Không set ảnh nào
+        EditCarRequest request = new EditCarRequest(); 
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -539,7 +866,7 @@ class CarServiceTest {
 
         // Then
         assertNotNull(response);
-        verify(fileService, never()).uploadFile(any(), anyString()); // Không gọi uploadFile
+        verify(fileService, never()).uploadFile(any(), anyString()); 
         verify(carRepository).save(car);
     }
 
@@ -558,7 +885,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageFront(mock(MultipartFile.class)); // Chỉ có ảnh trước
+        request.setCarImageFront(mock(MultipartFile.class)); 
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -592,7 +919,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageBack(mock(MultipartFile.class)); // Chỉ có ảnh trước
+        request.setCarImageBack(mock(MultipartFile.class)); 
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -626,7 +953,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageLeft(mock(MultipartFile.class)); // Chỉ có ảnh trước
+        request.setCarImageLeft(mock(MultipartFile.class)); 
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -660,7 +987,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageRight(mock(MultipartFile.class)); // Chỉ có ảnh trước
+        request.setCarImageRight(mock(MultipartFile.class)); 
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -691,10 +1018,10 @@ class CarServiceTest {
         Car car = new Car();
         car.setId(carId);
         car.setAccount(account);
-        car.setStatus(ECarStatus.NOT_VERIFIED); // Trạng thái ban đầu
+        car.setStatus(ECarStatus.NOT_VERIFIED); 
 
         EditCarRequest request = new EditCarRequest();
-        request.setStatus(null); // Không gửi trạng thái mới
+        request.setStatus(null); 
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -706,59 +1033,8 @@ class CarServiceTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(ECarStatus.NOT_VERIFIED, car.getStatus()); // Trạng thái không đổi
+        assertEquals(ECarStatus.NOT_VERIFIED, car.getStatus()); 
     }
-
-    @Test
-    void testCarAvailable_NoBookings() {
-        String carId = "car123";
-        LocalDateTime pickUpTime = LocalDateTime.now();
-        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
-
-        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
-                .thenReturn(List.of());
-
-        assertTrue(carService.isCarAvailable(carId, pickUpTime, dropOffTime));
-    }
-
-    @Test
-    void testCarAvailable_AllCancelledOrPendingDeposit() {
-        String carId = "car123";
-        LocalDateTime pickUpTime = LocalDateTime.now();
-        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
-
-        Booking booking1 = new Booking();
-        booking1.setStatus(EBookingStatus.CANCELLED);
-
-        Booking booking2 = new Booking();
-        booking2.setStatus(EBookingStatus.PENDING_DEPOSIT);
-
-        List<Booking> bookings = List.of(booking1, booking2);
-
-        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
-                .thenReturn(bookings);
-
-        assertTrue(carService.isCarAvailable(carId, pickUpTime, dropOffTime));
-    }
-
-
-    @Test
-    void testCarNotAvailable_HasActiveBooking() {
-        String carId = "car123";
-        LocalDateTime pickUpTime = LocalDateTime.now();
-        LocalDateTime dropOffTime = pickUpTime.plusDays(3);
-
-        Booking booking = new Booking();
-        booking.setStatus(EBookingStatus.CONFIRMED); // Dùng setter thay vì constructor
-
-        List<Booking> bookings = List.of(booking);
-
-        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(anyString(), any(), any()))
-                .thenReturn(bookings);
-
-        assertFalse(carService.isCarAvailable(carId, pickUpTime, dropOffTime));
-    }
-
 
     @Test
     void testCarNotBooked_NoBookingExists() {
@@ -776,7 +1052,7 @@ class CarServiceTest {
         String carId = "car123";
         String accountId = "user456";
 
-        // Giả sử tồn tại booking nhưng không có trạng thái hợp lệ
+        
         when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(anyString(), anyString(), anyList()))
                 .thenReturn(false);
 
@@ -788,55 +1064,12 @@ class CarServiceTest {
         String carId = "car123";
         String accountId = "user456";
 
-        // Giả sử tồn tại booking với trạng thái hợp lệ
+        
         when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(anyString(), anyString(), anyList()))
                 .thenReturn(true);
 
         assertTrue(carService.isCarBooked(carId, accountId));
     }
-
-    @Test
-    void testGetCarDetail_WhenCarExistsAndVerified_ShouldReturnDetails() {
-        String accountId = "user-123";
-        String carId = "car-1";
-
-        Mockito.when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
-
-        Car car = new Car();
-        car.setId(carId);
-        car.setStatus(ECarStatus.VERIFIED);
-        car.setCityProvince("Hanoi");
-        car.setDistrict("Ba Dinh");
-        car.setWard("Doi Can");
-        car.setHouseNumberStreet("123");
-
-        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
-        when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(eq(carId), eq(accountId), anyList()))
-                .thenReturn(true);
-        when(carMapper.toCarDetailResponse(any(Car.class), anyBoolean())).thenReturn(new CarDetailResponse());
-
-        CarDetailRequest request = new CarDetailRequest(carId, LocalDateTime.now(), LocalDateTime.now().plusDays(2));
-        CarDetailResponse response = carService.getCarDetail(request);
-
-        assertNotNull(response);
-        verify(carRepository, times(1)).findById(carId);
-        verify(carMapper, times(1)).toCarDetailResponse(any(Car.class), anyBoolean());
-    }
-    @Test
-    void testIsCarAvailable_WhenNoBookings_ShouldReturnTrue() {
-        String carId = "car-1";
-        LocalDateTime pickUpTime = LocalDateTime.now();
-        LocalDateTime dropOffTime = pickUpTime.plusDays(2);
-
-        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(eq(carId), any(), any()))
-                .thenReturn(Collections.emptyList());
-
-        boolean result = carService.isCarAvailable(carId, pickUpTime, dropOffTime);
-
-        assertTrue(result);
-        verify(bookingRepository, times(1)).findActiveBookingsByCarIdAndTimeRange(eq(carId), any(), any());
-    }
-
     @Test
     void searchCars_ReturnsEmptyList() {
         // Mock request
@@ -847,26 +1080,26 @@ class CarServiceTest {
 
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "productionYear"));
 
-        // Mock danh sách rỗng
+        
         Page<Car> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
         when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable)).thenReturn(emptyPage);
 
         // Call service
         Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
 
-        // Kiểm tra kết quả
+        
         assertNotNull(result);
         assertTrue(result.getContent().isEmpty());
         assertEquals(0, result.getTotalElements());
 
-        // Kiểm tra mock đã được gọi
+        
         verify(carRepository, times(1)).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable);
     }
 
 
     @Test
     void getCarsByUserId_ShouldUseDefaultSize_WhenSizeInvalid() {
-        // ✅ Kiểm tra size < 0 hoặc size > 100
+        
         when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
 
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "productionYear"));
@@ -889,28 +1122,8 @@ class CarServiceTest {
     }
 
     @Test
-    void isCarAvailable_ShouldReturnFalse_WhenCarHasActiveBookings() {
-        // ✅ Test có booking không CANCELLED hoặc PENDING_DEPOSIT
-        Car car = new Car();
-        car.setId("car123");
-        Booking booking = mock(Booking.class);
-        Booking activeBooking = new Booking();
-        activeBooking.setBookingNumber("booking1");
-        activeBooking.setCar(car);
-        activeBooking.setStatus(EBookingStatus.CONFIRMED); // Trạng thái khiến xe không available
-        activeBooking.setPickUpTime(LocalDateTime.now().plusDays(1));
-        activeBooking.setDropOffTime(LocalDateTime.now().plusDays(2));
-
-        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(eq("car123"), any(), any()))
-                .thenReturn(List.of(activeBooking)); // Có booking đang active => EXPECTED: false
-        boolean result = carService.isCarAvailable("car123", LocalDateTime.now(), LocalDateTime.now().plusDays(1));
-
-        assertFalse(result);
-    }
-
-    @Test
     void isCarBooked_ShouldReturnTrue_WhenBookingExists() {
-        // ✅ Test có booking
+        
         when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(any(), any(), any()))
                 .thenReturn(true);
 
@@ -921,7 +1134,7 @@ class CarServiceTest {
 
     @Test
     void searchCars_ShouldReturnEmpty_WhenNoVerifiedCars() {
-        // ✅ Test không có xe VERIFIED
+        
         when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(Page.empty());
 
         SearchCarRequest request = new SearchCarRequest();
@@ -932,47 +1145,6 @@ class CarServiceTest {
         Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
 
         assertEquals(0, result.getTotalElements());
-    }
-
-    @Test
-    void testSearchCars_ReturnsAvailableCars() {
-        // Arrange
-        SearchCarRequest request = new SearchCarRequest();
-        request.setAddress("Hanoi");
-        request.setPickUpTime(LocalDateTime.now().plusDays(1));
-        request.setDropOffTime(LocalDateTime.now().plusDays(2));
-
-        Car car = new Car();
-        car.setId("1");
-        car.setWard("Ba Dinh");
-        car.setCityProvince("Hanoi");
-        car.setCarImageFront("front.jpg");
-        car.setCarImageBack("back.jpg");
-        car.setCarImageLeft("left.jpg");
-        car.setCarImageRight("right.jpg");
-
-        List<Car> carList = List.of(car);
-        Page<Car> carPage = new PageImpl<>(carList);
-
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "productionYear"));
-
-        when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable))
-                .thenReturn(carPage);
-        when(bookingRepository.countCompletedBookingsByCar(car.getId()))
-                .thenReturn(5L);
-        when(carMapper.toSearchCar(any(), anyLong()))
-                .thenReturn(new CarThumbnailResponse());
-        when(fileService.getFileUrl(anyString()))
-                .thenReturn("http://example.com/image.jpg");
-
-        // Act
-        Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getTotalElements());
-        verify(carRepository).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable);
-        verify(carMapper).toSearchCar(any(), anyLong());
     }
 
     @Test

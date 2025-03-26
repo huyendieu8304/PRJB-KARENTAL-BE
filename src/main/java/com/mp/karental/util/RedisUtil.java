@@ -83,8 +83,8 @@ public class RedisUtil {
 
    public void cachePendingDepositBooking(String bookingNumber){
         String key = PENDING_DEPOSIT_BOOKING_KEY + bookingNumber;
-//       redisTemplate.opsForValue().set(key, key, 1, TimeUnit.HOURS);
-       redisTemplate.opsForValue().set(key, key, 20, TimeUnit.SECONDS);
+       redisTemplate.opsForValue().set(key, key, 1, TimeUnit.HOURS);
+//       redisTemplate.opsForValue().set(key, key, 20, TimeUnit.SECONDS);
    }
 
    public void removeCachePendingDepositBooking(String bookingNumber){

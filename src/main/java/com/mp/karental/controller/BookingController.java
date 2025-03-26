@@ -7,9 +7,7 @@ import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.service.BookingService;
-import jakarta.mail.MessagingException;
 import com.mp.karental.dto.response.booking.BookingListResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +36,7 @@ public class BookingController {
      * @return ApiResponse containing the created booking details
      */
     @PostMapping(value = "/customer/create-book", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid CreateBookingRequest bookingRequest) throws MessagingException {
+    ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid CreateBookingRequest bookingRequest) {
         log.info("create booking {}", bookingRequest);
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.createBooking(bookingRequest))
@@ -46,7 +44,7 @@ public class BookingController {
     }
 
     @PutMapping(value = "/customer/edit-book/{bookingNumber}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<BookingResponse> editBooking(@ModelAttribute @Valid EditBookingRequest editBookingRequest, @PathVariable String bookingNumber) throws MessagingException {
+    ApiResponse<BookingResponse> editBooking(@ModelAttribute @Valid EditBookingRequest editBookingRequest, @PathVariable String bookingNumber)  {
         log.info("edit booking {}", editBookingRequest);
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.editBooking(editBookingRequest, bookingNumber))
@@ -145,7 +143,7 @@ public class BookingController {
      * @return BookingResponse containing updated booking details.
      */
     @PutMapping("/car-owner/{bookingNumber}/confirm")
-    public BookingResponse confirmBooking(@PathVariable String bookingNumber) throws MessagingException {
+    public BookingResponse confirmBooking(@PathVariable String bookingNumber) {
         return bookingService.confirmBooking(bookingNumber);
     }
 
@@ -157,10 +155,9 @@ public class BookingController {
      *
      * @param bookingNumber The unique identifier of the booking to be canceled.
      * @return An {@link ApiResponse} containing the updated {@link BookingResponse} with the booking details.
-     * @throws MessagingException If an error occurs while sending cancellation emails.
      */
     @PutMapping("/customer/cancel-booking/{bookingNumber}")
-    public ApiResponse<BookingResponse> cancelBooking(@PathVariable String bookingNumber) throws MessagingException {
+    public ApiResponse<BookingResponse> cancelBooking(@PathVariable String bookingNumber)  {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.cancelBooking(bookingNumber))
                 .build();
@@ -174,7 +171,7 @@ public class BookingController {
     }
 
     @PutMapping("/customer/return-car/{bookingNumber}")
-    public ApiResponse<BookingResponse> returnCar(@PathVariable String bookingNumber) throws MessagingException {
+    public ApiResponse<BookingResponse> returnCar(@PathVariable String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.returnCar(bookingNumber))
                 .build();

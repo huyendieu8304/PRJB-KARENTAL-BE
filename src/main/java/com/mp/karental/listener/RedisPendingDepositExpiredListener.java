@@ -1,6 +1,7 @@
 package com.mp.karental.listener;
 
 import com.mp.karental.constant.EBookingStatus;
+import com.mp.karental.constant.ERole;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.repository.BookingRepository;
@@ -36,14 +37,9 @@ public class RedisPendingDepositExpiredListener implements MessageListener {
                     bookingRepository.save(booking);
 
                     String reason = "Your booking was automatically canceled because the deposit was not paid within 1 hour.";
-                    try {
-                        emailService.sendSystemCanceledBookingEmail(
-                                booking.getAccount().getEmail(),
-                                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                                reason);
-                    } catch (MessagingException e) {
-                        throw new AppException(ErrorCode.SEND_SYSTEM_CANCEL_BOOKING_EMAIL_FAIL);
-                    }
+                    emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
+                            booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                            reason);
 
                     log.info("Booking with id " + bookingId + " has been cancelled due to expired of paying deposit time");
                 }

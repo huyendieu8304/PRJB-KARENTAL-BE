@@ -15,8 +15,8 @@ import java.time.LocalTime;
 public class BookingTimeValidator implements ConstraintValidator<ValidBookingTime, CreateBookingRequest> {
 
     @Override
-    public boolean isValid(CreateBookingRequest createBookingRequest, ConstraintValidatorContext context) {
-        if (createBookingRequest.getPickUpTime() == null || createBookingRequest.getDropOffTime() == null) {
+    public boolean isValid(CreateBookingRequest CreateBookingRequest, ConstraintValidatorContext context) {
+        if (CreateBookingRequest.getPickUpTime() == null || CreateBookingRequest.getDropOffTime() == null) {
             return false;
         }
 
@@ -24,8 +24,8 @@ public class BookingTimeValidator implements ConstraintValidator<ValidBookingTim
         LocalDate today = now.toLocalDate();
         LocalTime nowTime = now.toLocalTime();
 
-        LocalDateTime pickUpDateTime = createBookingRequest.getPickUpTime();
-        LocalDateTime dropOffDateTime = createBookingRequest.getDropOffTime();
+        LocalDateTime pickUpDateTime = CreateBookingRequest.getPickUpTime();
+        LocalDateTime dropOffDateTime = CreateBookingRequest.getDropOffTime();
 
         // Pick-up time cannot be in the past and must be before drop-off
         if (pickUpDateTime.isBefore(now) || pickUpDateTime.isAfter(dropOffDateTime)) {

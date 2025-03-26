@@ -34,7 +34,7 @@ public class TransactionController {
     TransactionService transactionService;
     @GetMapping(value="/transaction-list", params = { "from", "to" })
     public ApiResponse<ListTransactionResponse> getAllTransactionResponseList(@RequestParam(name = "from", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-                                                                                @RequestParam(name = "to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to){
+                                                                              @RequestParam(name = "to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to){
         return ApiResponse.<ListTransactionResponse>builder()
                 .data(transactionService.getAllTransactions(from,to))
                 .build();
@@ -58,7 +58,7 @@ public class TransactionController {
         log.info("Transaction Request: {}", transactionRequest);
         transactionRequest.setType(ETransactionType.TOP_UP);
         return ApiResponse.<TransactionPaymentURLResponse>builder()
-                .data(transactionService.createTransaction(transactionRequest))
+                .data(transactionService.createTransactionTopUp(transactionRequest))
                 .build();
     }
     @PostMapping("/withdraw")
@@ -67,8 +67,8 @@ public class TransactionController {
         transactionRequest.setIpAddress(ipAddress);
         log.info("Transaction Request: {}", transactionRequest);
         transactionRequest.setType(ETransactionType.WITHDRAW);
-        return ApiResponse.<TransactionPaymentURLResponse>builder()
-                .data(transactionService.createTransaction(transactionRequest))
+        return ApiResponse.<TransactionResponse>builder()
+                .data(transactionService.withdraw(transactionRequest.getAmount()))
                 .build();
     }
     @GetMapping("{transactionId}/status")

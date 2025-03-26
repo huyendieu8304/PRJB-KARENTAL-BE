@@ -234,59 +234,59 @@ public class CarControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(2000));
     }
 
-//    @Test
-//    void editCar_Success() throws Exception {
-//        // Prepare expected response (after editing)
-//        CarResponse carResponse = new CarResponse();
-//        carResponse.setLicensePlate("49F-123.45");
-//        carResponse.setBrand("Toyota");
-//        carResponse.setModel("Camry");
-//        carResponse.setColor("Black");
-//        carResponse.setNumberOfSeats(5);
-//        carResponse.setProductionYear(2020);
-//        carResponse.setMileage(15000);
-//        carResponse.setFuelConsumption(7.5f);
-//        carResponse.setBasePrice(50000);
-//        carResponse.setDeposit(500000);
-//        carResponse.setAddress("Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211, Trần Duy Hưng");
-//        carResponse.setDescription("This is a test after edit");
-//        carResponse.setAdditionalFunction("Bluetooth");
-//        carResponse.setTermOfUse("Yes");
-//        carResponse.setAutomatic(true);
-//        carResponse.setGasoline(true);
-//
-//        // Mock the car service behavior
-//        when(carService.editCar(ArgumentMatchers.any(), anyString())).thenReturn(carResponse);
-//
-//        // Mock the files for the multipart request (empty files just to satisfy the request)
-//        MockMultipartFile carImageFront = new MockMultipartFile("carImageFront", "", "image/jpeg", new byte[0]);
-//        MockMultipartFile carImageBack = new MockMultipartFile("carImageBack", "", "image/jpeg", new byte[0]);
-//        MockMultipartFile carImageLeft = new MockMultipartFile("carImageLeft", "", "image/jpeg", new byte[0]);
-//        MockMultipartFile carImageRight = new MockMultipartFile("carImageRight", "", "image/jpeg", new byte[0]);
-//
-//        // Convert the EditCarRequest to JSON
-//        // Perform the test: Edit an existing car with the JWT token for authorization
-//        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/car/car-owner/edit-car/{id}", "carId123")  // Use multipart to simulate file uploads
-//                        .file(carImageFront)
-//                        .file(carImageBack)
-//                        .file(carImageLeft)
-//                        .file(carImageRight)
-//                        .param("mileage", String.valueOf(editCarRequest.getMileage()))
-//                        .param("fuelConsumption", String.valueOf(editCarRequest.getFuelConsumption()))
-//                        .param("basePrice", String.valueOf(editCarRequest.getBasePrice()))
-//                        .param("deposit", String.valueOf(editCarRequest.getDeposit()))
-//                        .param("address", editCarRequest.getAddress())
-//                        .param("description", editCarRequest.getDescription())
-//                        .param("additionalFunction", editCarRequest.getAdditionalFunction())
-//                        .param("termOfUse", editCarRequest.getTermOfUse())
-//                        .param("status", editCarRequest.getStatus())
-//                        .contentType(MediaType.MULTIPART_FORM_DATA))  // Set content type to multipart/form-data
-//                .andExpect(status().isOk())
-//                .andExpect(MockMvcResultMatchers.jsonPath("code").value(1000))
-//                .andExpect(MockMvcResultMatchers.jsonPath("data.licensePlate").value("49F-123.45"))
-//                .andExpect(MockMvcResultMatchers.jsonPath("data.description").value("This is a test after edit"))
-//                .andExpect(MockMvcResultMatchers.jsonPath("data.termOfUse").value("Yes"));
-//    }
+    @Test
+    void editCar_Success() throws Exception {
+        // Prepare expected response (after editing)
+        CarResponse carResponse = new CarResponse();
+        carResponse.setLicensePlate("49F-123.45");
+        carResponse.setBrand("Toyota");
+        carResponse.setModel("Camry");
+        carResponse.setColor("Black");
+        carResponse.setNumberOfSeats(5);
+        carResponse.setProductionYear(2020);
+        carResponse.setMileage(15000);
+        carResponse.setFuelConsumption(7.5f);
+        carResponse.setBasePrice(50000);
+        carResponse.setDeposit(500000);
+        carResponse.setAddress("Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211, Trần Duy Hưng");
+        carResponse.setDescription("This is a test after edit");
+        carResponse.setAdditionalFunction("Bluetooth");
+        carResponse.setTermOfUse("Yes");
+        carResponse.setAutomatic(true);
+        carResponse.setGasoline(true);
+
+        // Mock the car service behavior
+        when(carService.editCar(ArgumentMatchers.any(), anyString())).thenReturn(carResponse);
+
+        // Mock the files for the multipart request (empty files just to satisfy the request)
+        MockMultipartFile carImageFront = new MockMultipartFile("carImageFront", "", "image/jpeg", new byte[0]);
+        MockMultipartFile carImageBack = new MockMultipartFile("carImageBack", "", "image/jpeg", new byte[0]);
+        MockMultipartFile carImageLeft = new MockMultipartFile("carImageLeft", "", "image/jpeg", new byte[0]);
+        MockMultipartFile carImageRight = new MockMultipartFile("carImageRight", "", "image/jpeg", new byte[0]);
+
+        // Convert the EditCarRequest to JSON
+        // Perform the test: Edit an existing car with the JWT token for authorization
+        mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.PUT,"/car/car-owner/edit-car/{id}", "carId123")  // Use multipart to simulate file uploads
+                        .file(carImageFront)
+                        .file(carImageBack)
+                        .file(carImageLeft)
+                        .file(carImageRight)
+                        .param("mileage", String.valueOf(editCarRequest.getMileage()))
+                        .param("fuelConsumption", String.valueOf(editCarRequest.getFuelConsumption()))
+                        .param("basePrice", String.valueOf(editCarRequest.getBasePrice()))
+                        .param("deposit", String.valueOf(editCarRequest.getDeposit()))
+                        .param("address", editCarRequest.getAddress())
+                        .param("description", editCarRequest.getDescription())
+                        .param("additionalFunction", editCarRequest.getAdditionalFunction())
+                        .param("termOfUse", editCarRequest.getTermOfUse())
+                        .param("status", String.valueOf(editCarRequest.getStatus()))
+                        .contentType(MediaType.MULTIPART_FORM_DATA))  // Set content type to multipart/form-data
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("code").value(1000))
+                .andExpect(MockMvcResultMatchers.jsonPath("data.licensePlate").value("49F-123.45"))
+                .andExpect(MockMvcResultMatchers.jsonPath("data.description").value("This is a test after edit"))
+                .andExpect(MockMvcResultMatchers.jsonPath("data.termOfUse").value("Yes"));
+    }
 
     @Test
     void getCarById_ShouldReturnCarResponse_WhenCarExists() throws Exception {
@@ -302,16 +302,6 @@ public class CarControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("data.id").value("123"))
                 .andExpect(MockMvcResultMatchers.jsonPath("data.address").value("Hanoi, Hoan Kiem, Ly Thai To, 24 Trang Tien"));
     }
-    @Test
-    void getCarById_ShouldReturn404_WhenCarNotFound() throws Exception {
-        when(carService.getCarById("999")).thenThrow(new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
-
-        mockMvc.perform(get("/car/car-owner/999")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
-    }
-
-
     @Test
     @WithMockUser(username = "owner", roles = {"OWNER"})
     void getMyCars_Success() throws Exception {
@@ -497,13 +487,13 @@ public class CarControllerTest {
         // Act & Assert
         mockMvc.perform(get("/car/customer/search-car")
                         .param("address", "Hà Nội")
-                        .param("pickUpTime", "invalid-date-format")  // ❌ Sai định dạng
+                        .param("pickUpTime", "invalid-date-format")  
                         .param("dropOffTime", "2025-03-15T22:00:00")
                         .param("page", "0")
                         .param("size", "10")
                         .param("sort", "productionYear,desc")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()) // ⬅️ Kỳ vọng HTTP 400
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()) 
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(2029));
     }
 

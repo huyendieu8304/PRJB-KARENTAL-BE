@@ -41,7 +41,6 @@ import java.util.*;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Profile("!testfe")
 public class SecurityConfig{
 
     @Value("${front-end.base-url}")
@@ -54,6 +53,21 @@ public class SecurityConfig{
     @Value("${application.security.public-endpoints}")
     @NonFinal
     private String[] publicEndpoints;
+    //TODO: tìm cách khác để define cái public enpoints này, dùng static không ổn lắm
+    public static final String[] PUBLIC_ENDPOINTS = {
+            "/user/register",
+            "/user/check-unique-email",
+            "/user/resend-verify-email/**",
+            "/user/verify-email/**",
+            "/auth/**",
+    };
+    /**
+     * Allow request from other origins below
+     */
+    private final List<String> ALLOWED_CORS_URL = List.of(new String[]{
+            "http://localhost:3000", //TODO: replace this with the endpoint of deployed front end
+            "https://nhun231.github.io/karental"
+    });
 
     private List<String> getAllowCorsUrl(){
         return List.of(frontendBaseUrl);
@@ -106,6 +120,8 @@ public class SecurityConfig{
                                 //endpoints for user has role CAR_OWNER
                                 .requestMatchers("/car/car-owner/**").hasRole("CAR_OWNER")
                                 .requestMatchers("/car/customer/**").hasRole("CUSTOMER")
+                                .requestMatchers("/booking/car-owner/**").hasRole("CAR_OWNER")
+                                .requestMatchers("/booking/customer/**").hasRole("CUSTOMER")
                                 .anyRequest().authenticated()
                 );
         http.authenticationProvider(authenticationProvider());
