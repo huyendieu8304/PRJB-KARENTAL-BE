@@ -37,7 +37,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB.getMessage()));
 
-        if (!account.isActive()) {
+        if (!account.isActive() || !account.isEmailVerified()) {
             //the account of user has been banned
             throw new InternalAuthenticationServiceException(ErrorCode.ACCOUNT_IS_INACTIVE.getMessage());
         }

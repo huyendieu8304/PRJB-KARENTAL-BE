@@ -44,13 +44,9 @@ import java.util.*;
 @Profile("!testfe")
 public class SecurityConfig{
 
-    @Value("${front-end.domain-url}")
+    @Value("${front-end.base-url}")
     @NonFinal
-    private String frontendDomainUrl;
-
-    @Value("${application.domain}")
-    @NonFinal
-    private String applicationDomain;
+    private String frontendBaseUrl;
 
     /**
      * Define public endpoints, the endpoint that could be accessed without needing to provide any authentication header
@@ -59,13 +55,9 @@ public class SecurityConfig{
     @NonFinal
     private String[] publicEndpoints;
 
-    /**
-     * Allow request from other origins below
-     */
-    private final List<String> ALLOWED_CORS_URL = List.of(new String[]{
-            "http://localhost:3000" //TODO: replace this with the endpoint of deployed front end
-    });
-
+    private List<String> getAllowCorsUrl(){
+        return List.of(frontendBaseUrl);
+    }
 
     UserDetailsServiceImpl userDetailsService;
     AuthEntryPointJwt jwtAuthenticationEntryPoint;
@@ -94,7 +86,7 @@ public class SecurityConfig{
                     @Override
                     public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
                         CorsConfiguration config = new CorsConfiguration();
-                        config.setAllowedOrigins(ALLOWED_CORS_URL);
+                        config.setAllowedOrigins(getAllowCorsUrl());
                         config.setAllowedMethods(Collections.singletonList("*"));
                         config.setAllowedHeaders(Collections.singletonList("*"));
                         config.setExposedHeaders(Collections.singletonList("Authorization"));

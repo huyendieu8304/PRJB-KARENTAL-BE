@@ -49,9 +49,9 @@ import org.springframework.web.util.WebUtils;
 @Slf4j
 public class AuthenticationService {
 
-    @Value("${front-end.domain-url}")
+    @Value("${front-end.base-url}")
     @NonFinal
-    private String frontEndDomainUrl;
+    private String frontEndBaseUrl;
 
     @Value("${application.security.jwt.access-token-cookie-name}")
     @NonFinal
@@ -269,7 +269,7 @@ public class AuthenticationService {
 
         //send email
         String changePasswordToken = redisUtil.generateForgotPasswordToken(account.getId());
-        String forgotPasswordUrl = frontEndDomainUrl + "/auth/forgot-password/verify?t=" + changePasswordToken;
+        String forgotPasswordUrl = frontEndBaseUrl + "/auth/forgot-password/verify?t=" + changePasswordToken;
         log.info("Verify email url: {}", forgotPasswordUrl);
         try {
             emailService.sendForgotPasswordEmail(email, forgotPasswordUrl);
