@@ -78,6 +78,7 @@ public interface CarMapper {
      * @return CarThumbnailResponse containing car details.
      */
     @Mapping(target = "address", ignore = true)
+    @Mapping(target = "updatedAt", source = "updatedAt")
     CarThumbnailResponse toCarThumbnailResponse(Car car);
 
     /**

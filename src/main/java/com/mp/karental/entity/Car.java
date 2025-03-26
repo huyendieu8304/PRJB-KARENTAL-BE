@@ -5,7 +5,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CollectionType;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -116,7 +119,10 @@ public class Car {
     @JoinColumn(name = "account_id")
     Account account;
 
-//    @OneToMany(mappedBy = "car", cascade = CascadeType.ALL)
-//    List<Booking> bookings;
+    @CreationTimestamp
+    LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    LocalDateTime updatedAt;
 
 }

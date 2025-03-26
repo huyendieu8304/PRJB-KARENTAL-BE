@@ -1,5 +1,6 @@
 package com.mp.karental.controller;
 
+import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.car.AddCarRequest;
 import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
@@ -171,5 +172,28 @@ public class CarController {
             throw new AppException(ErrorCode.INVALID_DATE_FORMAT);
         }
     }
+
+    /**
+     * Retrieves a paginated list of all cars in the system for operators.
+     * The list is sorted by updateAt in descending order, with NOT_VERIFIED cars appearing first.
+     *
+     * @param page The page number (default = 0).
+     * @param size The number of records per page (default = 10).
+     * @param sort Sorting criteria (default = "updatedAt,desc").
+     * @param status The status filter (optional).
+     * @return A paginated list of cars.
+     */
+    @GetMapping(value = "/list")
+    public ApiResponse<Page<CarThumbnailResponse>> getCarListForOperator(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "updatedAt,desc") String sort,
+            @RequestParam(required = false) ECarStatus status) {
+        log.info("Fetching car list for operator with filters - Page: {}, Size: {}, Sort: {}, Status: {}", page, size, sort, status);
+        Page<CarThumbnailResponse> carList = carService.getAllCarsForOperator(page, size, sort, status);
+        return ApiResponse.<Page<CarThumbnailResponse>>builder()
+                .data(carList)
+                .build();    }
+
 
 }

@@ -3,6 +3,8 @@ package com.mp.karental.dto.response.car;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 /**
  * DTO (Data Transfer Object) representing a summary of a car.
  * Used to display a list of cars in the car rental system.
@@ -31,4 +33,5 @@ public class CarThumbnailResponse {
     private String carImageBack;
     long noOfRides;
     private double averageRatingByCar;
+    private LocalDateTime updatedAt;
 }

@@ -687,4 +687,83 @@ public class CarService {
         Double averageRating = feedbackRepository.calculateAverageRatingByCar(carId);
         return (averageRating != null) ? averageRating : 0.0;
     }
+
+    /**
+     * Retrieves a paginated list of cars for the operator.
+     * Supports filtering by status, sorting, and pagination.
+     *
+     * @param page   The requested page number (0-based index).
+     * @param size   The number of records per page.
+     * @param sort   Sorting criteria in the format "field,direction" (e.g., "updatedAt,desc").
+     * @param status (Optional) The status filter for cars.
+     * @return A page of CarThumbnailResponse objects containing summarized car information.
+     */
+    public Page<CarThumbnailResponse> getAllCarsForOperator(int page, int size, String sort, ECarStatus status) {
+        // Create a pageable object with sorting based on the provided parameters
+        Pageable pageable = createPageableForOperator(page, size, sort);
+
+        // Fetch cars from the repository, filtering by status if provided
+        Page<Car> cars = carRepository.findCars(status, pageable);
+
+        // Convert each Car entity into a CarThumbnailResponse DTO
+        return cars.map(car -> {
+            CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
+
+            // Construct address from the ward and cityProvince fields
+            response.setAddress(car.getWard() + ", " + car.getCityProvince());
+
+            // Retrieve and set car images from the file storage system
+            response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
+            response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
+            response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
+            response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
+
+            // Get the average rating of the car based on user reviews
+            response.setAverageRatingByCar(getAverageRatingByCar(car.getId()));
+
+            // Retrieve the count of completed bookings for this car
+            response.setNoOfRides(bookingRepository.countCompletedBookingsByCar(car.getId()));
+
+            return response;
+        });
+    }
+
+    /**
+     * Creates a pageable object with sorting.
+     * Ensures proper pagination and applies custom sorting criteria.
+     *
+     * @param page  The requested page number (0-based index).
+     * @param size  The number of records per page.
+     * @param sort  Sorting criteria in the format "field,direction" (e.g., "updatedAt,desc").
+     * @return Pageable object with sorting applied.
+     */
+    private Pageable createPageableForOperator(int page, int size, String sort) {
+        // Ensure page size is within valid limits (default 10, max 100)
+        size = (size > 0 && size <= 100) ? size : 10;
+
+        // Ensure page index is non-negative
+        page = Math.max(page, 0);
+
+        // Default sorting by updatedAt in descending order
+        Sort defaultSort = Sort.by(Sort.Direction.DESC, "updatedAt");
+
+        // Apply custom sorting if a valid sort parameter is provided
+        if (sort != null && !sort.isBlank()) {
+            String[] sortParams = sort.split(",");
+            if (sortParams.length == 2) {
+                String requestedField = sortParams[0].trim();
+                String requestedDirection = sortParams[1].trim().toUpperCase();
+                Sort.Direction direction = "ASC".equals(requestedDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+                // Allow sorting only by specific fields to maintain data integrity
+                if (List.of("updatedAt", "price", "productionYear").contains(requestedField)) {
+                    defaultSort = Sort.by(direction, requestedField);
+                }
+            }
+        }
+
+        return PageRequest.of(page, size, defaultSort);
+    }
+
+
 }

@@ -56,12 +56,23 @@ public interface CarRepository extends JpaRepository<Car, String> {
 """)
     List<String> findCarIdsByCustomerId(@Param("customerId") String customerId);
 
-    @Query("""
-        SELECT c.cityProvince, COUNT(c) 
-        FROM Car c 
-        GROUP BY c.cityProvince 
-        ORDER BY COUNT(c) DESC
-    """)
+    @Query(value = """
+    SELECT city_province, COUNT(*) AS car_count
+    FROM car 
+    GROUP BY city_province
+    ORDER BY car_count DESC, city_province ASC
+    LIMIT 6
+""", nativeQuery = true)
     List<Object[]> findTop6CitiesByCarCount();
+
+    @Query("""
+    SELECT c FROM Car c
+    WHERE (:status IS NULL OR c.status = :status)
+    ORDER BY 
+        CASE WHEN c.status = 'NOT_VERIFIED' THEN 0 ELSE 1 END, 
+        c.updatedAt DESC
+""")
+    Page<Car> findCars(@Param("status") ECarStatus status, Pageable pageable);
+
 }
 
