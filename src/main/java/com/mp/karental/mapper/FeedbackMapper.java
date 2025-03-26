@@ -3,6 +3,7 @@ package com.mp.karental.mapper;
 import com.mp.karental.dto.request.feedback.FeedbackRequest;
 import com.mp.karental.dto.response.feedback.FeedbackDetailResponse;
 import com.mp.karental.dto.response.feedback.FeedbackResponse;
+import com.mp.karental.dto.response.feedback.SimpleFeedbackResponse;
 import com.mp.karental.entity.Feedback;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -84,4 +85,20 @@ public interface FeedbackMapper {
      * @return The mapped list of FeedbackDetailResponse DTOs.
      */
     List<FeedbackDetailResponse> toFeedbackDetailResponseList(List<Feedback> feedbackList);
+
+
+    /**
+     * Converts a Feedback entity to a SimpleFeedbackResponse DTO.
+     * - Retrieves `rating`, `comment`, `createdAt`, and `reviewerName`.
+     * Get information of feedbacks to homepage
+     * @param feedback The Feedback entity.
+     * @return The mapped FeedbackDetailResponse DTO.
+     */
+    @Mapping(target = "rating", source = "rating")
+    @Mapping(target = "comment", source = "comment")
+    @Mapping(target = "createdAt", source = "createAt")
+    @Mapping(target = "reviewerName", source = "booking.account.profile.fullName")
+    SimpleFeedbackResponse toSimpleFeedbackResponse(Feedback feedback);
+
+    List<SimpleFeedbackResponse> toSimpleFeedbackResponseList(List<Feedback> feedbackList);
 }

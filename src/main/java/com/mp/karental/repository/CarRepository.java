@@ -56,5 +56,12 @@ public interface CarRepository extends JpaRepository<Car, String> {
 """)
     List<String> findCarIdsByCustomerId(@Param("customerId") String customerId);
 
+    @Query("""
+        SELECT c.cityProvince, COUNT(c) 
+        FROM Car c 
+        GROUP BY c.cityProvince 
+        ORDER BY COUNT(c) DESC
+    """)
+    List<Object[]> findTop6CitiesByCarCount();
 }
 

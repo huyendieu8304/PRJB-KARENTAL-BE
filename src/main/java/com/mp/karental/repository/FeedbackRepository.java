@@ -125,4 +125,17 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
                 WHERE b.car_id = :carId
             """, nativeQuery = true)
     Double calculateAverageRatingByCar(@Param("carId") String carId);
+
+    /**
+     * Retrieves the latest 4 feedbacks with a 5-star rating.
+     *
+     * @return A list of up to 4 feedbacks with a 5-star rating, ordered by creation date.
+     */
+    @Query("""
+    SELECT f FROM Feedback f
+    WHERE f.rating = 5
+    ORDER BY f.createAt DESC
+""")
+    List<Feedback> findTop4ByRatingOrderByCreatedDateDesc();
+
 }

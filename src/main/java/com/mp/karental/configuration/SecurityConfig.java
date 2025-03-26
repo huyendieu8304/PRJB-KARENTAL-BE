@@ -51,6 +51,8 @@ public class SecurityConfig{
             "/user/resend-verify-email/**",
             "/user/verify-email/**",
             "/auth/**",
+            "/homepage/feedbacks",
+            "/homepage/city"
     };
     /**
      * Allow request from other origins below
