@@ -26,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -221,7 +222,7 @@ public class BookingService {
      * @throws AppException If there are any validation issues, the booking is not found, or the user doesn’t have access to edit the booking.
      */
     public BookingResponse editBooking(EditBookingRequest editBookingRequest, String bookingNumber) throws AppException {
-        Booking booking = validateAndGetBooking(bookingNumber);
+        Booking booking = validateAndGetBookingCustomer(bookingNumber);
 
         //do not allow edit
         if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
@@ -646,27 +647,14 @@ public class BookingService {
      */
     public BookingResponse confirmBooking(String bookingNumber) {
         log.info("Car owner {} is confirming booking {}", SecurityUtil.getCurrentAccount().getId(), bookingNumber);
-        // Fetch the booking from the database using the booking number
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-
-        // If no booking is found, throw an exception
-        if (booking == null) {
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-        }
-        // Retrieve the current user account ID to ensure the user is logged in
-        String accountId = SecurityUtil.getCurrentAccountId();
+        Booking booking = validateAndGetBookingCarOwner(bookingNumber);
         // Ensure the booking status is valid for confirmation
         if (booking.getStatus() == null || !EBookingStatus.WAITING_CONFIRMED.equals(booking.getStatus())) {
             throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
         }
-        if(!booking.getCar().getAccount().getId().equals(accountId)){
-            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
-        }
-
+        processOverdueWaitingBookings();
         // Ensure the booking has not expired
         if (booking.getPickUpTime() == null || LocalDateTime.now().isAfter(booking.getPickUpTime())) {
-            booking.setStatus(EBookingStatus.CANCELLED);
-            bookingRepository.save(booking);
             throw new AppException(ErrorCode.BOOKING_EXPIRED);
         }
 
@@ -695,7 +683,7 @@ public class BookingService {
      *                      or the booking is in a non-cancellable state.
      */
     public BookingResponse cancelBooking(String bookingNumber) {
-        Booking booking = validateAndGetBooking(bookingNumber);
+        Booking booking = validateAndGetBookingCustomer(bookingNumber);
 
         // Check if the booking is in a state that cannot be canceled
         if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
@@ -740,29 +728,13 @@ public class BookingService {
      * @throws AppException If the booking is not found, access is denied, or conditions are not met.
      */
     public BookingResponse confirmPickUp(String bookingNumber) {
-        // Get the currently logged-in account ID
-        String accountId = SecurityUtil.getCurrentAccountId();
-
-        // Find the booking by its booking number
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-        if (booking == null) {
-            // Throw an exception if the booking does not exist
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-        }
-
-        // Ensure the logged-in user is the owner of the booking
-        if (!booking.getAccount().getId().equals(accountId)) {
-            // Throw an exception if the user does not have permission to confirm this booking
-            throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
-        }
-
+        Booking booking = validateAndGetBookingCustomer(bookingNumber);
+        processOverdueBookings();
         // Validate if the booking is eligible for pick-up confirmation
         if (booking.getStatus() != EBookingStatus.CONFIRMED || // Must be in CONFIRMED status
-                LocalDateTime.now().isBefore(booking.getPickUpTime().minusMinutes(30)) || // Cannot confirm pick-up too early
-                LocalDateTime.now().isAfter(booking.getDropOffTime())) { // Cannot confirm pick-up after drop-off time
+                LocalDateTime.now().isBefore(booking.getPickUpTime().minusMinutes(30))) { // Cannot confirm pick-up too early
             throw new AppException(ErrorCode.BOOKING_CANNOT_PICKUP);
         }
-
         // Update the booking status to IN_PROGRESS to indicate the pick-up process has started
         booking.setStatus(EBookingStatus.IN_PROGRESS);
 
@@ -785,12 +757,13 @@ public class BookingService {
      */
     public BookingResponse returnCar(String bookingNumber) {
         // Validate and retrieve the booking
-        Booking booking = validateAndGetBooking(bookingNumber);
+        Booking booking = validateAndGetBookingCustomer(bookingNumber);
         // Ensure the booking is in progress and before drop-off time is not exceeded
         if (booking.getStatus() != EBookingStatus.IN_PROGRESS) {
             throw new AppException(ErrorCode.CAR_CANNOT_RETURN);
         }
-        if (LocalDate.now().isBefore(booking.getDropOffTime().toLocalDate())) {
+        processOverdueBookings();
+        if (LocalDateTime.now().isBefore(booking.getDropOffTime())) {
             //set the status of booking to WAITING_CONFIRMED_RETURN_CAR
             booking.setStatus(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR);
             //send email to notify the car owner confirm the request return early
@@ -806,40 +779,83 @@ public class BookingService {
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
+    /**
+     * Handles the process for car owner to confirm early return car request of customer.
+     * @param bookingNumber the booking number of the booking request return early
+     * @return BookingResponse containing updated booking details.
+     */
     public BookingResponse confirmEarlyReturnCar(String bookingNumber) {
         // Fetch the booking from the database using the booking number
-        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-
-        // If no booking is found, throw an exception
-        if (booking == null) {
-            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-        }
-        // Retrieve the current user account ID to ensure the user is logged in
-        String accountId = SecurityUtil.getCurrentAccountId();
-        // Ensure the booking status is valid for confirmation
+        Booking booking = validateAndGetBookingCarOwner(bookingNumber);
         if (booking.getStatus() == null || !EBookingStatus.WAITING_CONFIRMED_RETURN_CAR.equals(booking.getStatus())) {
             throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
         }
-        if(!booking.getCar().getAccount().getId().equals(accountId)){
-            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
-        }
+        processOverdueWaitingBookings();
 
         processPaymentAndFinalizeBooking(booking);
 
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
+    /**
+     * Handles the process for a car owner to reject a booking with status WAITING_CONFIRMED.
+     * This method cancels the booking and refunds the deposit.
+     *
+     * @param bookingNumber The booking number of the booking with status WAITING_CONFIRMED.
+     * @return BookingResponse containing the updated booking details.
+     */
+    public BookingResponse rejectWaitingConfirmedBooking(String bookingNumber) {
+        // Validate and retrieve the booking, ensuring it belongs to the authenticated car owner
+        Booking booking = validateAndGetBookingCarOwner(bookingNumber);
+
+        // Ensure the booking status is WAITING_CONFIRMED before proceeding
+        if (!EBookingStatus.WAITING_CONFIRMED.equals(booking.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+
+        // Update the booking status to CANCELLED
+        booking.setStatus(EBookingStatus.CANCELLED);
+
+        // Process the refund for the booking deposit
+        transactionService.refundAllDeposit(booking);
+
+        // Return the updated booking details as a response
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
+
+    /**
+     * Handles the process for a car owner to reject a booking with status WAITING_CONFIRMED_RETURN_CAR.
+     * This method updates the booking status to IN_PROGRESS instead of canceling it.
+     *
+     * @param bookingNumber The booking number of the booking with status WAITING_CONFIRMED_RETURN_CAR.
+     * @return BookingResponse containing the updated booking details.
+     */
+    public BookingResponse rejectWaitingConfirmedEarlyReturnCarBooking(String bookingNumber) {
+        // Validate and retrieve the booking, ensuring it belongs to the authenticated car owner
+        Booking booking = validateAndGetBookingCarOwner(bookingNumber);
+
+        // Ensure the booking status is WAITING_CONFIRMED_RETURN_CAR before proceeding
+        if (!EBookingStatus.WAITING_CONFIRMED_RETURN_CAR.equals(booking.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+
+        // Update the booking status to IN_PROGRESS instead of canceling
+        booking.setStatus(EBookingStatus.IN_PROGRESS);
+
+        // Return the updated booking details as a response
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
 
     /**
      * Validates and retrieves a booking based on the booking number.
-     * Ensures that the booking exists and belongs to the currently authenticated user.
+     * Ensures that the booking exists and belongs to the currently authenticated user with role customer.
      *
      * @param bookingNumber The unique identifier of the booking.
      * @return The validated Booking object.
      * @throws AppException If the booking is not found or the user does not have permission to access it.
      */
-    private Booking validateAndGetBooking(String bookingNumber) {
-        // Retrieve the currently authenticated account
+    private Booking validateAndGetBookingCustomer(String bookingNumber) {
+        // Retrieve the currently authenticated account(customer)
         Account account = SecurityUtil.getCurrentAccount();
 
         // Fetch the booking from the database using the booking number
@@ -853,6 +869,40 @@ public class BookingService {
         if (!booking.getAccount().getId().equals(account.getId())) {
             throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
         }
+        return booking;
+    }
+
+    /**
+     * Validates and retrieves a booking based on the booking number.
+     * <p>
+     * This method ensures that:
+     * - The booking exists in the database.
+     * - The currently authenticated user (car owner) is the owner of the car in the booking.
+     * </p>
+     *
+     * @param bookingNumber The unique identifier of the booking.
+     * @return The validated {@link Booking} object if all conditions are met.
+     * @throws AppException If the booking is not found or the authenticated user does not own the car in the booking.
+     */
+    private Booking validateAndGetBookingCarOwner(String bookingNumber) {
+        // Retrieve the booking from the database using the booking number
+        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+
+        // If no booking is found, throw an exception indicating that the booking does not exist
+        if (booking == null) {
+            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+        }
+
+        // Get the currently authenticated user's account ID (car owner)
+        String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Check if the booking belongs to the current car owner
+        if (!booking.getCar().getAccount().getId().equals(accountId)) {
+            // If the user is not the car owner, throw an exception indicating forbidden access
+            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
+        }
+
+        // Return the validated booking object
         return booking;
     }
 
@@ -886,6 +936,42 @@ public class BookingService {
         bookingRepository.saveAndFlush(booking);
     }
 
+    /**
+     * process overdue pick up time and drop off time to reminder customer
+     */
 
+    public void processOverdueBookings() {
+        //find all booking status CONFIRMED with pick up time <= now
+        List<Booking> overdueBookingPickUps = bookingRepository.findOverduePickups(EBookingStatus.CONFIRMED, LocalDateTime.now());
+        //find all booking status IN_PROGRESS with drop off time <= now
+        List<Booking> overdueBookingDropOffs = bookingRepository.findOverdueDropOffs(EBookingStatus.IN_PROGRESS, LocalDateTime.now());
+        //send email reminder
+
+        overdueBookingPickUps.forEach(emailService::sendPickUpReminderEmail);
+        overdueBookingDropOffs.forEach(emailService::sendDropOffReminderEmail);
+    }
+
+    /**
+     * process overdue waiting in status WAITING CONFIRMED AND WAITING CONFIRMED RETURN CAR to auto handle when owner miss
+     */
+    public void processOverdueWaitingBookings() {
+        LocalDateTime now = LocalDateTime.now().minusMinutes(1);
+        //waiting confirm -> cancelled, refund full
+
+        //find all booking will cancel to refund
+        List<Booking> overdueWaitingConfirmBookings = bookingRepository.findOverduePickups(EBookingStatus.WAITING_CONFIRMED, now);
+        //update all bookings status WAITING CONFIRMED with pick up time <= now + 1 minute
+        int updatedWaitingConfirmBookings = bookingRepository.bulkUpdateWaitingConfirmedStatus(EBookingStatus.CANCELLED
+                , EBookingStatus.WAITING_CONFIRMED, now);
+
+        if (updatedWaitingConfirmBookings > 0) {
+            overdueWaitingConfirmBookings.forEach(transactionService::refundAllDeposit);
+        }
+
+        //waiting confirm return car -> in-progress
+        //update all bookings status WAITING CONFIRMED RETURN CAR with drop off time <= now - 1 minute
+        bookingRepository.bulkUpdateWaitingConfirmedReturnCarStatus(EBookingStatus.IN_PROGRESS
+                , EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, now);
+    }
 }
 

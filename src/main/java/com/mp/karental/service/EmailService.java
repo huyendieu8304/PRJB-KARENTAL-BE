@@ -1,6 +1,7 @@
 package com.mp.karental.service;
 
 import com.mp.karental.constant.EBookingStatus;
+import com.mp.karental.entity.Booking;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import jakarta.mail.MessagingException;
@@ -301,6 +302,44 @@ public class EmailService {
             throw new AppException(ErrorCode.SEND_WAITING_CONFIRMED_RETURN_CAR_BOOKING_EMAIL_FAIL);
         }
     }
+
+    // reminder overdue pick up
+    public void sendPickUpReminderEmail(Booking booking) {
+        String subject = "Reminder: Pick up your rental car - Booking #" + booking.getBookingNumber();
+        String message = "Dear " + booking.getAccount().getProfile().getFullName() + ",\n\n"
+                + "According to your booking agreement, your pick-up time was scheduled at "
+                + booking.getPickUpTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) + ".\n\n"
+                + "However, our system has not yet recorded your confirmation of pick-up.\n"
+                + "Please log into the system and confirm your pick-up.\n\n"
+                + "Thank you!\n"
+                + "Best regards,\n"
+                + "Rental Car Service Team";
+        try {
+            sendEmail(booking.getAccount().getEmail(), subject, message);
+        } catch (MessagingException e) {
+            throw new AppException(ErrorCode.SEND_REMINDER_PICK_UP_EMAIL_FAIL);
+        }
+    }
+    // reminder overdue pick up
+    public void sendDropOffReminderEmail(Booking booking) {
+        String subject = "Reminder: Return your rental car - Booking #" + booking.getBookingNumber();
+        String message = "Dear " + booking.getAccount().getProfile().getFullName() + ",\n\n"
+                + "According to your booking agreement, your drop-off time was scheduled at "
+                + booking.getDropOffTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) + ".\n\n"
+                + "However, our system has not yet recorded your confirmation of drop-off.\n"
+                + "Please log into the system and confirm your drop-off.\n\n"
+                + "Thank you!\n"
+                + "Best regards,\n"
+                + "Rental Car Service Team";
+
+        try {
+            sendEmail(booking.getAccount().getEmail(), subject, message);
+        } catch (MessagingException e) {
+            throw new AppException(ErrorCode.SEND_REMINDER_DROP_OFF_EMAIL_FAIL);
+        }
+    }
+
+
 
 
     /**

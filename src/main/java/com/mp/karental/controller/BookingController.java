@@ -183,4 +183,18 @@ public class BookingController {
                 .build();
     }
 
+    @PutMapping("/car-owner/reject-early-return/{bookingNumber}")
+    public ApiResponse<BookingResponse> rejectEarlyReturnCar(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.rejectWaitingConfirmedEarlyReturnCarBooking(bookingNumber))
+                .build();
+    }
+
+    @PutMapping("/car-owner/reject-booking/{bookingNumber}")
+    public ApiResponse<BookingResponse> rejectBooking(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.rejectWaitingConfirmedBooking(bookingNumber))
+                .build();
+    }
+
 }
