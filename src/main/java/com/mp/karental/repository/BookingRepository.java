@@ -4,6 +4,7 @@ import com.mp.karental.entity.Booking;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -152,4 +153,26 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     Optional<Booking> findByBookingNumber(String bookingNumber);
+
+    @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.pickUpTime <= :currentTime")
+    List<Booking> findOverduePickups(@Param("status") EBookingStatus status,@Param("currentTime") LocalDateTime currentTime);
+
+    @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.dropOffTime <= :currentTime")
+    List<Booking> findOverdueDropOffs(@Param("status") EBookingStatus status,@Param("currentTime") LocalDateTime currentTime);
+
+    @Modifying
+    @Query("UPDATE Booking b SET b.status = :newStatus WHERE b.status = :oldStatus AND b.pickUpTime <= :currentTime")
+    int bulkUpdateWaitingConfirmedStatus(
+            @Param("newStatus") EBookingStatus newStatus,
+            @Param("oldStatus") EBookingStatus oldStatus,
+            @Param("currentTime") LocalDateTime currentTime
+    );
+
+    @Modifying
+    @Query("UPDATE Booking b SET b.status = :newStatus WHERE b.status = :oldStatus AND b.dropOffTime <= :currentTime")
+    int bulkUpdateWaitingConfirmedReturnCarStatus(
+            @Param("newStatus") EBookingStatus newStatus,
+            @Param("oldStatus") EBookingStatus oldStatus,
+            @Param("currentTime") LocalDateTime currentTime
+    );
 }

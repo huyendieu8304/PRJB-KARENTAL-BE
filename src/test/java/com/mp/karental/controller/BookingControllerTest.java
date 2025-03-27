@@ -348,4 +348,64 @@ class BookingControllerTest {
                 .andExpect(jsonPath("$.data.carId").value("car-001"));
     }
 
+    @Test
+    void testConfirmEarlyReturn_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR);
+
+        // Mock the service method
+        when(bookingService.confirmEarlyReturnCar(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/car-owner/confirm-early-return/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
+    @Test
+    void testRejectEarlyReturn_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR);
+
+        // Mock the service method
+        when(bookingService.rejectWaitingConfirmedEarlyReturnCarBooking(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/car-owner/reject-early-return/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
+    @Test
+    void testRejectBooking_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED);
+
+        // Mock the service method
+        when(bookingService.rejectWaitingConfirmedBooking(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/car-owner/reject-booking/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
 }
