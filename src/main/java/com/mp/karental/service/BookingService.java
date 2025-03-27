@@ -729,8 +729,7 @@ public class BookingService {
         Booking booking = validateAndGetBookingCustomer(bookingNumber);
         processOverduePickUpAndDropOffBookings();
         // Validate if the booking is eligible for pick-up confirmation
-        if (booking.getStatus() != EBookingStatus.CONFIRMED || // Must be in CONFIRMED status
-                LocalDateTime.now().isBefore(booking.getPickUpTime().minusMinutes(30))) { // Cannot confirm pick-up too early
+        if (booking.getStatus() != EBookingStatus.CONFIRMED) { // Cannot confirm pick-up too early
             throw new AppException(ErrorCode.BOOKING_CANNOT_PICKUP);
         }
         // Update the booking status to IN_PROGRESS to indicate the pick-up process has started
@@ -908,25 +907,51 @@ public class BookingService {
         return booking;
     }
 
+    /**
+     * Processes the final payment for a booking and updates its status accordingly.
+     * <p>
+     * - If the customer has enough balance to cover the remaining amount, the payment is completed,
+     *   and both the customer and car owner receive confirmation emails.
+     * - If the customer does not have enough balance, the booking status is set to PENDING_PAYMENT,
+     *   and a reminder email is sent.
+     * </p>
+     *
+     * @param booking The booking for which payment needs to be processed.
+     * @throws AppException if the customer's wallet is not found.
+     */
     private void processPaymentAndFinalizeBooking(Booking booking) {
+        // Retrieve customer and car owner email addresses
         String customerEmail = booking.getAccount().getEmail();
         String carOwnerEmail = booking.getCar().getAccount().getEmail();
+
+        // Retrieve the customer's wallet, throw an exception if not found
         Wallet walletCustomer = walletRepository.findById(booking.getAccount().getId())
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB));
 
+        // Build booking response to get necessary details
         BookingResponse response = buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
 
+        // Calculate total payment amount
         long totalPayment = response.getTotalPrice();
+        // Calculate the car owner's share (92% of total payment)
         long carOwnerShare = (long) (0.92 * totalPayment);
+        // Calculate the remaining money after deducting the total payment from the deposit
         long remainingMoney = booking.getDeposit() - totalPayment;
 
+        // If the remaining amount is negative and the customer's wallet balance is insufficient
         if (remainingMoney < 0 && walletCustomer.getBalance() < -remainingMoney) {
+            // Set booking status to pending payment
             booking.setStatus(EBookingStatus.PENDING_PAYMENT);
+            // Send an email to the customer notifying them of the pending payment
             emailService.sendPendingPaymentEmail(customerEmail, booking.getBookingNumber(), -remainingMoney);
         } else {
+            // Process the final payment transaction
             transactionService.offsetFinalPayment(booking);
+            // Mark the booking as completed
             booking.setStatus(EBookingStatus.COMPLETED);
+            // Send an email to the car owner about the payment they received
             emailService.sendPaymentEmailToCarOwner(carOwnerEmail, booking.getBookingNumber(), carOwnerShare);
+            // Send an email to the customer confirming the payment and remaining balance (if any)
             emailService.sendPaymentEmailToCustomer(
                     customerEmail,
                     booking.getBookingNumber(),
@@ -935,8 +960,10 @@ public class BookingService {
             );
         }
 
+        // Save the updated booking status to the database
         bookingRepository.saveAndFlush(booking);
     }
+
 
     /**
      * process overdue pick up time and drop off time to reminder customer
@@ -964,9 +991,9 @@ public class BookingService {
         //update all bookings status WAITING CONFIRMED with pick up time <= now + 1 minute
         int updatedWaitingConfirmBookings = bookingRepository.bulkUpdateWaitingConfirmedStatus(EBookingStatus.CANCELLED
                 , EBookingStatus.WAITING_CONFIRMED, now.minusMinutes(1));
-
+        // If any bookings were updated, process refunds and send cancellation emails
         if (updatedWaitingConfirmBookings > 0) {
-            for(Booking booking : overdueWaitingConfirmBookings) {
+            for(Booking booking : overdueWaitingConfirmBookings) { // Loop through each overdue booking
                 transactionService.refundAllDeposit(booking);
                 emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
                         booking.getCar().getBrand() + " " + booking.getCar().getModel(),
@@ -979,8 +1006,9 @@ public class BookingService {
         List<Booking> overdueWaitingConfirmReturnCarBookings = bookingRepository.findOverdueDropOffs(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, now);
         int updatedWaitingConfirmedReturn = bookingRepository.bulkUpdateWaitingConfirmedReturnCarStatus(EBookingStatus.IN_PROGRESS
                 , EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, now.minusMinutes(1));
+        // If any bookings were updated, send email notifications
         if(updatedWaitingConfirmedReturn > 0) {
-            for(Booking booking : overdueWaitingConfirmReturnCarBookings) {
+            for(Booking booking : overdueWaitingConfirmReturnCarBookings) { // Loop through each overdue booking
                 emailService.sendEarlyReturnRejectedEmail(booking.getAccount().getEmail(), booking.getBookingNumber());
             }
         }

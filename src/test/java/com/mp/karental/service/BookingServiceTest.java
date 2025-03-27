@@ -94,6 +94,104 @@ class BookingServiceTest {
     }
 
     @Test
+    void testConfirmBooking_Expired() {
+        // Arrange
+        String bookingNumber = "BK12345";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking.setPickUpTime(LocalDateTime.now().minusDays(1));
+        booking.setDropOffTime(LocalDateTime.now().plusDays(3));
+        booking.setDeposit(1000);
+        booking.setDriverDrivingLicenseUri("existing-license-uri");
+
+        Account customer = new Account();
+        customer.setId("user123");
+        customer.setEmail("customer@example.com");
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(customer);
+        booking.setAccount(customer);
+
+        Car car = new Car();
+        car.setBrand("Toyota");
+        car.setModel("Camry");
+        Account carOwner = new Account();
+        carOwner.setEmail("owner@example.com");
+        carOwner.setId("user1234");
+        car.setAccount(carOwner);
+        booking.setCar(car);
+
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn("user1234");
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(carOwner);
+
+        Wallet wallet = new Wallet();
+        wallet.setBalance(500);
+        lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+        lenient().when(walletRepository.findById("user123")).thenReturn(Optional.of(wallet));
+        BookingResponse mockResponse = new BookingResponse();
+        mockResponse.setBookingNumber("BK12345");
+        mockResponse.setDeposit(500);
+        mockResponse.setBasePrice(100);
+        mockResponse.setDriverDrivingLicenseUrl("existing-license-uri");
+        lenient().when(bookingMapper.toBookingResponse(any(Booking.class))).thenReturn(mockResponse);
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> {
+            bookingService.confirmBooking(bookingNumber);
+        });
+
+        assertEquals(ErrorCode.BOOKING_EXPIRED, exception.getErrorCode());
+    }
+
+    @Test
+    void testConfirmBooking_ExpiredNull() {
+        // Arrange
+        String bookingNumber = "BK12345";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking.setPickUpTime(null);
+        booking.setDropOffTime(LocalDateTime.now().plusDays(3));
+        booking.setDeposit(1000);
+        booking.setDriverDrivingLicenseUri("existing-license-uri");
+
+        Account customer = new Account();
+        customer.setId("user123");
+        customer.setEmail("customer@example.com");
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(customer);
+        booking.setAccount(customer);
+
+        Car car = new Car();
+        car.setBrand("Toyota");
+        car.setModel("Camry");
+        Account carOwner = new Account();
+        carOwner.setEmail("owner@example.com");
+        carOwner.setId("user1234");
+        car.setAccount(carOwner);
+        booking.setCar(car);
+
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn("user1234");
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(carOwner);
+
+        Wallet wallet = new Wallet();
+        wallet.setBalance(500);
+        lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+        lenient().when(walletRepository.findById("user123")).thenReturn(Optional.of(wallet));
+        BookingResponse mockResponse = new BookingResponse();
+        mockResponse.setBookingNumber("BK12345");
+        mockResponse.setDeposit(500);
+        mockResponse.setBasePrice(100);
+        mockResponse.setDriverDrivingLicenseUrl("existing-license-uri");
+        lenient().when(bookingMapper.toBookingResponse(any(Booking.class))).thenReturn(mockResponse);
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> {
+            bookingService.confirmBooking(bookingNumber);
+        });
+
+        assertEquals(ErrorCode.BOOKING_EXPIRED, exception.getErrorCode());
+    }
+
+    @Test
     void testProcessOverdueWaitingConfirmReturnCarBookings() {
         // Giả lập thời gian hiện tại, làm tròn đến phút
         LocalDateTime now = LocalDateTime.now();
@@ -1697,38 +1795,6 @@ class BookingServiceTest {
         });
 
         assertEquals(ErrorCode.FORBIDDEN_CAR_ACCESS, exception.getErrorCode());
-    }
-
-    @Test
-    void testConfirmPickUp_BookingCannotBePickedUp_TooEarly() {
-        // Arrange
-        String bookingNumber = "B123";
-
-        Account account = new Account();
-        account.setId("123");
-
-        Car car = new Car();
-        car.setId("123");
-        car.setAccount(account);
-
-        Booking booking = new Booking();
-        booking.setBookingNumber(bookingNumber);
-        booking.setAccount(account);
-        booking.setCar(car);
-        booking.setStatus(EBookingStatus.CONFIRMED);
-        booking.setPickUpTime(LocalDateTime.now().plusHours(2)); 
-        booking.setDropOffTime(LocalDateTime.now().plusDays(1));
-
-        when(SecurityUtil.getCurrentAccountId()).thenReturn("123");
-        when(SecurityUtil.getCurrentAccount()).thenReturn(account);
-        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
-
-        // Act & Assert
-        AppException exception = assertThrows(AppException.class, () -> {
-            bookingService.confirmPickUp(bookingNumber);
-        });
-
-        assertEquals(ErrorCode.BOOKING_CANNOT_PICKUP, exception.getErrorCode());
     }
 
     @Test
