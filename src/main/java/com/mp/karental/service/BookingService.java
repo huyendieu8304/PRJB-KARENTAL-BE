@@ -437,7 +437,7 @@ public class BookingService {
                 : bookingRepository.findByAccountId(accountId, pageable);
 
         // Convert the list of bookings into a BookingListResponse object to return
-        return getBookingListResponse(bookings);
+        return getBookingListResponse(bookings, true);
     }
 
 
@@ -457,14 +457,14 @@ public class BookingService {
                 ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
                 : bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
 
-        return getBookingListResponse(bookings);
+        return getBookingListResponse(bookings, false);
     }
 
     /**
      * Converts a page of `Booking` objects into `BookingListResponse`.
      * Includes booking details, car images, and additional computed fields.
      */
-    private BookingListResponse getBookingListResponse(Page<Booking> bookings) {
+    private BookingListResponse getBookingListResponse(Page<Booking> bookings, boolean isCustomer) {
         // Retrieve the current user's account ID
         String currentUserId = SecurityUtil.getCurrentAccountId();
 
@@ -490,7 +490,9 @@ public class BookingService {
         });
 
         // Count the number of ongoing bookings for the current user
-        int totalOnGoingBookings = bookingRepository.countOngoingBookingsByCar(
+        // If Customer, get status booking ongoing
+        int totalOnGoingBookings = isCustomer
+                ? bookingRepository.countOngoingBookingsByCar(
                 currentUserId,
                 List.of(
                         EBookingStatus.PENDING_DEPOSIT,
@@ -499,24 +501,17 @@ public class BookingService {
                         EBookingStatus.IN_PROGRESS,
                         EBookingStatus.PENDING_PAYMENT
                 )
-        );
-        System.out.println("totalOnGoingBookings from repo: " + totalOnGoingBookings);
-
+        )
+                : 0;
         // Count the number of bookings that are waiting for confirmation for the car owner
-        int totalWaitingConfirmBooking = bookingRepository.countBookingsByOwnerAndStatus(
-                currentUserId,
-                EBookingStatus.WAITING_CONFIRMED
-        );
-        System.out.println("totalWaitingConfirmBooking from repo: " + totalWaitingConfirmBooking);
-
-
-        System.out.println("Total Ongoing and Waiting Bookings: " + totalOnGoingBookings + " " + totalWaitingConfirmBooking);
-        System.out.println("Total Bookings: " + bookings.getTotalElements());
-        String user = SecurityUtil.getCurrentAccountId();
-        System.out.println("Current User ID: " + user);
+        // If Car Owner, get booking waiting confirm
+        int totalWaitingConfirmBooking = isCustomer
+                ? 0
+                : bookingRepository.countBookingsByOwnerAndStatus(currentUserId, EBookingStatus.WAITING_CONFIRMED);
 
         return new BookingListResponse(totalOnGoingBookings, totalWaitingConfirmBooking, bookingResponses);
     }
+
 
     /**
      * Creates a `Pageable` object for pagination and sorting.

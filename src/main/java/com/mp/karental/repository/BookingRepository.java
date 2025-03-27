@@ -94,18 +94,18 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                            Pageable pageable);
 
     @Query("""
-    SELECT COUNT(b) FROM Booking b 
-    WHERE b.car.account.id = :ownerId 
+    SELECT COUNT(b) FROM Booking b
+    WHERE b.account.id= :customerId
     AND (:statuses IS NULL OR b.status IN :statuses)
 """)
     int countOngoingBookingsByCar(
-            @Param("ownerId") String ownerId,
+            @Param("customerId") String customerId,
             @Param("statuses") List<EBookingStatus> statuses
     );
 
     @Query("""
-    SELECT COUNT(b) FROM Booking b 
-    WHERE b.car.account.id = :ownerId 
+    SELECT COUNT(b) FROM Booking b
+    WHERE b.car.account.id = :ownerId
     AND b.status = :status
 """)
     int countBookingsByOwnerAndStatus(@Param("ownerId") String ownerId,
