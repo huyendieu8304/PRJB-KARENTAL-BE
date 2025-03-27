@@ -22,4 +22,5 @@ public enum ERole {
     ADMIN,
     CAR_OWNER,
     CUSTOMER,
+    OPERATOR,
 }
