@@ -96,6 +96,8 @@ public enum ErrorCode {
     SEND_WAITING_CONFIRMED_RETURN_CAR_BOOKING_EMAIL_FAIL(3038,"There was error during sending waiting confirmed return car email to user", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_REMINDER_PICK_UP_EMAIL_FAIL(3039,"There was error during sending reminder pick up email to user", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_REMINDER_DROP_OFF_EMAIL_FAIL(3040,"There was error during sending reminder drop off email to user", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_EARLY_RETURN_REJECTED_EMAIL_FAIL(3041, "There was error during sending reject early return car email to user", HttpStatus.SERVICE_UNAVAILABLE),
+    EXCEL_DATA_LOAD_FAILED(3042, "Failed to load data from Excel file", HttpStatus.SERVICE_UNAVAILABLE),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),

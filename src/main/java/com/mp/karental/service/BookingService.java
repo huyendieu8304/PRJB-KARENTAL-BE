@@ -815,10 +815,13 @@ public class BookingService {
 
         // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
+        bookingRepository.saveAndFlush(booking);
 
         // Process the refund for the booking deposit
         transactionService.refundAllDeposit(booking);
-
+        emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                "This booking was declined by car owner");
         // Return the updated booking details as a response
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
@@ -841,7 +844,8 @@ public class BookingService {
 
         // Update the booking status to IN_PROGRESS instead of canceling
         booking.setStatus(EBookingStatus.IN_PROGRESS);
-
+        bookingRepository.saveAndFlush(booking);
+        emailService.sendEarlyReturnRejectedEmail(booking.getAccount().getEmail(), bookingNumber);
         // Return the updated booking details as a response
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }

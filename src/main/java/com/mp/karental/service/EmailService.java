@@ -303,6 +303,24 @@ public class EmailService {
         }
     }
 
+    public void sendEarlyReturnRejectedEmail(String to, String bookingNumber) {
+        String subject = "Early Car Return Request Rejected - Booking No: " + bookingNumber;
+        String body = String.format(
+                "Dear Customer,\n\n"
+                        + "Your request to return the car earlier than scheduled for Booking No: %s has been rejected by the car owner.\n"
+                        + "You can continue using the car until the scheduled drop-off time.\n\n"
+                        + "If you have any concerns, please contact the car owner directly.\n\n"
+                        + "Thank you for using our service!\n"
+                        + "Best regards,\n"
+                        + "Your Car Rental Team",
+                bookingNumber);
+        try {
+            sendEmail(to, subject, body);
+        } catch (MessagingException e) {
+            throw new AppException(ErrorCode.SEND_EARLY_RETURN_REJECTED_EMAIL_FAIL);
+        }
+    }
+
     // reminder overdue pick up
     public void sendPickUpReminderEmail(Booking booking) {
         String subject = "Reminder: Pick up your rental car - Booking #" + booking.getBookingNumber();
