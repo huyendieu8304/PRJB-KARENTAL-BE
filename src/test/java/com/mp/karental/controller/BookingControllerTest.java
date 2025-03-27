@@ -30,6 +30,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -76,22 +78,22 @@ class BookingControllerTest {
         createBookingRequest.setPickUpLocation("Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma");
 
         bookingResponse = new BookingResponse();
-        bookingResponse.setBookingNumber("BK123456"); 
+        bookingResponse.setBookingNumber("BK123456");
 
     }
 
     @Test
     void testCreateBooking_MultipartFormData() throws Exception {
-        
+
         BookingResponse bookingResponse = new BookingResponse();
         bookingResponse.setBookingNumber("BK123456");
         bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED);
 
         when(bookingService.createBooking(any(CreateBookingRequest.class))).thenReturn(bookingResponse);
 
-        
+
         mockMvc.perform(multipart("/booking/customer/create-book")
-                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) 
+                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes()))
                         .param("carId", "123")
                         .param("driverFullName", "John Doe")
                         .param("driverPhoneNumber", "0123456789")
@@ -103,8 +105,8 @@ class BookingControllerTest {
                         .param("driverWard", "Phường Phúc Xá")
                         .param("driverHouseNumberStreet", "123 Kim Ma")
                         .param("pickUpLocation", "Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma")
-                        .param("pickUpTime", "2025-03-25T07:00:00")
-                        .param("dropOffTime", "2025-03-25T10:00:00")
+                        .param("pickUpTime", LocalDateTime.now().plusDays(1).withHour(7).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")))
+                        .param("dropOffTime", LocalDateTime.now().plusDays(2).withHour(7).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")))
                         .param("paymentType", EPaymentType.WALLET.name())
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isOk());
@@ -248,12 +250,12 @@ class BookingControllerTest {
 
     @Test
     void getWallet_Success() throws Exception {
-        
+
         WalletResponse mockWalletResponse = new WalletResponse("user123", 500000);
 
         when(bookingService.getWallet()).thenReturn(mockWalletResponse);
 
-        
+
         mockMvc.perform(get("/booking/get-wallet")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

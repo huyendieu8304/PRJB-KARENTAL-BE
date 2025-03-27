@@ -8,7 +8,9 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -31,8 +33,9 @@ public class EmailService {
 
     JavaMailSender mailSender;
 
-    //    @Value("${spring.mail.username}")
-    private static String fromEmail = "childrencaresystemse1874@gmail.com"; // replace with your email
+    @Value("${application.email}")
+    @NonFinal
+    private String fromEmail;
 
     //REGISTER
 
@@ -41,7 +44,6 @@ public class EmailService {
      *
      * @param to         Recipient's email address.
      * @param confirmUrl URL for email verification.
-     * @throws MessagingException If an error occurs while sending the email.
      */
     public void sendRegisterEmail(String to, String confirmUrl) {
         String subject = "Welcome to Karental, " + to;
@@ -64,7 +66,6 @@ public class EmailService {
      *
      * @param to                Recipient's email address.
      * @param forgotPasswordUrl URL for password reset.
-     * @throws MessagingException If an error occurs while sending the email.
      */
     public void sendForgotPasswordEmail(String to, String forgotPasswordUrl) {
         String subject = "Rent-a-car Password Reset";
@@ -123,8 +124,8 @@ public class EmailService {
 
     //    //CANCEL BOOKING
     public void sendBookingCancellationEmailToCustomer(String to, EBookingStatus bookingStatus, String bookingNumber, String carName) {
-        String subject = "";
-        String body = "";
+        String subject;
+        String body;
 
         subject = "Booking Cancellation Successful";
 
@@ -193,7 +194,6 @@ public class EmailService {
      * @param to            The recipient's email address (customer).
      * @param carName       The name of the booked car.
      * @param bookingNumber The unique booking number.
-     * @throws MessagingException If an error occurs while sending the email.
      */
     public void sendConfirmBookingEmail(String to, String carName, String bookingNumber) {
         // Email subject including the booking number
@@ -307,7 +307,6 @@ public class EmailService {
      *
      * @param to        Recipient's email address.
      * @param walletUrl URL to view the wallet balance and transactions.
-     * @throws MessagingException If an error occurs while sending the email.
      */
     public void sendWalletUpdateEmail(String to, String walletUrl){
         String subject = "There’s an update to your wallet";

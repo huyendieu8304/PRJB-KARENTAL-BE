@@ -11,6 +11,7 @@ import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.CarService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -37,11 +38,12 @@ import java.time.format.DateTimeParseException;
  * @version 1.0
  */
 @RestController
-@RequestMapping("/car")
+@RequestMapping(value = "/car", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 @Validated
+@Tag(name = "Car", description = "API for managing car")
 public class CarController {
     CarService carService;
 
@@ -52,7 +54,7 @@ public class CarController {
      * @return ApiResponse containing the newly added car details.
      */
     @PostMapping(value = "/car-owner/add-car", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<CarResponse> addNewCar(@ModelAttribute @Valid AddCarRequest request) {
+    public ApiResponse<CarResponse> addNewCar(@ModelAttribute @Valid AddCarRequest request) {
         log.info("add new car {}", request);
         return ApiResponse.<CarResponse>builder()
                 .data(carService.addNewCar(request))
@@ -68,7 +70,7 @@ public class CarController {
      * @return ApiResponse containing the updated car details.
      */
     @PutMapping(value = "/car-owner/edit-car/{carId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<CarResponse> editCar(@ModelAttribute @Valid EditCarRequest request, @PathVariable String carId) {
+    public ApiResponse<CarResponse> editCar(@ModelAttribute @Valid EditCarRequest request, @PathVariable String carId) {
         log.info("edit car {}", request);
         return ApiResponse.<CarResponse>builder()
                 .data(carService.editCar(request, carId))

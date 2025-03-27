@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 /logs/
+/deploy/nginx/certs/fullchain.pem
+/deploy/nginx/certs/private.pem
+/deploy/.env

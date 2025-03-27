@@ -1,5 +1,6 @@
 package com.mp.karental.dto.response.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -18,8 +19,11 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
+@Schema(name = "response.auth.LoginResponse", description = "Data return after login success fully")
 public class LoginResponse {
+    @Schema(example = "CUSTOMER")
     String userRole;
+    @Schema(example = "Nguyễn Thị Bích")
     String fullName;
 
 }
