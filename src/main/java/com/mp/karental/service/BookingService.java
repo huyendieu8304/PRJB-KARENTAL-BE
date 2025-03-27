@@ -956,23 +956,34 @@ public class BookingService {
      * process overdue waiting in status WAITING CONFIRMED AND WAITING CONFIRMED RETURN CAR to auto handle when owner miss
      */
     public void processOverdueWaitingBookings() {
-        LocalDateTime now = LocalDateTime.now().minusMinutes(1);
+        LocalDateTime now = LocalDateTime.now();
         //waiting confirm -> cancelled, refund full
 
         //find all booking will cancel to refund
         List<Booking> overdueWaitingConfirmBookings = bookingRepository.findOverduePickups(EBookingStatus.WAITING_CONFIRMED, now);
         //update all bookings status WAITING CONFIRMED with pick up time <= now + 1 minute
         int updatedWaitingConfirmBookings = bookingRepository.bulkUpdateWaitingConfirmedStatus(EBookingStatus.CANCELLED
-                , EBookingStatus.WAITING_CONFIRMED, now);
+                , EBookingStatus.WAITING_CONFIRMED, now.minusMinutes(1));
 
         if (updatedWaitingConfirmBookings > 0) {
-            overdueWaitingConfirmBookings.forEach(transactionService::refundAllDeposit);
+            for(Booking booking : overdueWaitingConfirmBookings) {
+                transactionService.refundAllDeposit(booking);
+                emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
+                        booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                        "This booking was declined by car owner");
+            }
         }
 
         //waiting confirm return car -> in-progress
         //update all bookings status WAITING CONFIRMED RETURN CAR with drop off time <= now - 1 minute
-        bookingRepository.bulkUpdateWaitingConfirmedReturnCarStatus(EBookingStatus.IN_PROGRESS
-                , EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, now);
+        List<Booking> overdueWaitingConfirmReturnCarBookings = bookingRepository.findOverdueDropOffs(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, now);
+        int updatedWaitingConfirmedReturn = bookingRepository.bulkUpdateWaitingConfirmedReturnCarStatus(EBookingStatus.IN_PROGRESS
+                , EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, now.minusMinutes(1));
+        if(updatedWaitingConfirmedReturn > 0) {
+            for(Booking booking : overdueWaitingConfirmReturnCarBookings) {
+                emailService.sendEarlyReturnRejectedEmail(booking.getAccount().getEmail(), booking.getBookingNumber());
+            }
+        }
     }
 }
 

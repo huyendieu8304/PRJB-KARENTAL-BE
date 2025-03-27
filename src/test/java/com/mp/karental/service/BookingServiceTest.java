@@ -37,10 +37,8 @@ import static org.mockito.ArgumentMatchers.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -81,8 +79,6 @@ class BookingServiceTest {
     @Mock
     private MultipartFile mockFile;
 
-
-
     private MockedStatic<SecurityUtil> mockedSecurityUtil;
     private String accountId;
 
@@ -95,6 +91,177 @@ class BookingServiceTest {
     @AfterEach
     void tearDown() {
         mockedSecurityUtil.close();
+    }
+
+    @Test
+    void testProcessOverdueWaitingConfirmReturnCarBookings() {
+        // Giả lập thời gian hiện tại, làm tròn đến phút
+        LocalDateTime now = LocalDateTime.now();
+        Account account = new Account();
+        account.setId(accountId);
+        account.setEmail("customer@mail.com");
+
+        Account owner = new Account();
+        owner.setId(accountId);
+        owner.setEmail("owner@mail.com");
+        Car car = new Car();
+        car.setId("123");
+        car.setAccount(owner);
+
+        Car car2 = new Car();
+        car.setId("1234");
+        car.setAccount(owner);
+        // Tạo danh sách booking quá hạn
+        Booking booking1 = new Booking();
+        booking1.setBookingNumber("1");
+        booking1.setDropOffTime(now.minusMinutes(5)); // 5 phút trước
+        booking1.setStatus(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR);
+        booking1.setAccount(account);
+        booking1.setCar(car);
+
+        Booking booking2 = new Booking();
+        booking2.setBookingNumber("2");
+        booking2.setDropOffTime(now.minusMinutes(10)); // 10 phút trước
+        booking2.setStatus(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR);
+        booking2.setAccount(account);
+        booking2.setCar(car2);
+
+        List<Booking> overdueBookings = Arrays.asList(booking1, booking2);
+
+        // Mock repository với cùng thời gian đã làm tròn
+        lenient().when(bookingRepository.findOverdueDropOffs(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, now))
+                .thenReturn(overdueBookings);
+
+        lenient().when(bookingRepository.bulkUpdateWaitingConfirmedReturnCarStatus(EBookingStatus.IN_PROGRESS,
+                        EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, now.minusMinutes(1)))
+                .thenReturn(2);
+
+        // Gọi method cần test
+        bookingService.processOverdueWaitingBookings();
+
+
+        // Kiểm tra email có được gửi không
+        lenient().doAnswer(invocation -> {
+            System.out.println("Email sent: " + Arrays.toString(invocation.getArguments()));
+            return null;
+        }).when(emailService).sendEarlyReturnRejectedEmail(anyString(), anyString());
+
+        // Kiểm tra repository có được gọi đúng không
+        verify(bookingRepository, times(1)).findOverdueDropOffs(eq(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR), any());
+        verify(bookingRepository, times(1)).bulkUpdateWaitingConfirmedReturnCarStatus(eq(EBookingStatus.IN_PROGRESS),
+                eq(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR), any());
+    }
+
+    @Test
+    void testProcessOverdueWaitingConfirmBookings() {
+        // Giả lập thời gian hiện tại, làm tròn đến phút
+        LocalDateTime now = LocalDateTime.now();
+        Account account = new Account();
+        account.setId(accountId);
+        account.setEmail("customer@mail.com");
+        Account owner = new Account();
+        owner.setId(accountId);
+        owner.setEmail("owner@mail.com");
+        Car car = new Car();
+        car.setId("123");
+        car.setAccount(owner);
+
+        Car car2 = new Car();
+        car.setId("1234");
+        car.setAccount(owner);
+        // Tạo danh sách booking quá hạn
+        Booking booking1 = new Booking();
+        booking1.setBookingNumber("1");
+        booking1.setPickUpTime(now.minusMinutes(5)); // 5 phút trước
+        booking1.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking1.setAccount(account);
+        booking1.setCar(car);
+
+        Booking booking2 = new Booking();
+        booking2.setBookingNumber("2");
+        booking2.setPickUpTime(now.minusMinutes(10)); // 10 phút trước
+        booking2.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        booking2.setAccount(account);
+        booking2.setCar(car2);
+
+        List<Booking> overdueBookings = Arrays.asList(booking1, booking2);
+
+        // Mock repository với cùng thời gian đã làm tròn
+        lenient().when(bookingRepository.findOverduePickups(EBookingStatus.WAITING_CONFIRMED, now))
+                .thenReturn(overdueBookings);
+
+        lenient().when(bookingRepository.bulkUpdateWaitingConfirmedStatus(EBookingStatus.CANCELLED,
+                        EBookingStatus.WAITING_CONFIRMED, now.minusMinutes(1)))
+                .thenReturn(2);
+
+        // Gọi method cần test
+        bookingService.processOverdueWaitingBookings();
+
+        // Kiểm tra refund có được gọi không
+        lenient().doAnswer(invocation -> {
+            System.out.println("Email sent: " + Arrays.toString(invocation.getArguments()));
+            return null;
+        }).when(transactionService).refundAllDeposit(any(Booking.class));
+
+        // Kiểm tra email có được gửi không
+        lenient().doAnswer(invocation -> {
+            System.out.println("Email sent: " + Arrays.toString(invocation.getArguments()));
+            return null;
+        }).when(emailService).sendCancelledBookingEmail(anyString(), anyString(), anyString());
+
+        // Kiểm tra repository có được gọi đúng không
+        verify(bookingRepository, times(1)).findOverduePickups(eq(EBookingStatus.WAITING_CONFIRMED), any());
+        verify(bookingRepository, times(1)).bulkUpdateWaitingConfirmedStatus(eq(EBookingStatus.CANCELLED),
+                eq(EBookingStatus.WAITING_CONFIRMED), any());
+    }
+
+    @Test
+    void testConfirmBooking_InvalidStatus() {
+        // Arrange
+        String bookingNumber = "BK12345";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(null);
+        booking.setPickUpTime(LocalDateTime.now().plusDays(2));
+        booking.setDropOffTime(LocalDateTime.now().plusDays(3));
+        booking.setDeposit(1000);
+        booking.setDriverDrivingLicenseUri("existing-license-uri");
+
+        Account customer = new Account();
+        customer.setId("user123");
+        customer.setEmail("customer@example.com");
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(customer);
+        booking.setAccount(customer);
+
+        Car car = new Car();
+        car.setBrand("Toyota");
+        car.setModel("Camry");
+        Account carOwner = new Account();
+        carOwner.setEmail("owner@example.com");
+        carOwner.setId("user1234");
+        car.setAccount(carOwner);
+        booking.setCar(car);
+
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn("user1234");
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(carOwner);
+
+        Wallet wallet = new Wallet();
+        wallet.setBalance(500);
+        lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+        lenient().when(walletRepository.findById("user123")).thenReturn(Optional.of(wallet));
+        BookingResponse mockResponse = new BookingResponse();
+        mockResponse.setBookingNumber("BK12345");
+        mockResponse.setDeposit(500);
+        mockResponse.setBasePrice(100);
+        mockResponse.setDriverDrivingLicenseUrl("existing-license-uri");
+        lenient().when(bookingMapper.toBookingResponse(any(Booking.class))).thenReturn(mockResponse);
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> {
+            bookingService.confirmBooking(bookingNumber);
+        });
+
+        assertEquals(ErrorCode.INVALID_BOOKING_STATUS, exception.getErrorCode());
     }
 
     @Test
@@ -140,7 +307,6 @@ class BookingServiceTest {
         assertEquals(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, booking.getStatus());
         verify(emailService, times(1)).sendWaitingConfirmReturnCarEmail("owner@example.com", bookingNumber);
     }
-
 
     @Test
     void testConfirmReturn_InvalidStatus() {

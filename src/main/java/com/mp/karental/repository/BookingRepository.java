@@ -170,7 +170,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Modifying
     @Query("UPDATE Booking b SET b.status = :newStatus WHERE b.status = :oldStatus AND b.dropOffTime <= :currentTime")
-    void bulkUpdateWaitingConfirmedReturnCarStatus(
+    int bulkUpdateWaitingConfirmedReturnCarStatus(
             @Param("newStatus") EBookingStatus newStatus,
             @Param("oldStatus") EBookingStatus oldStatus,
             @Param("currentTime") LocalDateTime currentTime
