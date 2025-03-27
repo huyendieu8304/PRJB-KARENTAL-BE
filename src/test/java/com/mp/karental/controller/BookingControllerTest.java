@@ -78,22 +78,22 @@ class BookingControllerTest {
         createBookingRequest.setPickUpLocation("Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma");
 
         bookingResponse = new BookingResponse();
-        bookingResponse.setBookingNumber("BK123456"); 
+        bookingResponse.setBookingNumber("BK123456");
 
     }
 
     @Test
     void testCreateBooking_MultipartFormData() throws Exception {
-        
+
         BookingResponse bookingResponse = new BookingResponse();
         bookingResponse.setBookingNumber("BK123456");
         bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED);
 
         when(bookingService.createBooking(any(CreateBookingRequest.class))).thenReturn(bookingResponse);
 
-        
+
         mockMvc.perform(multipart("/booking/customer/create-book")
-                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes())) 
+                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes()))
                         .param("carId", "123")
                         .param("driverFullName", "John Doe")
                         .param("driverPhoneNumber", "0123456789")
@@ -250,12 +250,12 @@ class BookingControllerTest {
 
     @Test
     void getWallet_Success() throws Exception {
-        
+
         WalletResponse mockWalletResponse = new WalletResponse("user123", 500000);
 
         when(bookingService.getWallet()).thenReturn(mockWalletResponse);
 
-        
+
         mockMvc.perform(get("/booking/get-wallet")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

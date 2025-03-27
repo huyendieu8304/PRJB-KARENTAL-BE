@@ -1,15 +1,14 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.constant.ETransactionType;
-
 import com.mp.karental.dto.request.transaction.TransactionRequest;
 import com.mp.karental.dto.response.ApiResponse;
-
 import com.mp.karental.dto.response.transaction.ListTransactionResponse;
 import com.mp.karental.dto.response.transaction.TransactionPaymentURLResponse;
 import com.mp.karental.dto.response.transaction.TransactionResponse;
 import com.mp.karental.service.TransactionService;
 import com.mp.karental.util.RequestUtil;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -17,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,11 +24,12 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/transaction")
+@RequestMapping(value = "/transaction", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 @Validated
+@Tag(name = "Transaction", description = "API for managing transaction")
 public class TransactionController {
     TransactionService transactionService;
     @GetMapping(value="/transaction-list", params = { "from", "to" })
@@ -51,7 +52,7 @@ public class TransactionController {
 
     }
     @PostMapping("/top-up")
-    ApiResponse<TransactionPaymentURLResponse> topUp(@RequestBody @Valid TransactionRequest transactionRequest, HttpServletRequest httpServletRequest) {
+    public ApiResponse<TransactionPaymentURLResponse> topUp(@RequestBody @Valid TransactionRequest transactionRequest, HttpServletRequest httpServletRequest) {
         var ipAddress = RequestUtil.getIpAddress(httpServletRequest);
         transactionRequest.setIpAddress(ipAddress);
         log.info("Transaction Request: {}", transactionRequest);
@@ -61,17 +62,17 @@ public class TransactionController {
                 .build();
     }
     @PostMapping("/withdraw")
-    ApiResponse<TransactionPaymentURLResponse> withdraw(@RequestBody @Valid TransactionRequest transactionRequest, HttpServletRequest httpServletRequest) {
+    public ApiResponse<TransactionResponse> withdraw(@RequestBody @Valid TransactionRequest transactionRequest, HttpServletRequest httpServletRequest) {
         var ipAddress = RequestUtil.getIpAddress(httpServletRequest);
         transactionRequest.setIpAddress(ipAddress);
         log.info("Transaction Request: {}", transactionRequest);
         transactionRequest.setType(ETransactionType.WITHDRAW);
-        return ApiResponse.<TransactionPaymentURLResponse>builder()
-                .data(transactionService.createTransactionTopUp(transactionRequest))
+        return ApiResponse.<TransactionResponse>builder()
+                .data(transactionService.withdraw(transactionRequest.getAmount()))
                 .build();
     }
     @GetMapping("{transactionId}/status")
-    ApiResponse<TransactionResponse> getTransaction(@PathVariable String transactionId, @RequestParam Map<String, String> params) {
+    public ApiResponse<TransactionResponse> getTransaction(@PathVariable String transactionId, @RequestParam Map<String, String> params) {
             return ApiResponse.<TransactionResponse>builder()
                     .data(transactionService.getTransactionStatus(transactionId, params))
                     .build();

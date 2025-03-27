@@ -1,4 +1,6 @@
 package com.mp.karental.service;
+import com.mp.karental.exception.AppException;
+import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.ExcelService;
 import org.apache.poi.ss.usermodel.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +40,9 @@ class ExcelServiceTest {
 
     @Mock
     private Cell cell;
+
+    @Mock
+    private ClassPathResource classPathResource;
 
     private ExcelService excelService;
 
@@ -297,6 +302,18 @@ class ExcelServiceTest {
     void testExcelServiceConstructor_Success() {
         // Test initialization with valid file paths
         assertDoesNotThrow(() -> new ExcelService());
+    }
+
+    @Test
+    void loadExcel_getInputStreamFail() throws IOException {
+        String filePath = "file.xls";
+        String dataType = "address";
+        //set up
+        lenient().when(classPathResource.getInputStream()).thenThrow(IOException.class);
+
+        AppException exception = assertThrows(AppException.class, () -> excelService.loadExcelData(filePath,dataType));
+
+        assertEquals(ErrorCode.EXCEL_DATA_LOAD_FAILED, exception.getErrorCode());
     }
 
 }

@@ -11,15 +11,6 @@ public class TransactionTypeValidator implements ConstraintValidator<ValidTransa
 
     @Override
     public boolean isValid(ETransactionType type, ConstraintValidatorContext constraintValidatorContext) {
-//        if (type == null) {
-//            return false; // Reject null values
-//        }
-//        for(ETransactionType etype: ETransactionType.values()){
-//            if(type.equals(etype)){
-//                return true;
-//            }
-//        }
-//        return false;
         return type!=null && EnumSet.allOf(ETransactionType.class).contains(type);
     }
 }

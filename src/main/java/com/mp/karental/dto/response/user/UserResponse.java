@@ -1,6 +1,7 @@
 package com.mp.karental.dto.response.user;
 
 import com.mp.karental.entity.Role;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -20,10 +21,18 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
+@Schema(name = "response.user.UserResponse", description = "Data of an user")
 public class UserResponse {
+    @Schema(description = "User's full name", example = "Nguyễn Thị Bích")
     String fullName;
+
+    @Schema(description = "User's email", example = "bich@example.com")
     String email;
+
+    @Schema(description = "User's phone number", example = "0123456789")
     String phoneNumber;
+
+    @Schema(description = "User's role", example = "CUSTOMER")
     String role;
 
 }
