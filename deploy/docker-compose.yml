@@ -30,14 +30,15 @@ services:
       - app
     networks:
       - internal
+  #  certbot:
+  #    image: certbot/certbot:v3.2.0
+  #    container_name: certbot
+  #    volumes:
+  #      - ./certbot/www:/var/www/certbot
+  #      - ./certbot/conf:/etc/letsencrypt
+  #    command: certonly --webroot --webroot-path /var/www/certbot --email your-email@example.com -d 3.0.229.253 --agree-tos --no-eff-email
 
-#  certbot:
-#    image: certbot/certbot:v3.2.0
-#    container_name: certbot
-#    volumes:
-#      - ./certbot/www:/var/www/certbot
-#      - ./certbot/conf:/etc/letsencrypt
-#    command: certonly --webroot --webroot-path /var/www/certbot --email your-email@example.com -d 3.0.229.253 --agree-tos --no-eff-email
+
 
   app:
     image: huyendieu8304/karental:1.0

@@ -48,6 +48,5 @@ then push the image to docker hub `docker push huyendieu8304/karental:<tagname>`
 ## Run docker compose
 To run docker compose you have to :
 1. install docker compose on your server
-2. upload all the  /deploy to your server
-2. cd to deploy
-3. run `docker compose down` then `docker compose up`
+2. upload all the directory /deploy to your server 
+3. cd to deploy , run `docker compose down` then `docker compose up`
