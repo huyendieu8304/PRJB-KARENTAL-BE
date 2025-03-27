@@ -649,7 +649,7 @@ public class BookingService {
         log.info("Car owner {} is confirming booking {}", SecurityUtil.getCurrentAccount().getId(), bookingNumber);
         Booking booking = validateAndGetBookingCarOwner(bookingNumber);
         // Ensure the booking status is valid for confirmation
-        if (booking.getStatus() == null || !EBookingStatus.WAITING_CONFIRMED.equals(booking.getStatus())) {
+        if (!EBookingStatus.WAITING_CONFIRMED.equals(booking.getStatus())) {
             throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
         }
         processOverdueWaitingBookings();
@@ -729,7 +729,7 @@ public class BookingService {
      */
     public BookingResponse confirmPickUp(String bookingNumber) {
         Booking booking = validateAndGetBookingCustomer(bookingNumber);
-        processOverdueBookings();
+        processOverduePickUpAndDropOffBookings();
         // Validate if the booking is eligible for pick-up confirmation
         if (booking.getStatus() != EBookingStatus.CONFIRMED || // Must be in CONFIRMED status
                 LocalDateTime.now().isBefore(booking.getPickUpTime().minusMinutes(30))) { // Cannot confirm pick-up too early
@@ -762,7 +762,7 @@ public class BookingService {
         if (booking.getStatus() != EBookingStatus.IN_PROGRESS) {
             throw new AppException(ErrorCode.CAR_CANNOT_RETURN);
         }
-        processOverdueBookings();
+        processOverduePickUpAndDropOffBookings();
         if (LocalDateTime.now().isBefore(booking.getDropOffTime())) {
             //set the status of booking to WAITING_CONFIRMED_RETURN_CAR
             booking.setStatus(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR);
@@ -787,7 +787,7 @@ public class BookingService {
     public BookingResponse confirmEarlyReturnCar(String bookingNumber) {
         // Fetch the booking from the database using the booking number
         Booking booking = validateAndGetBookingCarOwner(bookingNumber);
-        if (booking.getStatus() == null || !EBookingStatus.WAITING_CONFIRMED_RETURN_CAR.equals(booking.getStatus())) {
+        if (!EBookingStatus.WAITING_CONFIRMED_RETURN_CAR.equals(booking.getStatus())) {
             throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
         }
         processOverdueWaitingBookings();
@@ -943,8 +943,7 @@ public class BookingService {
     /**
      * process overdue pick up time and drop off time to reminder customer
      */
-
-    public void processOverdueBookings() {
+    public void processOverduePickUpAndDropOffBookings() {
         //find all booking status CONFIRMED with pick up time <= now
         List<Booking> overdueBookingPickUps = bookingRepository.findOverduePickups(EBookingStatus.CONFIRMED, LocalDateTime.now());
         //find all booking status IN_PROGRESS with drop off time <= now

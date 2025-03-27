@@ -15,15 +15,23 @@ import org.springframework.stereotype.Component;
 public class BookingScheduler {
     BookingService bookingService;
 
-    @Scheduled(cron = "0 0 6,22 * * *") // check on 6h and 22h
+    /**
+     * check at 6 and 22h every day, if a booking have status confirmed or in-progress overdue pick up time
+     * or drop off time will send email reminder
+     */
+    @Scheduled(cron = "0 0 6,22 * * *") // check at 6h and 22h
     //@Scheduled(cron = "0 33 15 * * *") //test
     //@Scheduled(fixedDelay = 1000) // test
-    public void checkOverdueBookings() {
+    public void checkOverduePickUpAndDropOffBookings() {
         log.info("Checking overdue bookings...");
-        bookingService.processOverdueBookings(); // both pick up time and drop off time
+        bookingService.processOverduePickUpAndDropOffBookings(); // both pick up time and drop off time
     }
 
-    @Scheduled(cron = "0 0 6,22 * * *") // check on 6h and 22h
+    /**
+     * check at 6 and 22h every day, if a booking have status waiting confirm
+     * or waiting confirm return car will update by method processOverdueWaitingBookings
+     */
+    @Scheduled(cron = "0 0 6,22 * * *") // check at 6h and 22h
     public void checkOverdueWaitingBookings() {
         log.info("Checking overdue waiting bookings...");
         bookingService.processOverdueWaitingBookings();
