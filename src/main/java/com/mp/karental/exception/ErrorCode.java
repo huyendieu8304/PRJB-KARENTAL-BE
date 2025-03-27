@@ -78,7 +78,7 @@ public enum ErrorCode {
     SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3016, "There was error during sending forgot password email, please try again.", HttpStatus.SERVICE_UNAVAILABLE),
     TRANSACTION_NOT_FOUND_IN_DB(3017, "The transaction is not exist in the system", HttpStatus.NOT_FOUND),
     BOOKING_NOT_FOUND_IN_DB(3018, "The booking is not exist in the system", HttpStatus.NOT_FOUND),
-    BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
+    BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in its current status.", HttpStatus.BAD_REQUEST),
     INVALID_BOOKING_STATUS(3020, "This booking cannot be confirmed due to its current status.", HttpStatus.BAD_REQUEST),
     BOOKING_EXPIRED(3021, "This booking has expired and cannot be confirmed.", HttpStatus.BAD_REQUEST),
 

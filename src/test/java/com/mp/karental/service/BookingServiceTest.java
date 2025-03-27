@@ -98,6 +98,100 @@ class BookingServiceTest {
     }
 
     @Test
+    void testReturnCarEarly_Success() {
+        // Arrange
+        String bookingNumber = "BK12345";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(EBookingStatus.IN_PROGRESS);
+        booking.setPickUpTime(LocalDateTime.now().minusDays(2));
+        booking.setDropOffTime(LocalDateTime.now().plusDays(2));
+        booking.setDeposit(1000);
+        booking.setDriverDrivingLicenseUri("existing-license-uri");
+
+        Account customer = new Account();
+        customer.setId("user123");
+        customer.setEmail("customer@example.com");
+        when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
+        when(SecurityUtil.getCurrentAccount()).thenReturn(customer);
+        booking.setAccount(customer);
+
+        Car car = new Car();
+        Account carOwner = new Account();
+        carOwner.setEmail("owner@example.com");
+        car.setAccount(carOwner);
+        booking.setCar(car);
+
+        Wallet wallet = new Wallet();
+        wallet.setBalance(500);
+        lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+        lenient().when(walletRepository.findById("user123")).thenReturn(Optional.of(wallet));
+        BookingResponse mockResponse = new BookingResponse();
+        mockResponse.setBookingNumber("BK12345");
+        mockResponse.setDeposit(500);
+        mockResponse.setBasePrice(100);
+        mockResponse.setDriverDrivingLicenseUrl("existing-license-uri");
+        lenient().when(bookingMapper.toBookingResponse(any(Booking.class))).thenReturn(mockResponse);
+        // Act
+        BookingResponse response = bookingService.returnCar(bookingNumber);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR, booking.getStatus());
+        verify(emailService, times(1)).sendWaitingConfirmReturnCarEmail("owner@example.com", bookingNumber);
+    }
+
+
+    @Test
+    void testConfirmReturn_InvalidStatus() {
+        // Arrange
+        String bookingNumber = "BK12345";
+        Booking booking = new Booking();
+        booking.setBookingNumber(bookingNumber);
+        booking.setStatus(null);
+        booking.setPickUpTime(LocalDateTime.now().plusDays(2));
+        booking.setDropOffTime(LocalDateTime.now().plusDays(3));
+        booking.setDeposit(1000);
+        booking.setDriverDrivingLicenseUri("existing-license-uri");
+
+        Account customer = new Account();
+        customer.setId("user123");
+        customer.setEmail("customer@example.com");
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(customer);
+        booking.setAccount(customer);
+
+        Car car = new Car();
+        car.setBrand("Toyota");
+        car.setModel("Camry");
+        Account carOwner = new Account();
+        carOwner.setEmail("owner@example.com");
+        carOwner.setId("user1234");
+        car.setAccount(carOwner);
+        booking.setCar(car);
+
+        lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn("user1234");
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(carOwner);
+
+        Wallet wallet = new Wallet();
+        wallet.setBalance(500);
+        lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
+        lenient().when(walletRepository.findById("user123")).thenReturn(Optional.of(wallet));
+        BookingResponse mockResponse = new BookingResponse();
+        mockResponse.setBookingNumber("BK12345");
+        mockResponse.setDeposit(500);
+        mockResponse.setBasePrice(100);
+        mockResponse.setDriverDrivingLicenseUrl("existing-license-uri");
+        lenient().when(bookingMapper.toBookingResponse(any(Booking.class))).thenReturn(mockResponse);
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> {
+            bookingService.confirmEarlyReturnCar(bookingNumber);
+        });
+
+        assertEquals(ErrorCode.INVALID_BOOKING_STATUS, exception.getErrorCode());
+    }
+
+    @Test
     void testRejectReturn_InvalidStatus() {
         // Arrange
         String bookingNumber = "BK12345";
@@ -625,13 +719,49 @@ class BookingServiceTest {
         assertEquals(EBookingStatus.CANCELLED, existingBooking.getStatus()); 
     }
 
+    @Test
+    void testCancelBooking_PendingDeposit_ShouldRefundFullDeposit() {
+        // Arrange
+        Account account = new Account();
+        account.setId(accountId);
+        Car car = new Car();
+        car.setId("123");
+        car.setAccount(account);
+
+        Booking existingBooking = new Booking();
+        existingBooking.setBookingNumber("BK123");
+        existingBooking.setAccount(account);
+        existingBooking.setCar(car);
+        existingBooking.setStatus(EBookingStatus.PENDING_DEPOSIT);
+        existingBooking.setPickUpTime(LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0));
+        existingBooking.setDropOffTime(LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0));
+        existingBooking.setDriverDrivingLicenseUri("abc");
+
+
+        when(bookingRepository.findBookingByBookingNumber("BK123")).thenReturn(existingBooking);
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(account);
+
+        BookingResponse mockResponse = new BookingResponse();
+        mockResponse.setBookingNumber("BK12345");
+        mockResponse.setDeposit(500);
+        mockResponse.setBasePrice(100);
+        mockResponse.setDriverDrivingLicenseUrl("existing-license-uri");
+        when(bookingMapper.toBookingResponse(any(Booking.class))).thenReturn(mockResponse);
+        // Act
+        BookingResponse response = bookingService.cancelBooking("BK123");
+
+        // Assert
+        verify(bookingRepository, times(1)).saveAndFlush(existingBooking);
+        assertEquals(EBookingStatus.CANCELLED, existingBooking.getStatus());
+    }
 
     @ParameterizedTest
     @CsvSource({
             "IN_PROGRESS",
             "COMPLETED",
             "CANCELLED",
-            "PENDING_PAYMENT"
+            "PENDING_PAYMENT",
+            "WAITING_CONFIRMED_RETURN_CAR"
     })
     void testCancelBooking_InvalidStatus_ShouldThrowException(EBookingStatus status) {
         
@@ -2174,7 +2304,7 @@ class BookingServiceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = EBookingStatus.class, names = {"IN_PROGRESS", "PENDING_PAYMENT", "COMPLETED", "CANCELLED"})
+    @EnumSource(value = EBookingStatus.class, names = {"IN_PROGRESS", "PENDING_PAYMENT", "COMPLETED", "CANCELLED","WAITING_CONFIRMED_RETURN_CAR"})
     void editBooking_InvalidStatus_ThrowsException(EBookingStatus status) {
         String accountId = "user123";
         String bookingNumber = "BK123";
@@ -2219,6 +2349,102 @@ class BookingServiceTest {
 
         
         assertEquals(ErrorCode.BOOKING_CANNOT_BE_EDITED, exception.getErrorCode());
+    }
+
+    @Test
+    void editBooking_Success_WithNewDriverLicense_PendingDeposit() throws AppException, MessagingException {
+        String accountId = "user123";
+        String bookingNumber = "BK123";
+
+        // Mock request edit
+        EditBookingRequest request = new EditBookingRequest();
+        request.setDriver(true);
+        LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
+        LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
+        request.setDriverFullName("Test User");
+        request.setDriverDob(LocalDate.of(2000, 1, 1));
+        request.setDriverNationalId("1234567890");
+        request.setDriverPhoneNumber("0987654321");
+        request.setDriverCityProvince("Hà Nội");
+        request.setDriverDistrict("Ba Đình");
+        request.setDriverWard("Kim Mã");
+        request.setDriverEmail("test@gmail.com");
+        request.setDriverHouseNumberStreet("123 Đường ABC");
+
+
+
+        MultipartFile newMockFile = mock(MultipartFile.class);
+        request.setDriverDrivingLicense(newMockFile);
+
+        lenient().when(newMockFile.isEmpty()).thenReturn(false);
+        lenient().when(fileService.getFileUrl(anyString())).thenReturn("https://s3-bucket.com/dummy-url.jpg");
+
+
+        // Mock account
+        Account mockAccount = new Account();
+        mockAccount.setId(accountId);
+
+        // Mock user profile
+        UserProfile mockProfile = new UserProfile();
+        mockProfile.setFullName("Test User");
+        mockProfile.setDob(LocalDate.of(2000, 1, 1));
+        mockProfile.setNationalId("1234567890");
+        mockProfile.setPhoneNumber("0987654321");
+        mockProfile.setCityProvince("Hà Nội");
+        mockProfile.setDistrict("Ba Đình");
+        mockProfile.setWard("Kim Mã");
+        mockProfile.setHouseNumberStreet("123 Đường ABC");
+        mockProfile.setDrivingLicenseUri("license.jpg");
+
+        mockAccount.setProfile(mockProfile);
+
+        // Mock car
+        Car mockCar = new Car();
+        mockCar.setId("car123");
+        mockCar.setDeposit(5000);
+        mockCar.setBasePrice(2000);
+
+
+
+        Booking existingBooking = new Booking();
+        existingBooking.setBookingNumber(bookingNumber);
+        existingBooking.setAccount(mockAccount);
+        existingBooking.setCar(mockCar);
+        existingBooking.setPickUpTime(mockPickUpTime);
+        existingBooking.setDropOffTime(mockDropOffTime);
+        existingBooking.setStatus(EBookingStatus.PENDING_DEPOSIT);
+        existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
+
+        // Mock repository
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(mockAccount);
+        lenient().when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(existingBooking);
+        lenient().when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Mock file upload
+        String expectedS3Key = "booking/BK123/driver-driving-license.jpg";
+        String expectedUrl = "https://s3-bucket.com/dummy-url.jpg";
+
+        lenient().when(fileService.getFileUrl("old-license.jpg")).thenReturn("https://s3-bucket.com/old-license.jpg");
+        lenient().when(fileService.getFileUrl("booking/BK123/driver-driving-license.jpg")).thenReturn("https://s3-bucket.com/booking/BK123/driver-driving-license.jpg");
+
+
+        // Mock mapper
+        lenient().when(bookingMapper.toBookingResponse(any(Booking.class))).thenAnswer(invocation -> {
+            Booking updatedBooking = invocation.getArgument(0);
+            BookingResponse response = new BookingResponse();
+            response.setPickUpTime(updatedBooking.getPickUpTime());
+            response.setDropOffTime(updatedBooking.getDropOffTime());
+            response.setCarId(updatedBooking.getCar().getId());
+            response.setDriverDrivingLicenseUrl(updatedBooking.getDriverDrivingLicenseUri());
+            return response;
+        });
+
+
+        BookingResponse response = bookingService.editBooking(request, bookingNumber);
+
+
+        assertNotNull(response, "Response should not be null");
+        assertEquals(expectedUrl, response.getDriverDrivingLicenseUrl());
     }
 
     @Test
@@ -2660,7 +2886,7 @@ class BookingServiceTest {
         existingBooking.setCar(mockCar);
         existingBooking.setPickUpTime(LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0));
         existingBooking.setDropOffTime(LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0));
-        existingBooking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        existingBooking.setStatus(EBookingStatus.CONFIRMED);
         existingBooking.setDriverDrivingLicenseUri("old-license.jpg");
 
         // Mock repository

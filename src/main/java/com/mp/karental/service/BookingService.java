@@ -225,10 +225,9 @@ public class BookingService {
         Booking booking = validateAndGetBookingCustomer(bookingNumber);
 
         //do not allow edit
-        if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
-                booking.getStatus() == EBookingStatus.PENDING_PAYMENT ||
-                booking.getStatus() == EBookingStatus.COMPLETED ||
-                booking.getStatus() == EBookingStatus.CANCELLED) {
+        if (booking.getStatus() != EBookingStatus.PENDING_DEPOSIT &&
+                booking.getStatus() != EBookingStatus.WAITING_CONFIRMED &&
+                booking.getStatus() != EBookingStatus.CONFIRMED) {
             throw new AppException(ErrorCode.BOOKING_CANNOT_BE_EDITED);
         }
 
@@ -686,10 +685,9 @@ public class BookingService {
         Booking booking = validateAndGetBookingCustomer(bookingNumber);
 
         // Check if the booking is in a state that cannot be canceled
-        if (booking.getStatus() == EBookingStatus.IN_PROGRESS ||
-                booking.getStatus() == EBookingStatus.PENDING_PAYMENT ||
-                booking.getStatus() == EBookingStatus.COMPLETED ||
-                booking.getStatus() == EBookingStatus.CANCELLED) {
+        if (booking.getStatus() != EBookingStatus.PENDING_DEPOSIT &&
+                booking.getStatus() != EBookingStatus.WAITING_CONFIRMED &&
+                booking.getStatus() != EBookingStatus.CONFIRMED) {
             throw new AppException(ErrorCode.BOOKING_CANNOT_CANCEL);
         }
 
