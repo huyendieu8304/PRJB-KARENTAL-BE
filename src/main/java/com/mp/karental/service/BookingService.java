@@ -26,7 +26,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -434,6 +433,38 @@ public class BookingService {
         bookings = (bookingStatus != null)
                 ? bookingRepository.findByAccountIdAndStatus(accountId, bookingStatus, pageable)
                 : bookingRepository.findByAccountId(accountId, pageable);
+
+        // Convert the list of bookings into a BookingListResponse object to return
+        return getBookingListResponse(bookings);
+    }
+
+    /**
+     * Retrieves the list of bookings for operator (based on accountId).
+     * If the status is null or invalid, it returns all bookings.
+     *
+     * @param page   the page number (starting from 0)
+     * @param size   the number of records per page
+     * @param sort   sorting string in the format "field,DIRECTION" (e.g., "updatedAt,DESC")
+     * @param status booking status (nullable to fetch all bookings)
+     * @return list of user bookings wrapped in `BookingListResponse`
+     */
+    public BookingListResponse getBookingsOfOperator(int page, int size, String sort, String status) {
+        // Retrieve the currently logged-in user's account ID
+        SecurityUtil.getCurrentAccount();
+
+        // Create a Pageable object for pagination and sorting
+        Pageable pageable = createPageable(page, size, sort);
+
+        Page<Booking> bookings;
+
+        // Convert the status string into the EBookingStatus enum
+        EBookingStatus bookingStatus = parseStatus(status);
+
+        // If the status is valid, fetch bookings filtered by status
+        // Otherwise, fetch all bookings for the user
+        bookings = (bookingStatus != null)
+                ? bookingRepository.findByStatusOrPendingDeposit(bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
+                : bookingRepository.findAllByPendingDeposit(EBookingStatus.PENDING_DEPOSIT, pageable);
 
         // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings);
@@ -942,16 +973,16 @@ public class BookingService {
         if (remainingMoney < 0 && walletCustomer.getBalance() < -remainingMoney) {
             // Set booking status to pending payment
             booking.setStatus(EBookingStatus.PENDING_PAYMENT);
-            // Send an email to the customer notifying them of the pending payment
+            // Email the customer notifying them of the pending payment
             emailService.sendPendingPaymentEmail(customerEmail, booking.getBookingNumber(), -remainingMoney);
         } else {
             // Process the final payment transaction
             transactionService.offsetFinalPayment(booking);
             // Mark the booking as completed
             booking.setStatus(EBookingStatus.COMPLETED);
-            // Send an email to the car owner about the payment they received
+            // Email the car owner about the payment they received
             emailService.sendPaymentEmailToCarOwner(carOwnerEmail, booking.getBookingNumber(), carOwnerShare);
-            // Send an email to the customer confirming the payment and remaining balance (if any)
+            // Email the customer confirming the payment and remaining balance (if any)
             emailService.sendPaymentEmailToCustomer(
                     customerEmail,
                     booking.getBookingNumber(),

@@ -75,6 +75,21 @@ public class BookingController {
                 .build();
     }
 
+    @GetMapping("/operator/all-bookings")
+    public ApiResponse<BookingListResponse> getBookingsForOperator(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) EBookingStatus status,
+            @RequestParam(defaultValue = "createdAt,DESC") String sort) {
+
+        BookingListResponse response = bookingService.getBookingsOfOperator(page, size, sort,
+                (status != null) ? status.name() : null);
+
+        return ApiResponse.<BookingListResponse>builder()
+                .data(response)
+                .build();
+    }
+
     /**
      * API endpoint to retrieve the list of bookings for the current customer.
      *
@@ -198,5 +213,6 @@ public class BookingController {
                 .data(bookingService.rejectWaitingConfirmedBooking(bookingNumber))
                 .build();
     }
+
 
 }
