@@ -507,5 +507,63 @@ public class CarControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("code").value(2029));
     }
 
+    @Test
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void getCarListForOperator_Success() throws Exception {
+        // Mock car list
+        CarThumbnailResponse car1 = CarThumbnailResponse.builder()
+                .id("1")
+                .brand("Toyota")
+                .model("Camry")
+                .productionYear(2020)
+                .status("NOT_VERIFIED")
+                .mileage(15000)
+                .basePrice(50000)
+                .address("Hà Nội")
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        CarThumbnailResponse car2 = CarThumbnailResponse.builder()
+                .id("2")
+                .brand("Honda")
+                .model("Civic")
+                .productionYear(2019)
+                .status("VERIFIED")
+                .mileage(20000)
+                .basePrice(45000)
+                .address("TP.HCM")
+                .updatedAt(LocalDateTime.now().minusDays(1))
+                .build();
+
+        List<CarThumbnailResponse> cars = List.of(car1, car2);
+        Page<CarThumbnailResponse> carPage = new PageImpl<>(cars);
+
+        // Mock service behavior
+        Mockito.when(carService.getAllCarsForOperator(0, 10, "updatedAt,desc", null)).thenReturn(carPage);
+
+        mockMvc.perform(get("/car/operator/list")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "updatedAt,desc")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].brand").value("Toyota"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].brand").value("Honda"));
+    }
+
+    @Test
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void getCarListForOperator_EmptyList() throws Exception {
+        Page<CarThumbnailResponse> emptyPage = Page.empty();
+        Mockito.when(carService.getAllCarsForOperator(0, 10, "updatedAt,desc", null)).thenReturn(emptyPage);
+
+        mockMvc.perform(get("/car/operator/list")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "updatedAt,desc")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.content").isEmpty());
+    }
 
 }

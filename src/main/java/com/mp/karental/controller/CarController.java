@@ -183,7 +183,7 @@ public class CarController {
      * @param status The status filter (optional).
      * @return A paginated list of cars.
      */
-    @GetMapping(value = "/list")
+        @GetMapping(value = "/operator/list")
     public ApiResponse<Page<CarThumbnailResponse>> getCarListForOperator(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

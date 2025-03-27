@@ -500,12 +500,20 @@ public class BookingService {
                         EBookingStatus.PENDING_PAYMENT
                 )
         );
+        System.out.println("totalOnGoingBookings from repo: " + totalOnGoingBookings);
 
         // Count the number of bookings that are waiting for confirmation for the car owner
         int totalWaitingConfirmBooking = bookingRepository.countBookingsByOwnerAndStatus(
                 currentUserId,
                 EBookingStatus.WAITING_CONFIRMED
         );
+        System.out.println("totalWaitingConfirmBooking from repo: " + totalWaitingConfirmBooking);
+
+
+        System.out.println("Total Ongoing and Waiting Bookings: " + totalOnGoingBookings + " " + totalWaitingConfirmBooking);
+        System.out.println("Total Bookings: " + bookings.getTotalElements());
+        String user = SecurityUtil.getCurrentAccountId();
+        System.out.println("Current User ID: " + user);
 
         return new BookingListResponse(totalOnGoingBookings, totalWaitingConfirmBooking, bookingResponses);
     }

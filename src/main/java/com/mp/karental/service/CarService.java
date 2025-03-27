@@ -755,8 +755,8 @@ public class CarService {
                 String requestedDirection = sortParams[1].trim().toUpperCase();
                 Sort.Direction direction = "ASC".equals(requestedDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
-                // Allow sorting only by specific fields to maintain data integrity
-                if (List.of("updatedAt", "price", "productionYear").contains(requestedField)) {
+                // Allow sorting only by updateAt
+                if ("updatedAt".equals(requestedField)) {
                     defaultSort = Sort.by(direction, requestedField);
                 }
             }

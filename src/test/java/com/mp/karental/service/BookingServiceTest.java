@@ -3715,4 +3715,19 @@ CreateBookingRequest request = new CreateBookingRequest();
         // Then
         assertTrue(result);
     }
+
+    @Test
+    void testCountOngoingBookingsByCar() {
+        String userId = "USER_ID";
+        int count = bookingRepository.countOngoingBookingsByCar(userId,
+                List.of(EBookingStatus.PENDING_DEPOSIT,
+                        EBookingStatus.WAITING_CONFIRMED,
+                        EBookingStatus.CONFIRMED,
+                        EBookingStatus.IN_PROGRESS,
+                        EBookingStatus.PENDING_PAYMENT)
+        );
+
+        System.out.println("Count Ongoing Bookings: " + count);
+    }
+
 }
