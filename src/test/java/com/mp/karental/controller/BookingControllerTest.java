@@ -30,6 +30,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -103,8 +105,8 @@ class BookingControllerTest {
                         .param("driverWard", "Phường Phúc Xá")
                         .param("driverHouseNumberStreet", "123 Kim Ma")
                         .param("pickUpLocation", "Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma")
-                        .param("pickUpTime", "2025-03-25T07:00:00")
-                        .param("dropOffTime", "2025-03-25T10:00:00")
+                        .param("pickUpTime", LocalDateTime.now().plusDays(1).withHour(7).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")))
+                        .param("dropOffTime", LocalDateTime.now().plusDays(2).withHour(7).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")))
                         .param("paymentType", EPaymentType.WALLET.name())
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isOk());

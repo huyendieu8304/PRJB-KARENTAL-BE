@@ -1,5 +1,7 @@
 package com.mp.karental.service;
 
+import com.mp.karental.exception.AppException;
+import com.mp.karental.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -99,13 +101,9 @@ public class ExcelService {
                         wardsByDistrict.computeIfAbsent(district, k -> new HashSet<>()).add(ward);
                     }
                 }
-                // Throw an exception if an invalid data type is provided
-                else {
-                    throw new IllegalArgumentException("Invalid dataType: " + dataType);
-                }
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to load Excel data from file: " + filePath, e);
+            throw new AppException(ErrorCode.EXCEL_DATA_LOAD_FAILED);
         }
     }
 
