@@ -106,7 +106,7 @@ public enum ErrorCode {
     SEND_REMINDER_DROP_OFF_EMAIL_FAIL(3040,"There was error during sending reminder drop off email to user", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_EARLY_RETURN_REJECTED_EMAIL_FAIL(3041, "There was error during sending reject early return car email to user", HttpStatus.SERVICE_UNAVAILABLE),
     EXCEL_DATA_LOAD_FAILED(3042, "Failed to load data from Excel file", HttpStatus.SERVICE_UNAVAILABLE),
-    SEND_CAR_VERIFICATION_EMAIL_FAIL(3043,"There was error during sending verify car to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_CAR_VERIFICATION_EMAIL_FAIL(3043,"There was error during sending verify car to user", HttpStatus.SERVICE_UNAVAILABLE),
 
 
     //range 4xxx
