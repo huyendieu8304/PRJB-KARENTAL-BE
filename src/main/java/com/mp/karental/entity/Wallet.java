@@ -38,16 +38,16 @@ public class Wallet {
     @PostPersist
     public void onPostPersist() {
         String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
-        log.info("Account: {} - Successfully created UserProfile with id: {}", accountId, this.id);
+        log.info("Account: {} - Successfully created Wallet with id: {}", accountId, this.id);
     }
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("Account: {} - Updating UserProfile: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("Account: {} - Updating Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("Account: {} - Updated UserProfile: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("Account: {} - Updated Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 }

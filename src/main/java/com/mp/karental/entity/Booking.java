@@ -104,16 +104,16 @@ public class Booking {
 
     @PostPersist
     public void onPostPersist() {
-        log.info("Account: {} - Successfully created Transaction with id: {}", SecurityUtil.getCurrentAccountId(), this.bookingNumber);
+        log.info("Account: {} - Successfully created Booking with id: {}", SecurityUtil.getCurrentAccountId(), this.bookingNumber);
     }
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("Account: {} - Updating Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("Account: {} - Updating Booking: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("Account: {} - Updated Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("Account: {} - Updated Booking: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 }
