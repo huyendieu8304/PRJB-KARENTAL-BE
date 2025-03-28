@@ -824,11 +824,11 @@ public class CarService {
         carRepository.saveAndFlush(car);
 
         //Send verification email to the car owner
-//        emailService.sendCarVerificationEmail(
-//                car.getAccount().getEmail(),
-//                car.getBrand() + " " + car.getModel(),
-//                carId
-//        );
+        emailService.sendCarVerificationEmail(
+                car.getAccount().getEmail(),
+                car.getBrand() + " " + car.getModel(),
+                carId
+        );
 
         log.info("Car {} verified successfully by operator {}", carId, SecurityUtil.getCurrentAccount().getId());
 
