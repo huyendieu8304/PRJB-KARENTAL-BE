@@ -223,10 +223,12 @@ public class CarController {
      * @param carId The unique identifier of the car to be verified.
      * @return CarResponse containing the updated car details after verification.
      */
-
     @PutMapping(value = "/operator/verify/{carId}")
-    public CarResponse verifyCar(@PathVariable String carId) {
-        return carService.verifyCar(carId);
+    public ApiResponse<String> verifyCar(@PathVariable String carId) {
+        return ApiResponse.<String>builder()
+                .data(carService.verifyCar(carId))
+                .build();
     }
+
 
 }

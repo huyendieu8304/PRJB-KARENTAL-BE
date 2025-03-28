@@ -801,7 +801,7 @@ public class CarService {
      * @throws AppException if the car is not found or the status is invalid for verification.
      */
     @Transactional
-    public CarResponse verifyCar(String carId) {
+    public String  verifyCar(String carId) {
         log.info("Operator {} is verifying car {}", SecurityUtil.getCurrentAccount().getId(), carId);
 
         // Retrieve car from database
@@ -815,9 +815,11 @@ public class CarService {
 
         // Update status to VERIFIED
         car.setStatus(ECarStatus.VERIFIED);
+
+        car.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         carRepository.saveAndFlush(car);
 
-//        //Send verification email to the car owner
+        //Send verification email to the car owner
 //        emailService.sendCarVerificationEmail(
 //                car.getAccount().getEmail(),
 //                car.getBrand() + " " + car.getModel(),
@@ -827,7 +829,7 @@ public class CarService {
         log.info("Car {} verified successfully by operator {}", carId, SecurityUtil.getCurrentAccount().getId());
 
         // Return updated car response
-        return carMapper.toCarResponse(car);
+        return "Car has been verified successfully.";
     }
 }
 

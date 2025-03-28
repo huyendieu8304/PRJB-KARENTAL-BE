@@ -98,4 +98,7 @@ public class Booking {
     @Column(nullable = false)
     String driverHouseNumberStreet;
 
+    @Column(nullable = false)
+    String updateBy;
+
 }

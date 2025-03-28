@@ -125,4 +125,7 @@ public class Car {
     @UpdateTimestamp
     LocalDateTime updatedAt;
 
+    @Column(nullable = false)
+    String updateBy;
+
 }

@@ -667,6 +667,8 @@ public class BookingService {
 
         // Update the booking status to CONFIRMED
         booking.setStatus(EBookingStatus.CONFIRMED);
+
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         bookingRepository.saveAndFlush(booking);
 
         emailService.sendConfirmBookingEmail(booking.getAccount().getEmail(),
@@ -722,6 +724,8 @@ public class BookingService {
 
         // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
+
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         bookingRepository.saveAndFlush(booking);
 
         // Return the updated booking details
@@ -761,6 +765,8 @@ public class BookingService {
 
         // Update the booking status to IN_PROGRESS to indicate the pick-up process has started
         booking.setStatus(EBookingStatus.IN_PROGRESS);
+
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
 
         // Save the updated booking status to the database
         bookingRepository.saveAndFlush(booking);

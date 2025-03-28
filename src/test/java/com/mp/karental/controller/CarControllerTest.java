@@ -570,17 +570,12 @@ public class CarControllerTest {
     @Test
     @WithMockUser(roles = "OPERATOR")
     void verifyCar_Success() throws Exception {
-        CarResponse response = new CarResponse();
-        response.setId("car123");
-        response.setStatus(ECarStatus.VERIFIED.name());
-
-        when(carService.verifyCar(anyString())).thenReturn(response);
+        when(carService.verifyCar(anyString())).thenReturn("Car car123 has been verified successfully.");
 
         mockMvc.perform(MockMvcRequestBuilders.put("/car/operator/verify/car123")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value("car123"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(ECarStatus.VERIFIED.name()));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").value("Car car123 has been verified successfully."));
     }
 
     @Test

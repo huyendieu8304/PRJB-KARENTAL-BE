@@ -1516,16 +1516,17 @@ class CarServiceTest {
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(carRepository.saveAndFlush(any(Car.class))).thenReturn(car);
-        when(carMapper.toCarResponse(car)).thenReturn(new CarResponse());
 
         // When
-        CarResponse response = carService.verifyCar(carId);
+        String response = carService.verifyCar(carId);
 
         // Then
         assertNotNull(response);
+        assertEquals("Car has been verified successfully.", response);
         assertEquals(ECarStatus.VERIFIED, car.getStatus());
         verify(carRepository).saveAndFlush(car);
     }
+
 
     @Test
     void testVerifyCar_CarNotFound() {
