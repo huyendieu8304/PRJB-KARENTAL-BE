@@ -7,6 +7,7 @@ import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
 import com.mp.karental.dto.request.car.SearchCarRequest;
 import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.response.car.CarDocumentsResponse;
 import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
@@ -17,6 +18,7 @@ import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.CarRepository;
+import com.mp.karental.repository.FeedbackRepository;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.util.RedisUtil;
 import lombok.AccessLevel;
@@ -29,10 +31,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service class for handling car operations.
@@ -57,6 +59,7 @@ public class CarService {
     // Define constant field names to avoid repetition
     private static final String FIELD_PRODUCTION_YEAR = "productionYear";
     private static final String FIELD_PRICE = "basePrice";
+    private final FeedbackRepository feedbackRepository;
 
     /**
      * Adds a new car to the system.
@@ -117,7 +120,7 @@ public class CarService {
      * Edits an existing car's details.
      *
      * @param request The request object containing the updated car details.
-     * @param id The ID of the car to be edited.
+     * @param id      The ID of the car to be edited.
      * @return The response object containing the updated car details.
      * @throws AppException If the account or car is not found in the database.
      */
@@ -184,12 +187,11 @@ public class CarService {
      * Checks if the status change from the current status to the new status is valid.
      *
      * @param currentStatus The current status of the car.
-     * @param newStatus The new status to be checked.
+     * @param newStatus     The new status to be checked.
      * @return true if the status change is valid, false otherwise.
-     *
      */
     private boolean isValidStatusChange(ECarStatus currentStatus, ECarStatus newStatus) {
-        if(currentStatus == newStatus){
+        if (currentStatus == newStatus) {
             return true;  // If the current status and new status are the same, return true (valid).
         }
         return switch (currentStatus) {  // Switch statement to handle transitions based on the current status.
@@ -265,7 +267,7 @@ public class CarService {
      * Extracts and sets the address components of a car from the request object.
      *
      * @param request The request object containing the address string.
-     * @param car The car entity to which the address will be assigned.
+     * @param car     The car entity to which the address will be assigned.
      * @throws AppException If the address format is incorrect.
      */
     private void setCarAddress(Object request, Car car) throws AppException {
@@ -292,12 +294,13 @@ public class CarService {
             car.setHouseNumberStreet(addressParts[3].trim()); // Fourth part: House Number & Street
         }
     }
+
     /**
      * Handles file uploads for a car and assigns the corresponding URIs.
      *
-     * @param request The request object containing the uploaded files.
+     * @param request   The request object containing the uploaded files.
      * @param accountId The ID of the account uploading the files.
-     * @param car The car entity to which the file URIs will be assigned.
+     * @param car       The car entity to which the file URIs will be assigned.
      * @throws AppException If file upload fails.
      */
     private void processUploadFiles(Object request, String accountId, Car car) throws AppException {
@@ -319,7 +322,7 @@ public class CarService {
         MultipartFile imageFront;
         MultipartFile imageBack;
         MultipartFile imageLeft;
-        MultipartFile imageRight ;
+        MultipartFile imageRight;
 
         // If the request is an AddCarRequest, handle document and image uploads
         if (request instanceof AddCarRequest) {
@@ -399,24 +402,26 @@ public class CarService {
     public Page<CarThumbnailResponse> getCarsByUserId(int page, int size, String sort) {
         String accountId = SecurityUtil.getCurrentAccountId();
 
-        // Validate page, size and sort
+        // Validate and create pagination parameters
         Pageable pageable = getPageable(page, size, sort);
 
-        // Get list of cars
-        // Map cars to CarThumbnailResponse using fromCar method
+        // Retrieve the list of cars owned by the current user
         Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
 
         return cars.map(car -> {
             CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
             response.setAddress(car.getWard() + ", " + car.getCityProvince());
-
             response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
             response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
             response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
 
+            // Call the reusable method to get the rating
+            response.setAverageRatingByCar(getAverageRatingByCar(car.getId()));
+
             long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
             response.setNoOfRides(noOfRides);
+
             return response;
         });
     }
@@ -438,6 +443,8 @@ public class CarService {
         // Retrieve car details from the database
         Car car = carRepository.findById(request.getCarId())
                 .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        double averageRating = getAverageRatingByCar(request.getCarId());
 
         // Check if the car is verified
         if (car.getStatus() != ECarStatus.VERIFIED) {
@@ -489,6 +496,9 @@ public class CarService {
         // Set booking status in the response
         response.setBooked(isBooked);
 
+        // Set average rating follow by car
+        response.setAverageRatingByCar(averageRating);
+
         // Count the number of completed bookings for this car and set it
         long noOfRides = bookingRepository.countCompletedBookingsByCar(request.getCarId());
         response.setNoOfRides(noOfRides);
@@ -524,7 +534,7 @@ public class CarService {
         // Check whether all booking is CANCELED OR  PENDING_DEPOSIT
         return bookings.stream()
                 .allMatch(booking -> booking.getStatus() == EBookingStatus.CANCELLED
-                                    || booking.getStatus() == EBookingStatus.PENDING_DEPOSIT);
+                        || booking.getStatus() == EBookingStatus.PENDING_DEPOSIT);
     }
 
 
@@ -541,7 +551,8 @@ public class CarService {
                 EBookingStatus.IN_PROGRESS,
                 EBookingStatus.PENDING_PAYMENT,
                 EBookingStatus.COMPLETED,
-                EBookingStatus.WAITING_CONFIRMED
+                EBookingStatus.WAITING_CONFIRMED,
+                EBookingStatus.WAITING_CONFIRMED_RETURN_CAR
         );
 
         return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);
@@ -587,11 +598,12 @@ public class CarService {
      * Search for cars based on address, time, and sorting criteria.
      *
      * @param request The search request containing address, pickup, and drop-off times.
-     * @param page The page number to retrieve.
-     * @param size The number of cars per page.
-     * @param sort The sorting string in the format "field,direction" (e.g., "productionYear,desc").
+     * @param page    The page number to retrieve.
+     * @param size    The number of cars per page.
+     * @param sort    The sorting string in the format "field,direction" (e.g., "productionYear,desc").
      * @return A paginated list of available cars.
      */
+
     public Page<CarThumbnailResponse> searchCars(SearchCarRequest request, int page, int size, String sort) {
         log.info("Search request received - Address: {}, PickUp: {}, DropOff: {}",
                 request.getAddress(), request.getPickUpTime(), request.getDropOffTime());
@@ -606,32 +618,33 @@ public class CarService {
         List<CarThumbnailResponse> availableCars = new ArrayList<>();
 
         for (Car car : verifiedCars) {
+            log.info("Checking completed bookings for Car ID: {}", car.getId());
 
             boolean available = isCarAvailable(car.getId(), request.getPickUpTime(), request.getDropOffTime());
-
             if (!available) {
-                continue; // Ignore unavailable car
+                continue;
             }
 
             long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
+            log.info("Number of completed rides for Car ID {}: {}", car.getId(), noOfRides);
 
             CarThumbnailResponse response = carMapper.toSearchCar(car, noOfRides);
-            response.setAddress(car.getWard() + ", " + car.getCityProvince() + ", " + car.getWard());
+            response.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", " + car.getWard());
+
+            // Get rating by car id
+            response.setAverageRatingByCar(getAverageRatingByCar(car.getId()));
 
             // Get URL image car
             response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
             response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
             response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
             response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
-
+            response.setNoOfRides(noOfRides);
             availableCars.add(response);
         }
 
         return new PageImpl<>(availableCars, pageable, verifiedCars.getTotalElements());
     }
-
-
-
 
     /**
      * Retrieves a car by its ID and ensures that the current logged-in user owns the car.
@@ -653,8 +666,13 @@ public class CarService {
             throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS); // Custom error for unauthorized access
         }
 
+        // Get average rating of car
+        double averageRating = getAverageRatingByCar(car.getId());
+
         // Convert Car entity to CarResponse DTO
         CarResponse carResponse = carMapper.toCarResponse(car);
+
+        carResponse.setAverageRatingByCar(averageRating);
 
         // Concatenate address fields into a single string and set it in CarResponse
         carResponse.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", "
@@ -665,4 +683,157 @@ public class CarService {
 
         return carResponse;
     }
+
+    /**
+     * Retrieves the average rating of a car based on user feedback.
+     *
+     * @param carId The ID of the car to fetch the average rating for.
+     * @return The average rating if feedback exists; otherwise, returns 0.0.
+     */
+    public double getAverageRatingByCar(String carId) {
+        Double averageRating = feedbackRepository.calculateAverageRatingByCar(carId);
+        return (averageRating != null) ? averageRating : 0.0;
+    }
+
+    /**
+     * Retrieves a paginated list of cars for the operator.
+     * Supports filtering by status, sorting, and pagination.
+     *
+     * @param page   The requested page number (0-based index).
+     * @param size   The number of records per page.
+     * @param sort   Sorting criteria in the format "field,direction" (e.g., "updatedAt,desc").
+     * @param status (Optional) The status filter for cars.
+     * @return A page of CarThumbnailResponse objects containing summarized car information.
+     */
+    public Page<CarThumbnailResponse> getAllCarsForOperator(int page, int size, String sort, ECarStatus status) {
+        // Create a pageable object with sorting based on the provided parameters
+        Pageable pageable = createPageableForOperator(page, size, sort);
+
+        // Fetch cars from the repository, filtering by status if provided
+        Page<Car> cars = carRepository.findCars(status, pageable);
+
+        // Convert each Car entity into a CarThumbnailResponse DTO
+        return cars.map(car -> {
+            CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
+
+            // Construct address from the ward and cityProvince fields
+            response.setAddress(car.getWard() + ", " + car.getCityProvince());
+
+            // Retrieve and set car images from the file storage system
+            response.setCarImageFront(fileService.getFileUrl(car.getCarImageFront()));
+            response.setCarImageBack(fileService.getFileUrl(car.getCarImageBack()));
+            response.setCarImageLeft(fileService.getFileUrl(car.getCarImageLeft()));
+            response.setCarImageRight(fileService.getFileUrl(car.getCarImageRight()));
+
+            // Get the average rating of the car based on user reviews
+            response.setAverageRatingByCar(getAverageRatingByCar(car.getId()));
+
+            // Retrieve the count of completed bookings for this car
+            response.setNoOfRides(bookingRepository.countCompletedBookingsByCar(car.getId()));
+
+            return response;
+        });
+    }
+
+    /**
+     * Creates a pageable object with sorting.
+     * Ensures proper pagination and applies custom sorting criteria.
+     *
+     * @param page The requested page number (0-based index).
+     * @param size The number of records per page.
+     * @param sort Sorting criteria in the format "field,direction" (e.g., "updatedAt,desc").
+     * @return Pageable object with sorting applied.
+     */
+    private Pageable createPageableForOperator(int page, int size, String sort) {
+        // Ensure page size is within valid limits (default 10, max 100)
+        size = (size > 0 && size <= 100) ? size : 10;
+
+        // Ensure page index is non-negative
+        page = Math.max(page, 0);
+
+        // Default sorting by updatedAt in descending order
+        Sort defaultSort = Sort.by(Sort.Direction.DESC, "updatedAt");
+
+        // Apply custom sorting if a valid sort parameter is provided
+        if (sort != null && !sort.isBlank()) {
+            String[] sortParams = sort.split(",");
+            if (sortParams.length == 2) {
+                String requestedField = sortParams[0].trim();
+                String requestedDirection = sortParams[1].trim().toUpperCase();
+                Sort.Direction direction = "ASC".equals(requestedDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+                // Allow sorting only by updateAt
+                if ("updatedAt".equals(requestedField)) {
+                    defaultSort = Sort.by(direction, requestedField);
+                }
+            }
+        }
+
+        return PageRequest.of(page, size, defaultSort);
+    }
+
+    /**
+     * Retrieves the document details of a specific car.
+     *
+     * <p>This method fetches the car entity from the database using the provided car ID.
+     * If the car is not found, an exception is thrown.
+     * The document URIs stored in the database are converted to URLs for access.</p>
+     *
+     * @param carId The unique identifier of the car whose documents need to be fetched.
+     * @return A {@link CarDocumentsResponse} containing document URLs and verification statuses.
+     * @throws AppException if the car is not found in the database.
+     */
+    @Transactional(readOnly = true)
+    public CarDocumentsResponse getCarDocuments(String carId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        // Map entity to DTO and update URLs
+        return carMapper.toCarDocumentsResponse(car).toBuilder()
+                .registrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()))
+                .certificateOfInspectionUrl(fileService.getFileUrl(car.getCertificateOfInspectionUri()))
+                .insuranceUrl(fileService.getFileUrl(car.getInsuranceUri()))
+                .build();
+    }
+
+
+    /**
+     * Operator confirms a car verification by changing its status from NOT_VERIFIED to VERIFIED.
+     *
+     * @param carId The unique identifier of the car.
+     * @return A {@link CarResponse} containing the updated car details.
+     * @throws AppException if the car is not found or the status is invalid for verification.
+     */
+    @Transactional
+    public String  verifyCar(String carId) {
+        log.info("Operator {} is verifying car {}", SecurityUtil.getCurrentAccount().getId(), carId);
+
+        // Retrieve car from database
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        // Validate that the car is in NOT_VERIFIED status
+        if (!ECarStatus.NOT_VERIFIED.equals(car.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_CAR_STATUS);
+        }
+
+        // Update status to VERIFIED
+        car.setStatus(ECarStatus.VERIFIED);
+
+        car.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
+        carRepository.saveAndFlush(car);
+
+        //Send verification email to the car owner
+        emailService.sendCarVerificationEmail(
+                car.getAccount().getEmail(),
+                car.getBrand() + " " + car.getModel(),
+                carId
+        );
+
+        log.info("Car {} verified successfully by operator {}", carId, SecurityUtil.getCurrentAccount().getId());
+
+        // Return updated car response
+        return "Car has been verified successfully.";
+    }
 }
+

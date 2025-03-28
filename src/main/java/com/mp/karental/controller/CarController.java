@@ -1,11 +1,14 @@
 package com.mp.karental.controller;
 
+import com.mp.karental.constant.ECarStatus;
 import com.mp.karental.dto.request.car.AddCarRequest;
 import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
 import com.mp.karental.dto.request.car.SearchCarRequest;
 import com.mp.karental.dto.response.ApiResponse;
+import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.response.car.CarDocumentsResponse;
 import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.exception.AppException;
@@ -66,7 +69,7 @@ public class CarController {
      * Handles editing an existing car.
      *
      * @param request The request object containing updated car details.
-     * @param carId The unique identifier of the car to be updated.
+     * @param carId   The unique identifier of the car to be updated.
      * @return ApiResponse containing the updated car details.
      */
     @PutMapping(value = "/car-owner/edit-car/{carId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -136,12 +139,12 @@ public class CarController {
     /**
      * API endpoint for searching cars based on address, pickup time, drop-off time, and sorting criteria.
      *
-     * @param address The address where the car is needed.
-     * @param pickUpTime The requested pickup time (ISO-8601 format).
+     * @param address     The address where the car is needed.
+     * @param pickUpTime  The requested pickup time (ISO-8601 format).
      * @param dropOffTime The requested drop-off time (ISO-8601 format).
-     * @param page The page number for pagination (default: 0).
-     * @param size The number of cars per page (default: 10).
-     * @param sort The sorting criteria in the format "field,direction" (default: "productionYear,desc").
+     * @param page        The page number for pagination (default: 0).
+     * @param size        The number of cars per page (default: 10).
+     * @param sort        The sorting criteria in the format "field,direction" (default: "productionYear,desc").
      * @return A response entity containing a paginated list of available cars.
      */
     @GetMapping("/customer/search-car")
@@ -173,5 +176,61 @@ public class CarController {
             throw new AppException(ErrorCode.INVALID_DATE_FORMAT);
         }
     }
+
+    /**
+     * Retrieves a paginated list of all cars in the system for operators.
+     * The list is sorted by updateAt in descending order, with NOT_VERIFIED cars appearing first.
+     *
+     * @param page   The page number (default = 0).
+     * @param size   The number of records per page (default = 10).
+     * @param sort   Sorting criteria (default = "updatedAt,desc").
+     * @param status The status filter (optional).
+     * @return A paginated list of cars.
+     */
+    @GetMapping(value = "/operator/list")
+    public ApiResponse<Page<CarThumbnailResponse>> getCarListForOperator(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "updatedAt,desc") String sort,
+            @RequestParam(required = false) ECarStatus status) {
+        log.info("Fetching car list for operator with filters - Page: {}, Size: {}, Sort: {}, Status: {}", page, size, sort, status);
+        Page<CarThumbnailResponse> carList = carService.getAllCarsForOperator(page, size, sort, status);
+        return ApiResponse.<Page<CarThumbnailResponse>>builder()
+                .data(carList)
+                .build();
+    }
+
+
+    /**
+     * Retrieves the document details of a specific car.
+     *
+     * <p>This API endpoint fetches a car's document information using its unique ID.
+     * The response includes document URLs and verification statuses.</p>
+     *
+     * @param carId The unique identifier of the car.
+     * @return An {@link ApiResponse} containing the car's document details.
+     */
+    @GetMapping(value = "/operator/documents/{carId}")
+    public ApiResponse<CarDocumentsResponse> getCarDocuments(@PathVariable String carId) {
+        return ApiResponse.<CarDocumentsResponse>builder()
+                .data(carService.getCarDocuments(carId))
+                .build();
+    }
+
+    /**
+     * Verifies a car by its ID.
+     *
+     * <p>This API is used by operators to verify a car, changing its status to VERIFIED.</p>
+     *
+     * @param carId The unique identifier of the car to be verified.
+     * @return CarResponse containing the updated car details after verification.
+     */
+    @PutMapping(value = "/operator/verify/{carId}")
+    public ApiResponse<String> verifyCar(@PathVariable String carId) {
+        return ApiResponse.<String>builder()
+                .data(carService.verifyCar(carId))
+                .build();
+    }
+
 
 }

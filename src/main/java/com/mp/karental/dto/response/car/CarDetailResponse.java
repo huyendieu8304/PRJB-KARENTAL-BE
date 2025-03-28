@@ -51,5 +51,6 @@ public class CarDetailResponse {
     long noOfRides;
     boolean isBooked;
     boolean isAvailable;
+    double averageRatingByCar;
 
 }

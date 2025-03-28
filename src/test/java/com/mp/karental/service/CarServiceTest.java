@@ -7,6 +7,7 @@ import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
 import com.mp.karental.dto.request.car.SearchCarRequest;
 import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.response.car.CarDocumentsResponse;
 import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
@@ -15,10 +16,7 @@ import com.mp.karental.entity.Car;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
-import com.mp.karental.repository.AccountRepository;
-import com.mp.karental.repository.BookingRepository;
-import com.mp.karental.repository.CarRepository;
-import com.mp.karental.repository.UserProfileRepository;
+import com.mp.karental.repository.*;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.util.RedisUtil;
 import org.junit.jupiter.api.*;
@@ -61,6 +59,8 @@ class CarServiceTest {
 
     @Mock
     private BookingRepository bookingRepository;
+    @Mock
+    private FeedbackRepository feedbackRepository;
 
     @Mock
     private CarMapper carMapper;
@@ -94,7 +94,7 @@ class CarServiceTest {
         String carId = "car123";
         String accountId = "account456";
         EditCarRequest request = new EditCarRequest();
-        request.setStatus(ECarStatus.STOPPED); 
+        request.setStatus(ECarStatus.STOPPED);
 
         Car car = new Car();
         car.setId(carId);
@@ -113,17 +113,17 @@ class CarServiceTest {
         customer.setEmail("customer@example.com");
         booking.setAccount(customer);
 
-        
+
         lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
 
-        
+
         lenient().when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
-        
+
         lenient().when(bookingRepository.findByCarIdAndStatus(carId, EBookingStatus.PENDING_DEPOSIT))
                 .thenReturn(List.of(booking));
 
-        
+
         when(carMapper.toCarResponse(any(Car.class))).thenAnswer(invocation -> {
             Car updatedCar = invocation.getArgument(0);
             CarResponse response = new CarResponse();
@@ -136,24 +136,24 @@ class CarServiceTest {
             return response;
         });
 
-        
+
         when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        
+
         carService.editCar(request, carId);
 
-        
-        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
-        verify(bookingRepository).save(booking); 
 
-        
+        assertEquals(EBookingStatus.CANCELLED, booking.getStatus());
+        verify(bookingRepository).save(booking);
+
+
         verify(emailService).sendCancelledBookingEmail(
                 eq("customer@example.com"),
                 anyString(),
                 contains("was automatically canceled")
         );
 
-        
+
         verify(redisUtil).removeCachePendingDepositBooking("BOOK123");
     }
 
@@ -164,7 +164,7 @@ class CarServiceTest {
         String carId = "car123";
         String accountId = "account456";
         EditCarRequest request = new EditCarRequest();
-        request.setStatus(ECarStatus.STOPPED); 
+        request.setStatus(ECarStatus.STOPPED);
 
         Car car = new Car();
         car.setId(carId);
@@ -177,7 +177,7 @@ class CarServiceTest {
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
-        
+
         when(bookingRepository.hasActiveBooking(eq(carId), anyList())).thenReturn(true);
 
         // When & Then
@@ -330,7 +330,7 @@ class CarServiceTest {
         // Mock fileService
         when(fileService.getFileUrl(anyString())).thenReturn("https://example.com/image.jpg");
 
-        
+
         CarThumbnailResponse carThumbnailResponse = new CarThumbnailResponse();
         when(carMapper.toCarThumbnailResponse(any(Car.class))).thenReturn(carThumbnailResponse);
 
@@ -582,20 +582,20 @@ class CarServiceTest {
         // Mock existing car in the database
         Car existingCar = new Car();
         existingCar.setId("car-123");
-        existingCar.setStatus(ECarStatus.STOPPED); 
+        existingCar.setStatus(ECarStatus.STOPPED);
         existingCar.setAccount(mockAccount);
 
         when(carRepository.findById("car-123")).thenReturn(Optional.of(existingCar));
 
-        
-        EditCarRequest editCarRequest = new EditCarRequest();
-        editCarRequest.setStatus(ECarStatus.VERIFIED); 
 
-        
+        EditCarRequest editCarRequest = new EditCarRequest();
+        editCarRequest.setStatus(ECarStatus.VERIFIED);
+
+
         AppException exception = assertThrows(AppException.class,
                 () -> carService.editCar(editCarRequest, "car-123"));
 
-        
+
         assertEquals(ErrorCode.INVALID_CAR_STATUS_CHANGE, exception.getErrorCode());
     }
 
@@ -612,20 +612,20 @@ class CarServiceTest {
         // Mock existing car in the database
         Car existingCar = new Car();
         existingCar.setId("car-123");
-        existingCar.setStatus(ECarStatus.NOT_VERIFIED); 
+        existingCar.setStatus(ECarStatus.NOT_VERIFIED);
         existingCar.setAccount(mockAccount);
 
         when(carRepository.findById("car-123")).thenReturn(Optional.of(existingCar));
 
-        
-        EditCarRequest editCarRequest = new EditCarRequest();
-        editCarRequest.setStatus(ECarStatus.VERIFIED); 
 
-        
+        EditCarRequest editCarRequest = new EditCarRequest();
+        editCarRequest.setStatus(ECarStatus.VERIFIED);
+
+
         AppException exception = assertThrows(AppException.class,
                 () -> carService.editCar(editCarRequest, "car-123"));
 
-        
+
         assertEquals(ErrorCode.INVALID_CAR_STATUS_CHANGE, exception.getErrorCode());
     }
 
@@ -760,7 +760,7 @@ class CarServiceTest {
         // Given
         Account account = new Account();
         String carId = "car-456";
-        String accountId = "user-123"; 
+        String accountId = "user-123";
         account.setId(accountId);
 
         Car car = new Car();
@@ -780,7 +780,7 @@ class CarServiceTest {
         carResponse.setId(carId);
         carResponse.setAddress("Ward 1, District A, City X");
 
-        
+
         lenient().when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
         lenient().when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         lenient().when(bookingRepository.isCarBookedByAccount(carId, accountId)).thenReturn(true);
@@ -792,10 +792,10 @@ class CarServiceTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals(carId, result.getId()); 
+        assertEquals(carId, result.getId());
         assertEquals("City X, District A, Ward 1, 123 Main St", result.getAddress());
 
-        
+
         verify(carRepository, times(1)).findById(carId);
         verify(carMapper, times(1)).toCarResponse(car);
     }
@@ -824,7 +824,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageFront(mock(MultipartFile.class)); 
+        request.setCarImageFront(mock(MultipartFile.class));
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -836,7 +836,7 @@ class CarServiceTest {
 
         // Then
         assertNotNull(response);
-        verify(fileService).uploadFile(any(MultipartFile.class), anyString()); 
+        verify(fileService).uploadFile(any(MultipartFile.class), anyString());
         verify(carRepository).save(car);
     }
 
@@ -854,7 +854,7 @@ class CarServiceTest {
         car.setAccount(account);
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
-        EditCarRequest request = new EditCarRequest(); 
+        EditCarRequest request = new EditCarRequest();
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -866,7 +866,7 @@ class CarServiceTest {
 
         // Then
         assertNotNull(response);
-        verify(fileService, never()).uploadFile(any(), anyString()); 
+        verify(fileService, never()).uploadFile(any(), anyString());
         verify(carRepository).save(car);
     }
 
@@ -885,7 +885,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageFront(mock(MultipartFile.class)); 
+        request.setCarImageFront(mock(MultipartFile.class));
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -919,7 +919,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageBack(mock(MultipartFile.class)); 
+        request.setCarImageBack(mock(MultipartFile.class));
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -953,7 +953,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageLeft(mock(MultipartFile.class)); 
+        request.setCarImageLeft(mock(MultipartFile.class));
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -987,7 +987,7 @@ class CarServiceTest {
         car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setCarImageRight(mock(MultipartFile.class)); 
+        request.setCarImageRight(mock(MultipartFile.class));
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -1018,10 +1018,10 @@ class CarServiceTest {
         Car car = new Car();
         car.setId(carId);
         car.setAccount(account);
-        car.setStatus(ECarStatus.NOT_VERIFIED); 
+        car.setStatus(ECarStatus.NOT_VERIFIED);
 
         EditCarRequest request = new EditCarRequest();
-        request.setStatus(null); 
+        request.setStatus(null);
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
@@ -1033,7 +1033,7 @@ class CarServiceTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(ECarStatus.NOT_VERIFIED, car.getStatus()); 
+        assertEquals(ECarStatus.NOT_VERIFIED, car.getStatus());
     }
 
     @Test
@@ -1052,7 +1052,7 @@ class CarServiceTest {
         String carId = "car123";
         String accountId = "user456";
 
-        
+
         when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(anyString(), anyString(), anyList()))
                 .thenReturn(false);
 
@@ -1064,7 +1064,7 @@ class CarServiceTest {
         String carId = "car123";
         String accountId = "user456";
 
-        
+
         when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(anyString(), anyString(), anyList()))
                 .thenReturn(true);
 
@@ -1080,26 +1080,26 @@ class CarServiceTest {
 
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "productionYear"));
 
-        
+
         Page<Car> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
         when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable)).thenReturn(emptyPage);
 
         // Call service
         Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
 
-        
+
         assertNotNull(result);
         assertTrue(result.getContent().isEmpty());
         assertEquals(0, result.getTotalElements());
 
-        
+
         verify(carRepository, times(1)).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable);
     }
 
 
     @Test
     void getCarsByUserId_ShouldUseDefaultSize_WhenSizeInvalid() {
-        
+
         when(SecurityUtil.getCurrentAccountId()).thenReturn("user123");
 
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "productionYear"));
@@ -1123,7 +1123,7 @@ class CarServiceTest {
 
     @Test
     void isCarBooked_ShouldReturnTrue_WhenBookingExists() {
-        
+
         when(bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(any(), any(), any()))
                 .thenReturn(true);
 
@@ -1134,7 +1134,7 @@ class CarServiceTest {
 
     @Test
     void searchCars_ShouldReturnEmpty_WhenNoVerifiedCars() {
-        
+
         when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(Page.empty());
 
         SearchCarRequest request = new SearchCarRequest();
@@ -1288,6 +1288,403 @@ class CarServiceTest {
         assertEquals("District 1, Ho Chi Minh City (Full address will be available after you've paid the deposit to rent).", response.getAddress());
     }
 
+    @Test
+    void testGetAllCarsForOperator_ReturnsPagedCars() {
+        // Given
+        int page = 0;
+        int size = 5;
+        String sort = "updatedAt,desc";
+        ECarStatus status = ECarStatus.VERIFIED;
 
+        Car car1 = new Car();
+        car1.setId("car1");
+        car1.setWard("Ward 1");
+        car1.setCityProvince("Hanoi");
+        car1.setCarImageFront("image1.jpg");
+        car1.setCarImageBack("image2.jpg");
+        car1.setCarImageLeft("image3.jpg");
+        car1.setCarImageRight("image4.jpg");
+
+        Page<Car> carPage = new PageImpl<>(List.of(car1));
+
+        when(carRepository.findCars(eq(status), any(Pageable.class))).thenReturn(carPage);
+        when(carMapper.toCarThumbnailResponse(any(Car.class))).thenReturn(new CarThumbnailResponse());
+        when(fileService.getFileUrl(anyString())).thenReturn("https://example.com/image.jpg");
+        when(bookingRepository.countCompletedBookingsByCar(anyString())).thenReturn(Long.valueOf(10));
+
+        // When
+        Page<CarThumbnailResponse> response = carService.getAllCarsForOperator(page, size, sort, status);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(1, response.getContent().size());
+        verify(carRepository).findCars(eq(status), any(Pageable.class));
+        verify(fileService, times(4)).getFileUrl(anyString()); // Check image retrieval
+    }
+
+    @Test
+    void testGetAllCarsForOperator_NoCarsFound() {
+        // Given
+        int page = 0;
+        int size = 5;
+        String sort = "updatedAt,desc";
+        ECarStatus status = ECarStatus.NOT_VERIFIED;
+
+        when(carRepository.findCars(eq(status), any(Pageable.class))).thenReturn(Page.empty());
+
+        // When
+        Page<CarThumbnailResponse> response = carService.getAllCarsForOperator(page, size, sort, status);
+
+        // Then
+        assertNotNull(response);
+        assertTrue(response.getContent().isEmpty());
+        verify(carRepository).findCars(eq(status), any(Pageable.class));
+    }
+
+    @Test
+    void testGetAllCarsForOperator_SortingByUpdatedAtAsc() {
+        // Given
+        int page = 0;
+        int size = 5;
+        String sort = "updatedAt,asc";
+        ECarStatus status = ECarStatus.VERIFIED;
+
+        when(carRepository.findCars(eq(status), any(Pageable.class))).thenReturn(Page.empty());
+
+        // When
+        Page<CarThumbnailResponse> response = carService.getAllCarsForOperator(page, size, sort, status);
+
+        // Then
+        assertNotNull(response);
+        assertTrue(response.getContent().isEmpty());
+        verify(carRepository).findCars(eq(status), any(Pageable.class));
+    }
+
+    @Test
+    void testGetAllCarsForOperator_DefaultSortingWhenSortIsNull() {
+        // Given
+        int page = 0;
+        int size = 5;
+        String sort = null;
+        ECarStatus status = ECarStatus.VERIFIED;
+
+        when(carRepository.findCars(eq(status), any(Pageable.class))).thenReturn(Page.empty());
+
+        // When
+        Page<CarThumbnailResponse> response = carService.getAllCarsForOperator(page, size, sort, status);
+
+        // Then
+        assertNotNull(response);
+        assertTrue(response.getContent().isEmpty());
+        verify(carRepository).findCars(eq(status), any(Pageable.class));
+    }
+    @Test
+    void testGetAllCarsForOperator_NoStatus_DefaultSort() {
+        // Given
+        int page = 0;
+        int size = 10;
+        String sort = null;
+        ECarStatus status = null;
+
+        Car car = new Car();
+        car.setId("car123");
+        car.setWard("District A");
+        car.setCityProvince("City X");
+        car.setCarImageFront("front.jpg");
+        car.setCarImageBack("back.jpg");
+        car.setCarImageLeft("left.jpg");
+        car.setCarImageRight("right.jpg");
+
+        Page<Car> carPage = new PageImpl<>(List.of(car));
+
+        when(carRepository.findCars(isNull(), any(Pageable.class))).thenReturn(carPage);
+
+        CarThumbnailResponse response = new CarThumbnailResponse();
+        response.setAddress(car.getWard() + ", " + car.getCityProvince());
+        response.setCarImageFront("http://image.com/front.jpg");
+        response.setCarImageBack("http://image.com/back.jpg");
+        response.setCarImageLeft("http://image.com/left.jpg");
+        response.setCarImageRight("http://image.com/right.jpg");
+        response.setNoOfRides(10);
+        response.setAverageRatingByCar(4.5);
+
+        when(carMapper.toCarThumbnailResponse(any(Car.class))).thenReturn(response);
+
+        // When
+        Page<CarThumbnailResponse> result = carService.getAllCarsForOperator(page, size, sort, status);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+
+        verify(carRepository).findCars(isNull(), any(Pageable.class));
+        verify(carMapper).toCarThumbnailResponse(any(Car.class));
+    }
+
+
+    @Test
+    void testGetAllCarsForOperator_WithStatus_SortingAsc() {
+        // Given
+        int page = 0;
+        int size = 5;
+        String sort = "updatedAt,asc";
+        ECarStatus status = ECarStatus.VERIFIED;
+
+        Car car = new Car();
+        car.setId("car123");
+        car.setWard("District A");
+        car.setCityProvince("City X");
+
+        Page<Car> carPage = new PageImpl<>(List.of(car));
+
+        when(carRepository.findCars(eq(status), any(Pageable.class))).thenReturn(carPage);
+
+        CarThumbnailResponse response = new CarThumbnailResponse();
+        response.setAddress(car.getWard() + ", " + car.getCityProvince());
+
+        when(carMapper.toCarThumbnailResponse(any())).thenReturn(response);
+
+        // When
+        Page<CarThumbnailResponse> result = carService.getAllCarsForOperator(page, size, sort, status);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        verify(carRepository).findCars(eq(status), any(Pageable.class));
+        verify(carMapper).toCarThumbnailResponse(car);
+    }
+
+    @Test
+    void testGetAllCarsForOperator_InvalidSort_DefaultUsed() {
+        // Given
+        int page = 1;
+        int size = 10;
+        String sort = "name,desc";
+        ECarStatus status = null;
+
+        Car car = new Car();
+        car.setId("car123");
+
+        Page<Car> carPage = new PageImpl<>(List.of(car));
+
+        when(carRepository.findCars(isNull(), any(Pageable.class))).thenReturn(carPage);
+
+        CarThumbnailResponse response = new CarThumbnailResponse();
+        response.setAddress("District A, City X");
+
+        when(carMapper.toCarThumbnailResponse(any(Car.class))).thenReturn(response);
+
+        // When
+        Page<CarThumbnailResponse> result = carService.getAllCarsForOperator(page, size, sort, status);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+
+        verify(carRepository).findCars(isNull(), any(Pageable.class));
+        verify(carMapper).toCarThumbnailResponse(any(Car.class));
+    }
+
+    @Test
+    void testGetAllCarsForOperator_EmptyResult() {
+        // Given
+        int page = 0;
+        int size = 10;
+        String sort = null;
+        ECarStatus status = null;
+
+        Page<Car> carPage = Page.empty();
+
+        when(carRepository.findCars(isNull(), any(Pageable.class))).thenReturn(carPage);
+
+        // When
+        Page<CarThumbnailResponse> result = carService.getAllCarsForOperator(page, size, sort, status);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+
+        verify(carRepository).findCars(isNull(), any(Pageable.class));
+        verify(carMapper, never()).toCarThumbnailResponse(any());
+    }
+
+
+    @Test
+    void testGetAllCarsForOperator_ValidDataMapping() {
+        // Given
+        int page = 0;
+        int size = 10;
+        String sort = "updatedAt,desc";
+        ECarStatus status = null;
+
+        Car car = new Car();
+        car.setId("car123");
+        car.setWard("District A");
+        car.setCityProvince("City X");
+        car.setCarImageFront("front.jpg");
+        car.setCarImageBack("back.jpg");
+        car.setCarImageLeft("left.jpg");
+        car.setCarImageRight("right.jpg");
+
+        Page<Car> carPage = new PageImpl<>(List.of(car));
+
+        CarThumbnailResponse response = new CarThumbnailResponse();
+        response.setAddress(car.getWard() + ", " + car.getCityProvince());
+        response.setCarImageFront("http://image.com/front.jpg");
+        response.setCarImageBack("http://image.com/back.jpg");
+        response.setCarImageLeft("http://image.com/left.jpg");
+        response.setCarImageRight("http://image.com/right.jpg");
+        response.setNoOfRides(10);
+        response.setAverageRatingByCar(4.5);
+
+        when(carRepository.findCars(isNull(), any(Pageable.class))).thenReturn(carPage);
+        when(carMapper.toCarThumbnailResponse(car)).thenReturn(response);
+        when(fileService.getFileUrl(anyString())).thenReturn("http://image.com");
+
+        // When
+        Page<CarThumbnailResponse> result = carService.getAllCarsForOperator(page, size, sort, status);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals("District A, City X", result.getContent().get(0).getAddress());
+        verify(fileService, times(4)).getFileUrl(anyString());
+        verify(bookingRepository).countCompletedBookingsByCar(car.getId());
+    }
+
+    @Test
+    void testVerifyCar_Success() {
+        // Given
+        String carId = "car123";
+        Account mockOperator = new Account();
+        mockOperator.setId("operator123");
+
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(carRepository.saveAndFlush(any(Car.class))).thenReturn(car);
+
+        // When
+        String response = carService.verifyCar(carId);
+
+        // Then
+        assertNotNull(response);
+        assertEquals("Car has been verified successfully.", response);
+        assertEquals(ECarStatus.VERIFIED, car.getStatus());
+        verify(carRepository).saveAndFlush(car);
+    }
+
+
+    @Test
+    void testVerifyCar_CarNotFound() {
+        // Given
+        String carId = "invalidCarId";
+        Account mockOperator = new Account();
+        mockOperator.setId("operator123");
+
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
+
+        when(carRepository.findById(carId)).thenReturn(Optional.empty());
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> carService.verifyCar(carId));
+        assertEquals(ErrorCode.CAR_NOT_FOUND_IN_DB, exception.getErrorCode());
+    }
+
+    @Test
+    void testVerifyCar_InvalidStatus() {
+        // Given
+        String carId = "car123";
+        Account mockOperator = new Account();
+        mockOperator.setId("operator123");
+
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.VERIFIED);
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> carService.verifyCar(carId));
+        assertEquals(ErrorCode.INVALID_CAR_STATUS, exception.getErrorCode());
+    }
+
+    @Test
+    void testGetCarDocuments_Success() {
+        // Given
+        String carId = "car123";
+        Car car = new Car();
+        car.setId(carId);
+        car.setRegistrationPaperUri("reg-paper-uri");
+        car.setCertificateOfInspectionUri("inspection-uri");
+        car.setInsuranceUri("insurance-uri");
+
+        CarDocumentsResponse mockResponse = CarDocumentsResponse.builder()
+                .registrationPaperUrl("http://mock-url/reg-paper-uri")
+                .certificateOfInspectionUrl("http://mock-url/inspection-uri")
+                .insuranceUrl("http://mock-url/insurance-uri")
+                .build();
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(carMapper.toCarDocumentsResponse(car)).thenReturn(mockResponse);
+        when(fileService.getFileUrl("reg-paper-uri")).thenReturn("http://mock-url/reg-paper-uri");
+        when(fileService.getFileUrl("inspection-uri")).thenReturn("http://mock-url/inspection-uri");
+        when(fileService.getFileUrl("insurance-uri")).thenReturn("http://mock-url/insurance-uri");
+
+        // When
+        CarDocumentsResponse result = carService.getCarDocuments(carId);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("http://mock-url/reg-paper-uri", result.getRegistrationPaperUrl());
+        assertEquals("http://mock-url/inspection-uri", result.getCertificateOfInspectionUrl());
+        assertEquals("http://mock-url/insurance-uri", result.getInsuranceUrl());
+
+        verify(carRepository).findById(carId);
+        verify(fileService, times(3)).getFileUrl(anyString());
+    }
+
+    @Test
+    void testGetCarDocuments_CarNotFound() {
+        // Given
+        String carId = "invalidCarId";
+        when(carRepository.findById(carId)).thenReturn(Optional.empty());
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> carService.getCarDocuments(carId));
+        assertEquals(ErrorCode.CAR_NOT_FOUND_IN_DB, exception.getErrorCode());
+
+        verify(carRepository).findById(carId);
+        verifyNoInteractions(fileService);
+    }
+
+    @Test
+    void searchCars_ShouldReturnEmpty_WhenNoAvailableCars() {
+        Car car = new Car();
+        car.setId("car123");
+
+        Page<Car> verifiedCars = new PageImpl<>(List.of(car));
+
+        when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(verifiedCars);
+        when(carRepository.findById(any())).thenReturn(Optional.of(car));
+        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(any(), any(), any()))
+                .thenReturn(List.of(new Booking()));
+
+        SearchCarRequest request = new SearchCarRequest();
+        request.setAddress("Hanoi");
+        request.setPickUpTime(LocalDateTime.now().plusDays(1));
+        request.setDropOffTime(LocalDateTime.now().plusDays(2));
+
+        Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+    }
 
 }

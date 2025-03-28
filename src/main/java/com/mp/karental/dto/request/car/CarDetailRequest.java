@@ -1,5 +1,6 @@
 package com.mp.karental.dto.request.car;
 
+import com.mp.karental.validation.RequiredField;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -16,14 +17,14 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class CarDetailRequest {
-    @NotNull(message = "Car ID is required")
+    @RequiredField(message = "carId")
     private String carId;
 
-    @NotNull(message = "Pick-up date is required")
+    @RequiredField(message = "Pick-up time")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime pickUpTime;
 
-    @NotNull(message = "Drop-off date is required")
+    @RequiredField(message = "Drop-off time")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime dropOffTime;
 }
