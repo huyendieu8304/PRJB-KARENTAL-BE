@@ -511,6 +511,10 @@ public class BookingService {
             response.setTotalPrice(totalPrice);
             response.setUpdatedAt(booking.getUpdatedAt());
 
+            response.setCustomerEmail(booking.getAccount().getEmail());
+            response.setCustomerPhoneNumber(booking.getAccount().getProfile().getPhoneNumber());
+            response.setPaymentType(booking.getPaymentType());
+
             // Retrieve car images
             response.setCarImageFrontUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
             response.setCarImageBackUrl(fileService.getFileUrl(booking.getCar().getCarImageBack()));

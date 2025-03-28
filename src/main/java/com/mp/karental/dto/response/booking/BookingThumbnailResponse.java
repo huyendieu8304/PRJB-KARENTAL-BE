@@ -1,6 +1,7 @@
 package com.mp.karental.dto.response.booking;
 
 import com.mp.karental.constant.EBookingStatus;
+import com.mp.karental.constant.EPaymentType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -57,5 +58,8 @@ public class BookingThumbnailResponse {
     String carImageLeftUrl;
     String carImageRightUrl;
 
+    String customerPhoneNumber;
+    String customerEmail;
+    EPaymentType paymentType;
 
 }
