@@ -1561,12 +1561,17 @@ class CarServiceTest {
 
         mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
 
+        Account carOwner = new Account();
+        carOwner.setId("owner123");
+        carOwner.setEmail("owner@example.com");
+
         Car car = new Car();
         car.setId(carId);
         car.setStatus(ECarStatus.NOT_VERIFIED);
+        car.setAccount(carOwner);
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
-        when(carRepository.saveAndFlush(any(Car.class))).thenReturn(car);
+        when(carRepository.saveAndFlush(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         String response = carService.verifyCar(carId);
@@ -1577,6 +1582,7 @@ class CarServiceTest {
         assertEquals(ECarStatus.VERIFIED, car.getStatus());
         verify(carRepository).saveAndFlush(car);
     }
+
 
 
     @Test
