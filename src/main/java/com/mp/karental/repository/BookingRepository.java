@@ -153,7 +153,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     @Query("SELECT b FROM Booking b " +
-            "WHERE b.status = :status")
+            "WHERE (:status = 'ALL' OR b.status = :status)")
     Page<Booking> findBookingsByStatus(@Param("status") EBookingStatus status,
                                                Pageable pageable);
 

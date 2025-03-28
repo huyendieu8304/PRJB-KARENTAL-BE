@@ -98,6 +98,7 @@ public enum ErrorCode {
     SEND_REMINDER_DROP_OFF_EMAIL_FAIL(3040,"There was error during sending reminder drop off email to user", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_EARLY_RETURN_REJECTED_EMAIL_FAIL(3041, "There was error during sending reject early return car email to user", HttpStatus.SERVICE_UNAVAILABLE),
     EXCEL_DATA_LOAD_FAILED(3042, "Failed to load data from Excel file", HttpStatus.SERVICE_UNAVAILABLE),
+    UNSUPPORTED_PAYMENT_TYPE(3043, "Wallet payment type is not supported by operator", HttpStatus.BAD_REQUEST),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),

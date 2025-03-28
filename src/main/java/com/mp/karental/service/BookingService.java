@@ -878,6 +878,78 @@ public class BookingService {
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
+
+    /**
+     * Handles the process for operator to confirm the deposit with payment type bank/cash
+     * pending->waiting confirm
+     * @param bookingNumber The booking number of the booking with status PENDING DEPOSIT and payment type not wallet.
+     */
+    public BookingResponse confirmDeposit(String bookingNumber) {
+        Booking booking = validateAndGetBookingOperator(bookingNumber);
+        // Retrieve customer and car owner email addresses
+        String customerEmail = booking.getAccount().getEmail();
+        String carOwnerEmail = booking.getCar().getAccount().getEmail();
+
+        //change the status to waiting confirmed and save the booking,
+        // then send email waiting confirmed to customer and owner
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        bookingRepository.saveAndFlush(booking);
+        emailService.sendWaitingConfirmedEmail(customerEmail,carOwnerEmail,
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),bookingNumber);
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
+
+    /**
+     * Handles the process for operator to reject the deposit with payment type bank/cash
+     * pending->cancelled
+     * @param bookingNumber The booking number of the booking with status PENDING DEPOSIT and payment type not wallet.
+     */
+    public BookingResponse rejectDeposit(String bookingNumber) {
+        Booking booking = validateAndGetBookingOperator(bookingNumber);
+        // Retrieve customer and car owner email addresses
+        String customerEmail = booking.getAccount().getEmail();
+
+        //change the status to cancelled and save the booking,
+        // then send email waiting confirmed to customer and owner
+        booking.setStatus(EBookingStatus.CANCELLED);
+        bookingRepository.saveAndFlush(booking);
+        emailService.sendCancelledBookingEmail(customerEmail,
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                "operator reject your booking");
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
+    /**
+     * Validates and retrieves a booking based on the booking number.
+     * Ensures that the booking exists and belongs to the currently authenticated user with role operator.
+     *
+     * @param bookingNumber The unique identifier of the booking.
+     * @return The validated Booking object.
+     * @throws AppException If the booking is not found or the user does not have permission to access it.
+     */
+    private Booking validateAndGetBookingOperator(String bookingNumber) {
+        // Retrieve the currently authenticated account(operator)
+        SecurityUtil.getCurrentAccount();
+
+        // Fetch the booking from the database using the booking number
+        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+
+        // If no booking is found, throw an exception
+        if (booking == null) {
+            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+        }
+        // operator can only change when booking is pending deposit
+        if(!EBookingStatus.PENDING_DEPOSIT.equals(booking.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+        // if payment type of booking is wallet -> operator not supported, the system is handle
+        if(EPaymentType.WALLET.equals(booking.getPaymentType())) {
+            throw new AppException(ErrorCode.UNSUPPORTED_PAYMENT_TYPE);
+        }
+        return booking;
+    }
+
+
+
     /**
      * Validates and retrieves a booking based on the booking number.
      * Ensures that the booking exists and belongs to the currently authenticated user with role customer.

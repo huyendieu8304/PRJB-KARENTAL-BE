@@ -11,6 +11,10 @@ import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.CarService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -38,7 +42,7 @@ import java.time.format.DateTimeParseException;
  * @version 1.0
  */
 @RestController
-@RequestMapping(value = "/car", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/car", produces = MediaType.MULTIPART_FORM_DATA_VALUE)
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
@@ -47,12 +51,66 @@ import java.time.format.DateTimeParseException;
 public class CarController {
     CarService carService;
 
-    /**
-     * Handles the addition of a new car.
-     *
-     * @param request The request object containing car details.
-     * @return ApiResponse containing the newly added car details.
-     */
+    @Operation(
+            summary = "Add a car",
+            description = "This api allows car owners to add a car for rent",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object")
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 2000 | {fieldName} is required.|
+                                    | 2007 | Invalid license plate format! Expected format: (11-99)(A-Z)-(000-999).(00-99).|
+                                    | 2008 | License plate already existed. Please try another license plate.|
+                                    | 2013 | Your brand were not predefined. Please try another brand.|
+                                    | 2014 | Your model were not predefined. Please try another model.|
+                                    | 2015 | Your brand-model were not matched. Please try again.|
+                                    | 2009 | Your color were not predefined. Please try another color.|
+                                    | 2012 | Invalid number of seats. Allowed values are 4, 5, or 7.|
+                                    | 2011 | Your production year was not predefined. Please try another year.|
+                                    | 2018 | This attribute must be >=0.|
+                                    | 2019 | The address is invalid.|
+                                    | 2010 | Your additional functions were not predefined. Please try another function.|
+                                    | 2016 | Invalid file type. Accepted formats are .doc, .docx, .pdf, .jpeg, .jpg, .png.|
+                                    | 2017 | Invalid file type. Accepted formats are .jpg, .jpeg, .png, .gif.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3001 | There was error occurred during uploading files. Please try again.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+            }
+    )
     @PostMapping(value = "/car-owner/add-car", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<CarResponse> addNewCar(@ModelAttribute @Valid AddCarRequest request) {
         log.info("add new car {}", request);
@@ -62,13 +120,70 @@ public class CarController {
 
     }
 
-    /**
-     * Handles editing an existing car.
-     *
-     * @param request The request object containing updated car details.
-     * @param carId The unique identifier of the car to be updated.
-     * @return ApiResponse containing the updated car details.
-     */
+    @Operation(
+            summary = "Edit a car",
+            description = "This api allows car owners to edit the information of a car",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object")
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3007 | The car is not exist in the system.|
+                                    | 2024 | Allowed transitions: NOT_VERIFIED → STOPPED, STOPPED → NOT_VERIFIED, VERIFIED → STOPPED.|
+                                    | 2018 | This attribute must be >=0.|
+                                    | 2000 | {fieldName} is required.|
+                                    | 2019 | The address is invalid.|
+                                    | 2010 | Your additional functions were not predefined. Please try another function.|
+                                    | 2017 | Invalid file type. Accepted formats are .jpg, .jpeg, .png, .gif.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    | 3037 | The car cannot be stopped when has on-time booking.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3001 | There was error occurred during uploading files. Please try again.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+            }
+    )
     @PutMapping(value = "/car-owner/edit-car/{carId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<CarResponse> editCar(@ModelAttribute @Valid EditCarRequest request, @PathVariable String carId) {
         log.info("edit car {}", request);
@@ -77,12 +192,53 @@ public class CarController {
                 .build();
     }
 
-    /**
-     * Handles get an existing car by id.
-     *
-     * @param carId The unique identifier of the car to be updated.
-     * @return ApiResponse containing the get car details.
-     */
+    @Operation(
+            summary = "Get car detail for car owner",
+            description = "This api allows car owners to get the information of a car",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object")
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3007 | The car is not exist in the system.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+            }
+    )
     @GetMapping("/car-owner/{carId}")
     public ApiResponse<CarResponse> getCarById(@PathVariable String carId) {
         return ApiResponse.<CarResponse>builder()
@@ -90,11 +246,6 @@ public class CarController {
                 .build();
     }
 
-    /**
-     * Retrieves car details including booking status within a specified date range.
-     *
-     * @return ApiResponse<CarDetailResponse> containing car details and booking status.
-     */
     @GetMapping("/customer/car-detail")
     public ApiResponse<CarDetailResponse> getCarDetail(
             @RequestParam String carId,

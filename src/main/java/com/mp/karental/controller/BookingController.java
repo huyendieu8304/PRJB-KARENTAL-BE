@@ -214,5 +214,17 @@ public class BookingController {
                 .build();
     }
 
+    @PutMapping("/operator/confirm-deposit/{bookingNumber}")
+    public ApiResponse<BookingResponse> confirmDeposit(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.confirmDeposit(bookingNumber))
+                .build();
+    }
+    @PutMapping("/operator/reject-deposit/{bookingNumber}")
+    public ApiResponse<BookingResponse> rejectDeposit(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.rejectDeposit(bookingNumber))
+                .build();
+    }
 
 }
