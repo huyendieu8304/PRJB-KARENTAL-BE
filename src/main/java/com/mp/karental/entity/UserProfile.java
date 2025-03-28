@@ -1,8 +1,11 @@
 package com.mp.karental.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mp.karental.security.SecurityUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,6 +27,7 @@ import java.util.List;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
+@Slf4j
 public class UserProfile {
     @Id
     String id;
@@ -31,6 +35,8 @@ public class UserProfile {
     @OneToOne
     @JoinColumn(name = "id")
     @MapsId
+    @JsonIgnore
+    @ToString.Exclude
     Account account;
 
     String fullName;
@@ -49,4 +55,22 @@ public class UserProfile {
 
     @Column(unique = true)
     String drivingLicenseUri;
+
+    @PostPersist
+    public void onPostPersist() {
+        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
+        log.info("Account: {} - Successfully created UserProfile with id: {}", accountId, this.id);
+    }
+
+    @PreUpdate
+    public void onPreUpdate() {
+        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
+        log.info("Account: {} - Updating UserProfile: {}", accountId, this);
+    }
+
+    @PostUpdate
+    public void onPostUpdate() {
+        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
+        log.info("Account: {} - Updated UserProfile: {}", accountId, this);
+    }
 }
