@@ -226,5 +226,18 @@ public class BookingController {
                 .data(bookingService.rejectDeposit(bookingNumber))
                 .build();
     }
+    @PutMapping("/customer/pay-deposit-again/{bookingNumber}")
+    public ApiResponse<BookingResponse> payDepositAgain(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.payDepositAgain(bookingNumber))
+                .build();
+    }
+
+    @PutMapping("/customer/pay-total-payment-again/{bookingNumber}")
+    public ApiResponse<BookingResponse> payTotalPaymentAgain(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.payTotalPaymentAgain(bookingNumber))
+                .build();
+    }
 
 }

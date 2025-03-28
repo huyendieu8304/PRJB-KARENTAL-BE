@@ -33,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -194,9 +195,9 @@ public class BookingService {
 
             // Notify the customer about the cancellation
             String reason = "Your booking has been canceled because another customer has successfully placed a deposit for this car within the same rental period.";
-            emailService.sendCancelledBookingEmail(pendingBooking.getAccount().getEmail(),
-                    pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
-                    reason);
+//            emailService.sendCancelledBookingEmail(pendingBooking.getAccount().getEmail(),
+//                    pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
+//                    reason);
 
         }
 
@@ -204,11 +205,11 @@ public class BookingService {
         redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
 
         // Send confirmation emails to both the customer and car owner
-        emailService.sendWaitingConfirmedEmail(booking.getAccount().getEmail(),
-                booking.getCar().getAccount().getEmail(),
-                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                booking.getBookingNumber()
-        );
+//        emailService.sendWaitingConfirmedEmail(booking.getAccount().getEmail(),
+//                booking.getCar().getAccount().getEmail(),
+//                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+//                booking.getBookingNumber()
+//        );
     }
 
 
@@ -462,9 +463,11 @@ public class BookingService {
 
         // If the status is valid, fetch bookings filtered by status
         // Otherwise, fetch all bookings for the user
+
+        List<EPaymentType> bankCashTypes = Arrays.asList(EPaymentType.BANK_TRANSFER, EPaymentType.CASH);
         bookings = (bookingStatus != null)
                 ? bookingRepository.findBookingsByStatus(bookingStatus, pageable)
-                : bookingRepository.findAllBookings(pageable);
+                : bookingRepository.findAllBookings(bankCashTypes,pageable);
 
         // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings);
@@ -790,6 +793,8 @@ public class BookingService {
     public BookingResponse returnCar(String bookingNumber) {
         // Validate and retrieve the booking
         Booking booking = validateAndGetBookingCustomer(bookingNumber);
+        //WALLET is the only payment type when return car
+        booking.setPaymentType(EPaymentType.WALLET);
         // Ensure the booking is in progress and before drop-off time is not exceeded
         if (booking.getStatus() != EBookingStatus.IN_PROGRESS) {
             throw new AppException(ErrorCode.CAR_CANNOT_RETURN);
@@ -922,6 +927,42 @@ public class BookingService {
                 "operator reject your booking");
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
+
+    /**
+     * allows customer to pay deposit again(wallet) if before the customer was not enough balance in wallet
+     * pending deposit->waiting confirm
+     * @param bookingNumber The booking number of the booking with status PENDING DEPOSIT of this current account(customer)
+     */
+    public BookingResponse payDepositAgain(String bookingNumber) {
+        //validate and get booking of customer
+        Booking booking = validateAndGetBookingCustomer(bookingNumber);
+        if(!EBookingStatus.PENDING_DEPOSIT.equals(booking.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+        if(!EPaymentType.WALLET.equals(booking.getPaymentType())) {
+            throw new AppException(ErrorCode.UNSUPPORTED_PAYMENT_TYPE);
+        }
+        //pay deposit again
+        payBookingDepositUsingWallet(booking);
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
+
+    /**
+     * allows customer to pay total payment again(wallet) if before the customer was not enough balance in wallet
+     * pending payment->completed
+     * @param bookingNumber The booking number of the booking with status PENDING PAYMENT of this current account(customer)
+     */
+    public BookingResponse payTotalPaymentAgain(String bookingNumber) {
+        //validate and get booking of customer
+        Booking booking = validateAndGetBookingCustomer(bookingNumber);
+        if(!EBookingStatus.PENDING_PAYMENT.equals(booking.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+        //pay total payment again
+        processPaymentAndFinalizeBooking(booking);
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
+
     /**
      * Validates and retrieves a booking based on the booking number.
      * Ensures that the booking exists and belongs to the currently authenticated user with role operator.

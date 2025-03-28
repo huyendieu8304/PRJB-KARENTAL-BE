@@ -1,5 +1,6 @@
 package com.mp.karental.repository;
 import com.mp.karental.constant.EBookingStatus;
+import com.mp.karental.constant.EPaymentType;
 import com.mp.karental.entity.Booking;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -165,8 +166,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "       WHEN b.status = 'PENDING_DEPOSIT' THEN 1 " +
             "       WHEN b.status = 'PENDING_PAYMENT' THEN 2 " +
             "       WHEN b.status = 'WAITING_CONFIRMED_RETURN_CAR' THEN 3 " +
-            "       ELSE 4 END")
-    Page<Booking> findAllBookings(Pageable pageable);
+            "       ELSE 4 END, " +
+            "   CASE " +
+            "       WHEN b.paymentType IN (:bankCashTypes) THEN 1 " +
+            "       ELSE 2 END")
+    Page<Booking> findAllBookings(@Param("bankCashTypes") List<EPaymentType> bankCashTypes, Pageable pageable);
+
 
 //    @Query("SELECT b FROM Booking b " +
 //            "ORDER BY CASE WHEN :sort IS NULL AND b.status = :pendingStatus THEN 0 ELSE 1 END")
