@@ -478,7 +478,6 @@ public class BookingService {
 
             response.setNumberOfDay((int) numberOfDay);
             response.setTotalPrice(totalPrice);
-            response.setUpdatedAt(booking.getUpdatedAt());
 
             // Retrieve car images
             response.setCarImageFrontUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
@@ -664,6 +663,7 @@ public class BookingService {
 
         // Update the booking status to CONFIRMED
         booking.setStatus(EBookingStatus.CONFIRMED);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         bookingRepository.saveAndFlush(booking);
 
         emailService.sendConfirmBookingEmail(booking.getAccount().getEmail(),
@@ -717,6 +717,7 @@ public class BookingService {
 
         // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         bookingRepository.saveAndFlush(booking);
 
         // Return the updated booking details
@@ -739,6 +740,7 @@ public class BookingService {
         }
         // Update the booking status to IN_PROGRESS to indicate the pick-up process has started
         booking.setStatus(EBookingStatus.IN_PROGRESS);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
 
         // Save the updated booking status to the database
         bookingRepository.saveAndFlush(booking);
@@ -817,6 +819,8 @@ public class BookingService {
 
         // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
+
         bookingRepository.saveAndFlush(booking);
 
         // Process the refund for the booking deposit
@@ -846,6 +850,8 @@ public class BookingService {
 
         // Update the booking status to IN_PROGRESS instead of canceling
         booking.setStatus(EBookingStatus.IN_PROGRESS);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
+
         bookingRepository.saveAndFlush(booking);
         emailService.sendEarlyReturnRejectedEmail(booking.getAccount().getEmail(), bookingNumber);
         // Return the updated booking details as a response
@@ -964,6 +970,7 @@ public class BookingService {
                     remainingMoney >= 0
             );
         }
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
 
         // Save the updated booking status to the database
         bookingRepository.saveAndFlush(booking);

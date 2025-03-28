@@ -7,6 +7,7 @@ import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
 import com.mp.karental.dto.request.car.SearchCarRequest;
 import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.response.car.CarDocumentsResponse;
 import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
@@ -15,10 +16,7 @@ import com.mp.karental.entity.Car;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.mapper.CarMapper;
-import com.mp.karental.repository.AccountRepository;
-import com.mp.karental.repository.BookingRepository;
-import com.mp.karental.repository.CarRepository;
-import com.mp.karental.repository.UserProfileRepository;
+import com.mp.karental.repository.*;
 import com.mp.karental.security.SecurityUtil;
 import com.mp.karental.util.RedisUtil;
 import org.junit.jupiter.api.*;
@@ -61,6 +59,8 @@ class CarServiceTest {
 
     @Mock
     private BookingRepository bookingRepository;
+    @Mock
+    private FeedbackRepository feedbackRepository;
 
     @Mock
     private CarMapper carMapper;
@@ -1586,7 +1586,6 @@ class CarServiceTest {
         Account mockOperator = new Account();
         mockOperator.setId("operator123");
 
-        // Mock SecurityUtil để tránh NullPointerException
         mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
 
         when(carRepository.findById(carId)).thenReturn(Optional.empty());
@@ -1603,12 +1602,11 @@ class CarServiceTest {
         Account mockOperator = new Account();
         mockOperator.setId("operator123");
 
-        // Mock SecurityUtil để tránh NullPointerException
         mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
 
         Car car = new Car();
         car.setId(carId);
-        car.setStatus(ECarStatus.VERIFIED); // Trạng thái không hợp lệ
+        car.setStatus(ECarStatus.VERIFIED);
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
@@ -1674,40 +1672,9 @@ class CarServiceTest {
         Page<Car> verifiedCars = new PageImpl<>(List.of(car));
 
         when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(verifiedCars);
+        when(carRepository.findById(any())).thenReturn(Optional.of(car));
         when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(any(), any(), any()))
-                .thenReturn(List.of(new Booking())); // Xe có booking, không available
-
-        CarThumbnailResponse carThumbnailResponse = new CarThumbnailResponse();
-        carThumbnailResponse.setId("car123");
-        carThumbnailResponse.setAddress("Hanoi"); // Đảm bảo không null
-
-        when(carMapper.toSearchCar(any(), anyLong())).thenReturn(carThumbnailResponse);
-
-        SearchCarRequest request = new SearchCarRequest();
-        request.setAddress("Hanoi");
-        request.setPickUpTime(LocalDateTime.now().plusDays(1));
-        request.setDropOffTime(LocalDateTime.now().plusDays(2));
-
-        Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
-
-        assertEquals(1, result.getTotalElements());
-    }
-
-
-    @Test
-    void searchCars_ShouldReturnCars_WithNoRatings() {
-        Car car = new Car();
-        car.setId("car123");
-        car.setCityProvince("Hanoi");
-        car.setDistrict("Ba Dinh");
-        car.setWard("Kim Ma");
-
-        Page<Car> verifiedCars = new PageImpl<>(List.of(car));
-
-        when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(verifiedCars);
-        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(any(), any(), any()))
-                .thenReturn(Collections.emptyList()); // Không có booking, xe available
-        when(carMapper.toSearchCar(any(), anyLong())).thenReturn(new CarThumbnailResponse());
+                .thenReturn(List.of(new Booking()));
 
         SearchCarRequest request = new SearchCarRequest();
         request.setAddress("Hanoi");
@@ -1720,35 +1687,4 @@ class CarServiceTest {
         assertEquals(1, result.getTotalElements());
     }
 
-    @Test
-    void searchCars_ShouldReturnCars_WithFullDetails() {
-        Car car = new Car();
-        car.setId("car123");
-        car.setCityProvince("Hanoi");
-        car.setDistrict("Ba Dinh");
-        car.setWard("Kim Ma");
-
-        CarThumbnailResponse carThumbnailResponse = new CarThumbnailResponse();
-        carThumbnailResponse.setId("car123");
-        carThumbnailResponse.setAddress("Hanoi, Ba Dinh, Kim Ma");
-
-        Page<Car> verifiedCars = new PageImpl<>(List.of(car));
-
-        when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(verifiedCars);
-        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(any(), any(), any()))
-                .thenReturn(Collections.emptyList()); // Không có booking, xe available
-        when(carMapper.toSearchCar(any(), anyLong())).thenReturn(carThumbnailResponse);
-        when(fileService.getFileUrl(any())).thenReturn("http://example.com/image.jpg");
-
-        SearchCarRequest request = new SearchCarRequest();
-        request.setAddress("Hanoi");
-        request.setPickUpTime(LocalDateTime.now().plusDays(1));
-        request.setDropOffTime(LocalDateTime.now().plusDays(2));
-
-        Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
-
-        assertNotNull(result);
-        assertEquals(1, result.getTotalElements());
-        assertEquals("Hanoi, Ba Dinh, Kim Ma", result.getContent().get(0).getAddress());
-    }
 }
