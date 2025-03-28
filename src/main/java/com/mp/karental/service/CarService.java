@@ -7,6 +7,7 @@ import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
 import com.mp.karental.dto.request.car.SearchCarRequest;
 import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.response.car.CarDocumentsResponse;
 import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
@@ -119,7 +120,7 @@ public class CarService {
      * Edits an existing car's details.
      *
      * @param request The request object containing the updated car details.
-     * @param id The ID of the car to be edited.
+     * @param id      The ID of the car to be edited.
      * @return The response object containing the updated car details.
      * @throws AppException If the account or car is not found in the database.
      */
@@ -150,7 +151,7 @@ public class CarService {
         // Update the car details using the request data
         carMapper.editCar(car, request);
 
-        if (!isValidStatusChange(currentStatus, newStatus)){
+        if (!isValidStatusChange(currentStatus, newStatus)) {
             throw new AppException(ErrorCode.INVALID_CAR_STATUS_CHANGE);
         }
 
@@ -186,12 +187,11 @@ public class CarService {
      * Checks if the status change from the current status to the new status is valid.
      *
      * @param currentStatus The current status of the car.
-     * @param newStatus The new status to be checked.
+     * @param newStatus     The new status to be checked.
      * @return true if the status change is valid, false otherwise.
-     *
      */
     private boolean isValidStatusChange(ECarStatus currentStatus, ECarStatus newStatus) {
-        if(currentStatus == newStatus){
+        if (currentStatus == newStatus) {
             return true;  // If the current status and new status are the same, return true (valid).
         }
         return switch (currentStatus) {  // Switch statement to handle transitions based on the current status.
@@ -202,14 +202,16 @@ public class CarService {
 
     /**
      * This method to check the car currently booked or not
+     *
      * @param carId the id of the car
      * @return true if the car is booked by account ID, false otherwise
      */
     private boolean isCarCurrentlyBooked(String carId) {
         // 2 status is not booked
         List<EBookingStatus> excludedStatuses = Arrays.asList(EBookingStatus.CANCELLED, EBookingStatus.PENDING_DEPOSIT);
-        return bookingRepository.hasActiveBooking(carId,excludedStatuses);
+        return bookingRepository.hasActiveBooking(carId, excludedStatuses);
     }
+
     /**
      * Cancels all pending deposit bookings for a car that has been stopped.
      * Updates the status of affected bookings, notifies customers via email,
@@ -240,7 +242,7 @@ public class CarService {
             // Send cancellation email to the customer
             emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
                     booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                    reason );
+                    reason);
 
             // Remove the cached pending deposit booking from Redis
             redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
@@ -267,7 +269,7 @@ public class CarService {
      * Extracts and sets the address components of a car from the request object.
      *
      * @param request The request object containing the address string.
-     * @param car The car entity to which the address will be assigned.
+     * @param car     The car entity to which the address will be assigned.
      * @throws AppException If the address format is incorrect.
      */
     private void setCarAddress(Object request, Car car) throws AppException {
@@ -294,12 +296,13 @@ public class CarService {
             car.setHouseNumberStreet(addressParts[3].trim()); // Fourth part: House Number & Street
         }
     }
+
     /**
      * Handles file uploads for a car and assigns the corresponding URIs.
      *
-     * @param request The request object containing the uploaded files.
+     * @param request   The request object containing the uploaded files.
      * @param accountId The ID of the account uploading the files.
-     * @param car The car entity to which the file URIs will be assigned.
+     * @param car       The car entity to which the file URIs will be assigned.
      * @throws AppException If file upload fails.
      */
     private void processUploadFiles(Object request, String accountId, Car car) throws AppException {
@@ -321,7 +324,7 @@ public class CarService {
         MultipartFile imageFront;
         MultipartFile imageBack;
         MultipartFile imageLeft;
-        MultipartFile imageRight ;
+        MultipartFile imageRight;
 
         // If the request is an AddCarRequest, handle document and image uploads
         if (request instanceof AddCarRequest) {
@@ -528,7 +531,7 @@ public class CarService {
         // Check whether all booking is CANCELED OR  PENDING_DEPOSIT
         return bookings.stream()
                 .allMatch(booking -> booking.getStatus() == EBookingStatus.CANCELLED
-                                    || booking.getStatus() == EBookingStatus.PENDING_DEPOSIT);
+                        || booking.getStatus() == EBookingStatus.PENDING_DEPOSIT);
     }
 
 
@@ -591,9 +594,9 @@ public class CarService {
      * Search for cars based on address, time, and sorting criteria.
      *
      * @param request The search request containing address, pickup, and drop-off times.
-     * @param page The page number to retrieve.
-     * @param size The number of cars per page.
-     * @param sort The sorting string in the format "field,direction" (e.g., "productionYear,desc").
+     * @param page    The page number to retrieve.
+     * @param size    The number of cars per page.
+     * @param sort    The sorting string in the format "field,direction" (e.g., "productionYear,desc").
      * @return A paginated list of available cars.
      */
 
@@ -732,9 +735,9 @@ public class CarService {
      * Creates a pageable object with sorting.
      * Ensures proper pagination and applies custom sorting criteria.
      *
-     * @param page  The requested page number (0-based index).
-     * @param size  The number of records per page.
-     * @param sort  Sorting criteria in the format "field,direction" (e.g., "updatedAt,desc").
+     * @param page The requested page number (0-based index).
+     * @param size The number of records per page.
+     * @param sort Sorting criteria in the format "field,direction" (e.g., "updatedAt,desc").
      * @return Pageable object with sorting applied.
      */
     private Pageable createPageableForOperator(int page, int size, String sort) {
@@ -765,5 +768,66 @@ public class CarService {
         return PageRequest.of(page, size, defaultSort);
     }
 
+    /**
+     * Retrieves the document details of a specific car.
+     *
+     * <p>This method fetches the car entity from the database using the provided car ID.
+     * If the car is not found, an exception is thrown.
+     * The document URIs stored in the database are converted to URLs for access.</p>
+     *
+     * @param carId The unique identifier of the car whose documents need to be fetched.
+     * @return A {@link CarDocumentsResponse} containing document URLs and verification statuses.
+     * @throws AppException if the car is not found in the database.
+     */
+    @Transactional(readOnly = true)
+    public CarDocumentsResponse getCarDocuments(String carId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
 
+        // Map entity to DTO and update URLs
+        return carMapper.toCarDocumentsResponse(car).toBuilder()
+                .registrationPaperUrl(fileService.getFileUrl(car.getRegistrationPaperUri()))
+                .certificateOfInspectionUrl(fileService.getFileUrl(car.getCertificateOfInspectionUri()))
+                .insuranceUrl(fileService.getFileUrl(car.getInsuranceUri()))
+                .build();
+    }
+
+
+    /**
+     * Operator confirms a car verification by changing its status from NOT_VERIFIED to VERIFIED.
+     *
+     * @param carId The unique identifier of the car.
+     * @return A {@link CarResponse} containing the updated car details.
+     * @throws AppException if the car is not found or the status is invalid for verification.
+     */
+    @Transactional
+    public CarResponse verifyCar(String carId) {
+        log.info("Operator {} is verifying car {}", SecurityUtil.getCurrentAccount().getId(), carId);
+
+        // Retrieve car from database
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+
+        // Validate that the car is in NOT_VERIFIED status
+        if (!ECarStatus.NOT_VERIFIED.equals(car.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_CAR_STATUS);
+        }
+
+        // Update status to VERIFIED
+        car.setStatus(ECarStatus.VERIFIED);
+        carRepository.saveAndFlush(car);
+
+//        //Send verification email to the car owner
+//        emailService.sendCarVerificationEmail(
+//                car.getAccount().getEmail(),
+//                car.getBrand() + " " + car.getModel(),
+//                carId
+//        );
+
+        log.info("Car {} verified successfully by operator {}", carId, SecurityUtil.getCurrentAccount().getId());
+
+        // Return updated car response
+        return carMapper.toCarResponse(car);
+    }
 }
+

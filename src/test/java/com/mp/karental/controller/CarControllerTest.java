@@ -6,6 +6,7 @@ import com.mp.karental.dto.request.car.AddCarRequest;
 import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.response.car.CarDetailResponse;
 import com.mp.karental.dto.request.car.EditCarRequest;
+import com.mp.karental.dto.response.car.CarDocumentsResponse;
 import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.exception.ErrorCode;
@@ -565,5 +566,49 @@ public class CarControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.content").isEmpty());
     }
+
+    @Test
+    @WithMockUser(roles = "OPERATOR")
+    void verifyCar_Success() throws Exception {
+        CarResponse response = new CarResponse();
+        response.setId("car123");
+        response.setStatus(ECarStatus.VERIFIED.name());
+
+        when(carService.verifyCar(anyString())).thenReturn(response);
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/car/operator/verify/car123")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value("car123"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(ECarStatus.VERIFIED.name()));
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERATOR")
+    void getCarDocuments_Success() throws Exception {
+        CarDocumentsResponse carDocumentsResponse = CarDocumentsResponse.builder()
+                .id("car123")
+                .registrationPaperUrl("https://example.com/registration")
+                .registrationPaperUriIsVerified(true)
+                .certificateOfInspectionUrl("https://example.com/inspection")
+                .certificateOfInspectionUriIsVerified(true)
+                .insuranceUrl("https://example.com/insurance")
+                .insuranceUriIsVerified(true)
+                .build();
+
+        when(carService.getCarDocuments(anyString())).thenReturn(carDocumentsResponse);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/car/operator/documents/car123")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.id").value("car123"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.registrationPaperUrl").value("https://example.com/registration"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.registrationPaperUriIsVerified").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.certificateOfInspectionUrl").value("https://example.com/inspection"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.certificateOfInspectionUriIsVerified").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.insuranceUrl").value("https://example.com/insurance"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.insuranceUriIsVerified").value(true));
+    }
+
 
 }

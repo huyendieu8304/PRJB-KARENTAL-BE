@@ -7,6 +7,7 @@ import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
 import com.mp.karental.dto.request.car.SearchCarRequest;
 import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.response.car.CarDocumentsResponse;
 import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.entity.Account;
@@ -1500,6 +1501,202 @@ class CarServiceTest {
         verify(bookingRepository).countCompletedBookingsByCar(car.getId());
     }
 
+    @Test
+    void testVerifyCar_Success() {
+        // Given
+        String carId = "car123";
+        Account mockOperator = new Account();
+        mockOperator.setId("operator123");
+
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(carRepository.saveAndFlush(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(car)).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.verifyCar(carId);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(ECarStatus.VERIFIED, car.getStatus());
+        verify(carRepository).saveAndFlush(car);
+    }
+
+    @Test
+    void testVerifyCar_CarNotFound() {
+        // Given
+        String carId = "invalidCarId";
+        Account mockOperator = new Account();
+        mockOperator.setId("operator123");
+
+        // Mock SecurityUtil để tránh NullPointerException
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
+
+        when(carRepository.findById(carId)).thenReturn(Optional.empty());
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> carService.verifyCar(carId));
+        assertEquals(ErrorCode.CAR_NOT_FOUND_IN_DB, exception.getErrorCode());
+    }
+
+    @Test
+    void testVerifyCar_InvalidStatus() {
+        // Given
+        String carId = "car123";
+        Account mockOperator = new Account();
+        mockOperator.setId("operator123");
+
+        // Mock SecurityUtil để tránh NullPointerException
+        mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setStatus(ECarStatus.VERIFIED); // Trạng thái không hợp lệ
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> carService.verifyCar(carId));
+        assertEquals(ErrorCode.INVALID_CAR_STATUS, exception.getErrorCode());
+    }
+
+    @Test
+    void testGetCarDocuments_Success() {
+        // Given
+        String carId = "car123";
+        Car car = new Car();
+        car.setId(carId);
+        car.setRegistrationPaperUri("reg-paper-uri");
+        car.setCertificateOfInspectionUri("inspection-uri");
+        car.setInsuranceUri("insurance-uri");
+
+        CarDocumentsResponse mockResponse = CarDocumentsResponse.builder()
+                .registrationPaperUrl("http://mock-url/reg-paper-uri")
+                .certificateOfInspectionUrl("http://mock-url/inspection-uri")
+                .insuranceUrl("http://mock-url/insurance-uri")
+                .build();
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(carMapper.toCarDocumentsResponse(car)).thenReturn(mockResponse);
+        when(fileService.getFileUrl("reg-paper-uri")).thenReturn("http://mock-url/reg-paper-uri");
+        when(fileService.getFileUrl("inspection-uri")).thenReturn("http://mock-url/inspection-uri");
+        when(fileService.getFileUrl("insurance-uri")).thenReturn("http://mock-url/insurance-uri");
+
+        // When
+        CarDocumentsResponse result = carService.getCarDocuments(carId);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("http://mock-url/reg-paper-uri", result.getRegistrationPaperUrl());
+        assertEquals("http://mock-url/inspection-uri", result.getCertificateOfInspectionUrl());
+        assertEquals("http://mock-url/insurance-uri", result.getInsuranceUrl());
+
+        verify(carRepository).findById(carId);
+        verify(fileService, times(3)).getFileUrl(anyString());
+    }
+
+    @Test
+    void testGetCarDocuments_CarNotFound() {
+        // Given
+        String carId = "invalidCarId";
+        when(carRepository.findById(carId)).thenReturn(Optional.empty());
+
+        // When & Then
+        AppException exception = assertThrows(AppException.class, () -> carService.getCarDocuments(carId));
+        assertEquals(ErrorCode.CAR_NOT_FOUND_IN_DB, exception.getErrorCode());
+
+        verify(carRepository).findById(carId);
+        verifyNoInteractions(fileService);
+    }
+
+    @Test
+    void searchCars_ShouldReturnEmpty_WhenNoAvailableCars() {
+        Car car = new Car();
+        car.setId("car123");
+
+        Page<Car> verifiedCars = new PageImpl<>(List.of(car));
+
+        when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(verifiedCars);
+        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(any(), any(), any()))
+                .thenReturn(List.of(new Booking())); // Xe có booking, không available
+
+        CarThumbnailResponse carThumbnailResponse = new CarThumbnailResponse();
+        carThumbnailResponse.setId("car123");
+        carThumbnailResponse.setAddress("Hanoi"); // Đảm bảo không null
+
+        when(carMapper.toSearchCar(any(), anyLong())).thenReturn(carThumbnailResponse);
+
+        SearchCarRequest request = new SearchCarRequest();
+        request.setAddress("Hanoi");
+        request.setPickUpTime(LocalDateTime.now().plusDays(1));
+        request.setDropOffTime(LocalDateTime.now().plusDays(2));
+
+        Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
+
+        assertEquals(1, result.getTotalElements());
+    }
 
 
+    @Test
+    void searchCars_ShouldReturnCars_WithNoRatings() {
+        Car car = new Car();
+        car.setId("car123");
+        car.setCityProvince("Hanoi");
+        car.setDistrict("Ba Dinh");
+        car.setWard("Kim Ma");
+
+        Page<Car> verifiedCars = new PageImpl<>(List.of(car));
+
+        when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(verifiedCars);
+        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(any(), any(), any()))
+                .thenReturn(Collections.emptyList()); // Không có booking, xe available
+        when(carMapper.toSearchCar(any(), anyLong())).thenReturn(new CarThumbnailResponse());
+
+        SearchCarRequest request = new SearchCarRequest();
+        request.setAddress("Hanoi");
+        request.setPickUpTime(LocalDateTime.now().plusDays(1));
+        request.setDropOffTime(LocalDateTime.now().plusDays(2));
+
+        Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+    }
+
+    @Test
+    void searchCars_ShouldReturnCars_WithFullDetails() {
+        Car car = new Car();
+        car.setId("car123");
+        car.setCityProvince("Hanoi");
+        car.setDistrict("Ba Dinh");
+        car.setWard("Kim Ma");
+
+        CarThumbnailResponse carThumbnailResponse = new CarThumbnailResponse();
+        carThumbnailResponse.setId("car123");
+        carThumbnailResponse.setAddress("Hanoi, Ba Dinh, Kim Ma");
+
+        Page<Car> verifiedCars = new PageImpl<>(List.of(car));
+
+        when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(verifiedCars);
+        when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(any(), any(), any()))
+                .thenReturn(Collections.emptyList()); // Không có booking, xe available
+        when(carMapper.toSearchCar(any(), anyLong())).thenReturn(carThumbnailResponse);
+        when(fileService.getFileUrl(any())).thenReturn("http://example.com/image.jpg");
+
+        SearchCarRequest request = new SearchCarRequest();
+        request.setAddress("Hanoi");
+        request.setPickUpTime(LocalDateTime.now().plusDays(1));
+        request.setDropOffTime(LocalDateTime.now().plusDays(2));
+
+        Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Hanoi, Ba Dinh, Kim Ma", result.getContent().get(0).getAddress());
+    }
 }

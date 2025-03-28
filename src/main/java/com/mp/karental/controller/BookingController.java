@@ -162,6 +162,15 @@ public class BookingController {
                 .build();
     }
 
+
+    /**
+     * Confirms that a customer has picked up the booked car.
+     *
+     * <p>This API allows customers to confirm their car pickup by providing the booking number.</p>
+     *
+     * @param bookingNumber The unique booking reference number.
+     * @return An {@link ApiResponse} containing the updated booking details.
+     */
     @PutMapping("/customer/confirm-pick-up/{bookingNumber}")
     public ApiResponse<BookingResponse> confirmPickUpBooking(@PathVariable String bookingNumber){
         return ApiResponse.<BookingResponse>builder()
@@ -169,6 +178,14 @@ public class BookingController {
                 .build();
     }
 
+    /**
+     * Confirms that a customer has returned the booked car.
+     *
+     * <p>This API allows customers to confirm the return of their rented car.</p>
+     *
+     * @param bookingNumber The unique booking reference number.
+     * @return An {@link ApiResponse} containing the updated booking details.
+     */
     @PutMapping("/customer/return-car/{bookingNumber}")
     public ApiResponse<BookingResponse> returnCar(@PathVariable String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()

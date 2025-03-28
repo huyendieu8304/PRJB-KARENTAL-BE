@@ -59,6 +59,8 @@ public enum ErrorCode {
     INVALID_DRIVER_INFO(2031,"Driver's information is different from account holder, but the information is not fulfilled",HttpStatus.BAD_REQUEST),
     INVALID_COMMENT_LENGTH(2032,"The comment length is invalid", HttpStatus.BAD_REQUEST),
     INVALID_RATING_RANGE(2033, "The rating range is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_CAR_STATUS(2034, "The status must be NOT_VERIFIED", HttpStatus.BAD_REQUEST),
+
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occured during uploading files. Please try again.", HttpStatus.SERVICE_UNAVAILABLE),
     ROLE_NOT_FOUND_IN_DB(3002, "The entity role requested is not found in the db", HttpStatus.NOT_FOUND),
@@ -98,6 +100,7 @@ public enum ErrorCode {
     SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL(3030,"There was error during sending pending payment booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
     CAR_CANNOT_RETURN(3036,"The car cannot be return when booking status is not in-progress and cannot return before the drop off time", HttpStatus.FORBIDDEN),
     CAR_CANNOT_STOPPED(3037,"The car cannot be stopped when has on-time booking", HttpStatus.FORBIDDEN),
+    SEND_CAR_VERIFICATION_EMAIL_FAIL(3038,"There was error during sending verify car to user.", HttpStatus.SERVICE_UNAVAILABLE),
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
