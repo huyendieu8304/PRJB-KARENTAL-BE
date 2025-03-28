@@ -104,10 +104,10 @@ public class AuthenticationService {
                             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
                     );
         } catch (InternalAuthenticationServiceException e) {
+            log.info("Login fail, account is inactive - email={}", request.getEmail());
             throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
-//        } catch (UsernameNotFoundException e) {
-//            throw new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB);
         } catch (BadCredentialsException e) {
+            log.info("Login fail, invalid login information - email={}", request.getEmail());
             throw new AppException(ErrorCode.INVALID_LOGIN_INFORMATION);
         }
 
@@ -181,7 +181,7 @@ public class AuthenticationService {
     }
 
     public ResponseEntity<ApiResponse<String>> logout(HttpServletRequest request) {
-        log.info("Processing refresh token request");
+        log.info("Processing logout request");
         //get tokens out from cookies
         String accessToken = getCookieValueByName(request, accessTokenCookieName);
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
@@ -202,7 +202,7 @@ public class AuthenticationService {
         if (accessToken != null && !accessToken.isEmpty()) {
             try {
                 jwtUtils.validateJwtAccessToken(accessToken);
-                //the access token still not expire
+                //the access token still not expire, invalidate it
                 tokenService.invalidateAccessToken(accessToken, jwtUtils.getExpirationAtFromAccessToken(accessToken));
 
             } catch (Exception e) {
@@ -285,7 +285,7 @@ public class AuthenticationService {
         //verify forgot password token
         verifyForgotPasswordToken(forgotPasswordToken);
 
-        //generate  change password token
+        //return change password token
         return forgotPasswordToken;
     }
 
@@ -299,6 +299,7 @@ public class AuthenticationService {
             if (!account.isEmailVerified() || !account.isActive()) {
                 throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
             }
+            log.info("Forgot password token is valid");
             return account;
         } else {
             log.info("Forgot password token is invalid!");

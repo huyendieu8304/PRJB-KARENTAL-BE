@@ -1,9 +1,11 @@
 package com.mp.karental.entity;
 
 import com.mp.karental.constant.ECarStatus;
+import com.mp.karental.security.SecurityUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.CollectionType;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -26,6 +28,7 @@ import java.util.List;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
+@Slf4j
 public class Car {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -125,7 +128,19 @@ public class Car {
     @UpdateTimestamp
     LocalDateTime updatedAt;
 
-//    @OneToMany(mappedBy = "car", cascade = CascadeType.ALL)
-//    List<Booking> bookings;
+    @PostPersist
+    public void onPostPersist() {
+        log.info("Account: {} - Successfully created Car with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
+    }
+
+    @PreUpdate
+    public void onPreUpdate() {
+        log.info("Account: {} - Updating Car: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
+
+    @PostUpdate
+    public void onPostUpdate() {
+        log.info("Account: {} - Updated Car: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
 
 }

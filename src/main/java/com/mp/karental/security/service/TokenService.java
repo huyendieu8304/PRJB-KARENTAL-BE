@@ -10,7 +10,7 @@ import java.time.Instant;
 
 @Service
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor
 public class TokenService {
     RedisTemplate<String, String> redisTemplate;
 

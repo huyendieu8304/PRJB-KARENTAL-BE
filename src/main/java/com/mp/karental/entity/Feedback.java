@@ -1,8 +1,10 @@
 package com.mp.karental.entity;
 
+import com.mp.karental.security.SecurityUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Check;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -26,6 +28,7 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 @Check(constraints = "rating >= 1 AND rating <= 5")
+@Slf4j
 public class Feedback {
     @Id
     String id;
@@ -45,4 +48,19 @@ public class Feedback {
 
     @UpdateTimestamp
     LocalDateTime updateAt;
+
+    @PostPersist
+    public void onPostPersist() {
+        log.info("Account: {} - Successfully created Feedback with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
+    }
+
+    @PreUpdate
+    public void onPreUpdate() {
+        log.info("Account: {} - Updating Feedback: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
+
+    @PostUpdate
+    public void onPostUpdate() {
+        log.info("Account: {} - Updated Feedback: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
 }
