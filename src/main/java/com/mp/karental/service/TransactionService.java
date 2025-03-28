@@ -46,9 +46,37 @@ public class TransactionService {
     AccountRepository accountRepository;
     TransactionMapper transactionMapper;
     PaymentService paymentService;
+    EmailService emailService;
     private final ApplicationRunner init;
     IpnHandler ipnHandler;
+
     // method serve withdraw transaction
+    public TransactionResponse withdraw(long amount){
+        String accountId = SecurityUtil.getCurrentAccountId();
+        Wallet wallet = walletRepository.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
+        Transaction transaction = Transaction.builder()
+                .amount(amount)
+                .wallet(wallet)
+                .type(ETransactionType.WITHDRAW)
+                .status(ETransactionStatus.PROCESSING)
+        .build();
+
+        // if amount is larger than balance, throw error
+        if (wallet.getBalance() < amount) {
+            transaction.setStatus(ETransactionStatus.FAILED);
+            throw new AppException(ErrorCode.PAYMENT_FAILED);
+        } else {
+            transaction.setStatus(ETransactionStatus.SUCCESSFUL);
+            wallet.setBalance(wallet.getBalance() - transaction.getAmount());
+
+
+        }
+        walletRepository.save(wallet);
+        transactionRepository.save(transaction);
+        TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(transaction);
+        // return response for Withdraw transaction
+        return transactionResponse;
+    }
 
     //create payment URL to VNPAY sanbox when transaction is TOP_UP
     public TransactionPaymentURLResponse createTransactionTopUp(TransactionRequest transactionRequest) {
@@ -64,8 +92,7 @@ public class TransactionService {
         transactionRepository.save(transaction);
 
         TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(transaction);
-        // if the transaction is top-up, initialize a payment request
-        if (transaction.getType().equals(ETransactionType.TOP_UP)) {
+
             InitPaymentRequest initPaymentRequest = InitPaymentRequest.builder()
                     .transactionType(transaction.getType())
                     .userId(accountId)
@@ -81,28 +108,9 @@ public class TransactionService {
                     .transactionResponse(transactionResponse)
                     .payment(initPaymentResponse)
                     .build();
-        }
-        // if transaction is withdraw, directly deduct balance
-        if (transaction.getType().equals(ETransactionType.WITHDRAW)) {
-            // if amount is larger than balance, throw error
-            if (wallet.getBalance() < transaction.getAmount()) {
-                transaction.setStatus(ETransactionStatus.FAILED);
-                transactionRepository.save(transaction);
-                throw new AppException(ErrorCode.PAYMENT_FAILED);
-            } else {
-                transaction.setStatus(ETransactionStatus.SUCCESSFUL);
-                wallet.setBalance(wallet.getBalance() - transaction.getAmount());
-                transactionRepository.save(transaction);
-            }
-        }
-        walletRepository.save(wallet);
-        transactionResponse = transactionMapper.toTransactionResponse(transaction);
-        log.info("Transaction withdraw response: {}", transactionResponse);
-        // return response for Withdraw transaction
-        return TransactionPaymentURLResponse.builder()
-                .transactionResponse(transactionResponse)
-                .build();
+
     }
+
     //get the transaction status after vnpay process
     public TransactionResponse getTransactionStatus(String transactionId, Map<String,String> params) {
         log.info("Checking Transaction Status: transactionId={}, params={}", transactionId, params);
@@ -285,7 +293,7 @@ public class TransactionService {
         transactionRepository.save(transactionCarOwner);
     }
 
-    private long calculateTotalPayment(Booking b){
+    public long calculateTotalPayment(Booking b){
         long minutes = Duration.between(b.getPickUpTime(), b.getDropOffTime()).toMinutes();
         long days = (long) Math.ceil(minutes / (24.0 * 60)); // Convert minutes to full days.
         return  b.getBasePrice() * days;

@@ -30,6 +30,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -79,6 +81,37 @@ class BookingControllerTest {
         bookingResponse.setBookingNumber("BK123456");
 
     }
+
+    @Test
+    void testCreateBooking_MultipartFormData() throws Exception {
+
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber("BK123456");
+        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED);
+
+        when(bookingService.createBooking(any(CreateBookingRequest.class))).thenReturn(bookingResponse);
+
+
+        mockMvc.perform(multipart("/booking/customer/create-book")
+                        .file(new MockMultipartFile("driverLicense", "license.jpg", "image/jpeg", "fake-image-data".getBytes()))
+                        .param("carId", "123")
+                        .param("driverFullName", "John Doe")
+                        .param("driverPhoneNumber", "0123456789")
+                        .param("driverNationalId", "123456789000")
+                        .param("driverDob", "1990-01-01")
+                        .param("driverEmail", "johndoe@example.com")
+                        .param("driverCityProvince", "Thành phố Hà Nội")
+                        .param("driverDistrict", "Quận Ba Đình")
+                        .param("driverWard", "Phường Phúc Xá")
+                        .param("driverHouseNumberStreet", "123 Kim Ma")
+                        .param("pickUpLocation", "Thành phố Hà Nội,Quận Ba Đình,Phường Phúc Xá,123 Kim Ma")
+                        .param("pickUpTime", LocalDateTime.now().plusDays(1).withHour(7).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")))
+                        .param("dropOffTime", LocalDateTime.now().plusDays(2).withHour(7).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")))
+                        .param("paymentType", EPaymentType.WALLET.name())
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isOk());
+    }
+
 
     @Test
     void testEditBooking_Success() throws Exception {
@@ -309,6 +342,66 @@ class BookingControllerTest {
 
         // Perform the GET request and assert that the response is correct
         mockMvc.perform(put("/booking/customer/return-car/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
+    @Test
+    void testConfirmEarlyReturn_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR);
+
+        // Mock the service method
+        when(bookingService.confirmEarlyReturnCar(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/car-owner/confirm-early-return/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
+    @Test
+    void testRejectEarlyReturn_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED_RETURN_CAR);
+
+        // Mock the service method
+        when(bookingService.rejectWaitingConfirmedEarlyReturnCarBooking(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/car-owner/reject-early-return/{bookingNumber}", bookingNumber)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())  // Assert that the response status is 200 OK
+                .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned
+                .andExpect(jsonPath("$.data.carId").value("car-001"));
+    }
+
+    @Test
+    void testRejectBooking_Success() throws Exception {
+        // Prepare the mock response from bookingService
+        String bookingNumber = "12345";
+        BookingResponse bookingResponse = new BookingResponse();
+        bookingResponse.setBookingNumber(bookingNumber);
+        bookingResponse.setCarId("car-001");
+        bookingResponse.setStatus(EBookingStatus.WAITING_CONFIRMED);
+
+        // Mock the service method
+        when(bookingService.rejectWaitingConfirmedBooking(bookingNumber)).thenReturn(bookingResponse);
+
+        // Perform the GET request and assert that the response is correct
+        mockMvc.perform(put("/booking/car-owner/reject-booking/{bookingNumber}", bookingNumber)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())  // Assert that the response status is 200 OK
                 .andExpect(jsonPath("$.data.bookingNumber").value(bookingNumber))  // Assert that the booking number is returned

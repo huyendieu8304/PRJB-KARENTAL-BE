@@ -151,7 +151,7 @@ public class CarService {
         // Update the car details using the request data
         carMapper.editCar(car, request);
 
-        if (!isValidStatusChange(currentStatus, newStatus)) {
+        if (!isValidStatusChange(currentStatus, newStatus)){
             throw new AppException(ErrorCode.INVALID_CAR_STATUS_CHANGE);
         }
 
@@ -202,16 +202,14 @@ public class CarService {
 
     /**
      * This method to check the car currently booked or not
-     *
      * @param carId the id of the car
      * @return true if the car is booked by account ID, false otherwise
      */
     private boolean isCarCurrentlyBooked(String carId) {
         // 2 status is not booked
         List<EBookingStatus> excludedStatuses = Arrays.asList(EBookingStatus.CANCELLED, EBookingStatus.PENDING_DEPOSIT);
-        return bookingRepository.hasActiveBooking(carId, excludedStatuses);
+        return bookingRepository.hasActiveBooking(carId,excludedStatuses);
     }
-
     /**
      * Cancels all pending deposit bookings for a car that has been stopped.
      * Updates the status of affected bookings, notifies customers via email,
@@ -242,7 +240,7 @@ public class CarService {
             // Send cancellation email to the customer
             emailService.sendCancelledBookingEmail(booking.getAccount().getEmail(),
                     booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                    reason);
+                    reason );
 
             // Remove the cached pending deposit booking from Redis
             redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
@@ -523,7 +521,12 @@ public class CarService {
 
         List<Booking> bookings = bookingRepository.findActiveBookingsByCarIdAndTimeRange(carId, searchStart, searchEnd);
         log.info("Checking availability for Car ID: {} - Search range: {} to {}", carId, searchStart, searchEnd);
-
+        //check car if status is different with VERIFIED, the car is not available
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+        if(car.getStatus() != ECarStatus.VERIFIED) {
+            return false;
+        }
         // If there isn't any booking -> Available
         if (bookings.isEmpty()) {
             return true;
@@ -548,7 +551,8 @@ public class CarService {
                 EBookingStatus.IN_PROGRESS,
                 EBookingStatus.PENDING_PAYMENT,
                 EBookingStatus.COMPLETED,
-                EBookingStatus.WAITING_CONFIRMED
+                EBookingStatus.WAITING_CONFIRMED,
+                EBookingStatus.WAITING_CONFIRMED_RETURN_CAR
         );
 
         return bookingRepository.existsByCarIdAndAccountIdAndBookingStatusIn(carId, accountId, activeStatuses);

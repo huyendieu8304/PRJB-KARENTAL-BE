@@ -8,8 +8,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -40,27 +43,20 @@ import java.util.*;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SecurityConfig{
 
+    @Value("${front-end.base-url}")
+    @NonFinal
+    private String frontendBaseUrl;
 
     /**
      * Define public endpoints, the endpoint that could be accessed without needing to provide any authentication header
      */
-    //TODO: tìm cách khác để define cái public enpoints này, dùng static không ổn lắm
-    public static final String[] PUBLIC_ENDPOINTS = {
-            "/user/register",
-            "/user/check-unique-email",
-            "/user/resend-verify-email/**",
-            "/user/verify-email/**",
-            "/auth/**",
-            "/homepage/feedbacks",
-            "/homepage/city"
-    };
-    /**
-     * Allow request from other origins below
-     */
-    private final List<String> ALLOWED_CORS_URL = List.of(new String[]{
-            "http://localhost:3000" //TODO: replace this with the endpoint of deployed front end
-    });
+    @Value("${application.security.public-endpoints}")
+    @NonFinal
+    private String[] publicEndpoints;
 
+    private List<String> getAllowCorsUrl(){
+        return List.of(frontendBaseUrl);
+    }
 
     UserDetailsServiceImpl userDetailsService;
     AuthEntryPointJwt jwtAuthenticationEntryPoint;
@@ -89,7 +85,7 @@ public class SecurityConfig{
                     @Override
                     public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
                         CorsConfiguration config = new CorsConfiguration();
-                        config.setAllowedOrigins(ALLOWED_CORS_URL);
+                        config.setAllowedOrigins(getAllowCorsUrl());
                         config.setAllowedMethods(Collections.singletonList("*"));
                         config.setAllowedHeaders(Collections.singletonList("*"));
                         config.setExposedHeaders(Collections.singletonList("Authorization"));
@@ -105,7 +101,7 @@ public class SecurityConfig{
                 .authorizeHttpRequests( //authorization in http url
                         request -> request
                                 //open public endpoints
-                                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                                .requestMatchers(publicEndpoints).permitAll()
                                 //endpoints for user has role CAR_OWNER
                                 .requestMatchers("/car/car-owner/**").hasRole("CAR_OWNER")
                                 .requestMatchers("/car/customer/**").hasRole("CUSTOMER")

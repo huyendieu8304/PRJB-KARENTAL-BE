@@ -1,6 +1,5 @@
 package com.mp.karental.security.auth;
 
-import com.mp.karental.configuration.SecurityConfig;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.security.JwtUtils;
@@ -47,6 +46,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @NonFinal
     private String accessTokenCookieName;
 
+    @Value("${application.security.public-endpoints}")
+    @NonFinal
+    private String[] publicEndpoints;
+
     JwtUtils jwtUtils;
     UserDetailsServiceImpl userDetailsService;
     TokenService tokenService;
@@ -65,7 +68,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         //skip authentication with public endpoints
         PathPatternParser pathPatternParser = new PathPatternParser();
-        if (Arrays.stream(SecurityConfig.PUBLIC_ENDPOINTS)
+        if (Arrays
+                .stream(publicEndpoints)
                 .anyMatch(endpoint -> pathPatternParser.parse(endpoint)
                         .matches(PathContainer.parsePath(path)))) {
             log.info("Public endpoint: {}, skipping authentication", path);
@@ -77,6 +81,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         Cookie cookie = WebUtils.getCookie(request, accessTokenCookieName);
         if (cookie != null) {
             jwt = cookie.getValue();
+            log.info("cookie found: {}", jwt);
         } else {
             log.info("Missing access token cookie");
             throw new AppException(ErrorCode.UNAUTHENTICATED);

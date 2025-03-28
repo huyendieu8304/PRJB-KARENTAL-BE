@@ -39,6 +39,7 @@ class RedisUtilTest {
     RedisUtil redisUtil;
 
     private static final String BOOKING_SEQUENCE_KEY = "booking-sequence";
+    private static final String PENDING_DEPOSIT_BOOKING_KEY = "booking:";
     private static final String VERIFY_EMAIL_TOKEN_PREFIX = "verify-email-tk:";
     private static final String FORGOT_PASSWORD_TOKEN_PREFIX = "forgot-password-tk:";
 
@@ -213,4 +214,31 @@ class RedisUtilTest {
         // Assert
         verify(redisTemplate).delete(key);
     }
+
+    @Test
+    void cachePendingDepositBooking_ShouldSetKeyWithTTL_WhenBookingNumberIsProvided() {
+        // Arrange
+        String bookingNumber = "12345";
+        String key = PENDING_DEPOSIT_BOOKING_KEY + bookingNumber;
+
+        // Act
+        redisUtil.cachePendingDepositBooking(bookingNumber);
+
+        // Assert
+        verify(redisTemplate.opsForValue()).set(eq(key), eq(key), eq(1L), eq(TimeUnit.HOURS));
+    }
+
+    @Test
+    void removeCachePendingDepositBooking_ShouldDeleteKey_WhenBookingNumberIsProvided() {
+        // Arrange
+        String bookingNumber = "12345";
+        String key = PENDING_DEPOSIT_BOOKING_KEY + bookingNumber;
+
+        // Act
+        redisUtil.removeCachePendingDepositBooking(bookingNumber);
+
+        // Assert
+        verify(redisTemplate).delete(key);
+    }
+
 }

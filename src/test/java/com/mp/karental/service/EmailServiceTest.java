@@ -1,6 +1,9 @@
 package com.mp.karental.service;
 
 import com.mp.karental.constant.EBookingStatus;
+import com.mp.karental.entity.Account;
+import com.mp.karental.entity.Booking;
+import com.mp.karental.entity.UserProfile;
 import com.mp.karental.exception.AppException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -10,9 +13,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
@@ -36,8 +44,116 @@ class EmailServiceTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(emailService, "fromEmail", "test@example.com");
         mimeMessage = mock(MimeMessage.class);
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+    }
+
+    @Test
+    void testSendWaitingConfirmReturnEmail_Failure() throws MessagingException {
+        // Mock MimeMessage
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        // Use doAnswer to throw the exception correctly
+        doAnswer(invocation -> {
+            throw new MessagingException("Failed to send email");
+        }).when(mailSender).send(any(MimeMessage.class));
+
+        // Verify that AppException is thrown
+        assertThrows(AppException.class, () ->
+                emailService.sendWaitingConfirmReturnCarEmail(
+                        "customer@example.com",
+                        "123"
+                )
+        );
+
+        // Verify send was attempted
+        verify(mailSender, times(1)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void testSendEarlyRejectEmail_Failure() throws MessagingException {
+        // Mock MimeMessage
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        // Use doAnswer to throw the exception correctly
+        doAnswer(invocation -> {
+            throw new MessagingException("Failed to send email");
+        }).when(mailSender).send(any(MimeMessage.class));
+
+        // Verify that AppException is thrown
+        assertThrows(AppException.class, () ->
+                emailService.sendEarlyReturnRejectedEmail(
+                        "customer@example.com",
+                        "123"
+                )
+        );
+
+        // Verify send was attempted
+        verify(mailSender, times(1)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void testSendEarlyReturnRejectedEmail() throws MessagingException {
+        // Given
+        String email = "test@example.com";
+        String bookingNumber = "12345";
+
+        // When
+        emailService.sendEarlyReturnRejectedEmail(email, bookingNumber);
+
+    }
+
+    @Test
+    void testSendPickUpReminderEmail() throws MessagingException {
+        // Given
+        Booking booking = mock(Booking.class);
+        Account account = mock(Account.class);
+        UserProfile profile = mock(UserProfile.class);
+
+        when(booking.getBookingNumber()).thenReturn("12345");
+        when(booking.getPickUpTime()).thenReturn(LocalDateTime.now());
+        when(booking.getAccount()).thenReturn(account);
+        when(account.getProfile()).thenReturn(profile);
+        when(profile.getFullName()).thenReturn("John Doe");
+        when(account.getEmail()).thenReturn("test@example.com");
+
+
+        // When
+        emailService.sendPickUpReminderEmail(booking);
+
+    }
+
+    @Test
+    void testSendDropOffReminderEmail() throws MessagingException {
+        // Given
+        Booking booking = mock(Booking.class);
+        Account account = mock(Account.class);
+        UserProfile profile = mock(UserProfile.class);
+
+        when(booking.getBookingNumber()).thenReturn("12345");
+        when(booking.getDropOffTime()).thenReturn(LocalDateTime.now());
+        when(booking.getAccount()).thenReturn(account);
+        when(account.getProfile()).thenReturn(profile);
+        when(profile.getFullName()).thenReturn("John Doe");
+        when(account.getEmail()).thenReturn("test@example.com");
+
+
+        // When
+        emailService.sendDropOffReminderEmail(booking);
+
+    }
+
+    @Test
+    void testSendWaitingConfirmReturnCarEmail() throws MessagingException {
+        // Given
+        String email = "test@example.com";
+        String bookingNumber = "12345";
+        // When
+        emailService.sendWaitingConfirmReturnCarEmail(email, bookingNumber);
     }
 
     @Test
@@ -137,7 +253,6 @@ class EmailServiceTest {
         // Verify send was attempted
         verify(mailSender, times(1)).send(any(MimeMessage.class));
     }
-
     @Test
     void testSendRegisterEmail() throws MessagingException {
         emailService.sendRegisterEmail("test@example.com", "http://test.com/confirm");

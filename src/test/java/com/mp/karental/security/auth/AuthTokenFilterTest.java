@@ -68,26 +68,25 @@ class AuthTokenFilterTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(authTokenFilter, "accessTokenCookieName", accessTokenCookieName);
-//        ReflectionTestUtils.setField(SecurityConfig.class, "PUBLIC_ENDPOINTS", new String[]{"/customPublic", "/anotherPublic"});
+        ReflectionTestUtils.setField(authTokenFilter, "publicEndpoints", PUBLIC_ENDPOINTS);
         SecurityContextHolder.clearContext();
     }
 
-    //TODO: viết lại test sau khi tìm được phương án public endpoint phù hợp
-//    @Test
-//    void testDoFilterInternal_PublicEndpoint() throws ServletException, IOException {
-//        // Given: the request URI (minus context path) exactly equals one of the custom public endpoints.
-//        when(request.getRequestURI()).thenReturn("/customPublic");
-//        when(request.getContextPath()).thenReturn("");
-//
-//        // When: the filter's doFilterInternal method is invoked
-//        authTokenFilter.doFilterInternal(request, response, filterChain);
-//
-//        // Then: the filter should simply pass the request along the filter chain without performing authentication.
-//        verify(filterChain, times(1)).doFilter(request, response);
-//        // And: no authentication should be set in the SecurityContext
-//        assertNull(SecurityContextHolder.getContext().getAuthentication(),
-//                "No authentication should be set for requests to public endpoints");
-//    }
+    @Test
+    void testDoFilterInternal_PublicEndpoint() throws ServletException, IOException {
+        // Given: the request URI (minus context path) exactly equals one of the custom public endpoints.
+        when(request.getRequestURI()).thenReturn("/public");
+        when(request.getContextPath()).thenReturn("");
+
+        // When: the filter's doFilterInternal method is invoked
+        authTokenFilter.doFilterInternal(request, response, filterChain);
+
+        // Then: the filter should simply pass the request along the filter chain without performing authentication.
+        verify(filterChain, times(1)).doFilter(request, response);
+        // And: no authentication should be set in the SecurityContext
+        assertNull(SecurityContextHolder.getContext().getAuthentication(),
+                "No authentication should be set for requests to public endpoints");
+    }
 
     @Test
     void testDoFilterInternal_NoJwtCookie() {
