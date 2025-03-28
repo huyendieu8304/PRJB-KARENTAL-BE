@@ -80,7 +80,7 @@ public class BookingController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) EBookingStatus status,
-            @RequestParam(defaultValue = "createdAt,DESC") String sort) {
+            @RequestParam(defaultValue = "updatedAt,DESC") String sort) {
 
         BookingListResponse response = bookingService.getBookingsOfOperator(page, size, sort,
                 (status != null) ? status.name() : null);

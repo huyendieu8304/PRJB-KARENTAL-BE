@@ -152,14 +152,25 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("ownerId") String ownerId
     );
 
-    @Query("SELECT b FROM Booking b WHERE b.status = :status OR b.status = :pendingStatus")
-    Page<Booking> findByStatusOrPendingDeposit(@Param("status") EBookingStatus status,
-                                               @Param("pendingStatus") EBookingStatus pendingStatus,
+    @Query("SELECT b FROM Booking b " +
+            "WHERE b.status = :status")
+    Page<Booking> findBookingsByStatus(@Param("status") EBookingStatus status,
                                                Pageable pageable);
 
-    @Query("SELECT b FROM Booking b WHERE b.status = :pendingStatus OR b.status IS NULL")
-    Page<Booking> findAllByPendingDeposit(@Param("pendingStatus") EBookingStatus pendingStatus,
-                                          Pageable pageable);
+    @Query("SELECT b FROM Booking b " +
+            "ORDER BY " +
+            "   CASE " +
+            "       WHEN b.status = 'PENDING_DEPOSIT' THEN 1 " +
+            "       WHEN b.status = 'PENDING_PAYMENT' THEN 2 " +
+            "       WHEN b.status = 'WAITING_CONFIRMED_RETURN_CAR' THEN 3 " +
+            "       ELSE 4 END")
+    Page<Booking> findAllBookings(Pageable pageable);
+
+//    @Query("SELECT b FROM Booking b " +
+//            "ORDER BY CASE WHEN :sort IS NULL AND b.status = :pendingStatus THEN 0 ELSE 1 END")
+//    Page<Booking> findWhenStatusNullBookings(@Param("pendingStatus") EBookingStatus pendingStatus,
+//                                             @Param("sort") String sort,
+//                                             Pageable pageable);
 
     Optional<Booking> findByBookingNumber(String bookingNumber);
 

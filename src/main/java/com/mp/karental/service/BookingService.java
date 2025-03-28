@@ -463,8 +463,8 @@ public class BookingService {
         // If the status is valid, fetch bookings filtered by status
         // Otherwise, fetch all bookings for the user
         bookings = (bookingStatus != null)
-                ? bookingRepository.findByStatusOrPendingDeposit(bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
-                : bookingRepository.findAllByPendingDeposit(EBookingStatus.PENDING_DEPOSIT, pageable);
+                ? bookingRepository.findBookingsByStatus(bookingStatus, pageable)
+                : bookingRepository.findAllBookings(pageable);
 
         // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings);
