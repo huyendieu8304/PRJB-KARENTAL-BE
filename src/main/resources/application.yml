@@ -19,7 +19,8 @@ application:
       /user/check-unique-email,
       /user/resend-verify-email/**,
       /user/verify-email/**,
-      /auth/**"
+      /auth/**,
+      /homepage/**"
 ##      FOR TEST
 #      access-token-expiration: 15000 #milisecond ~ 15s
 #      refresh-token-expiration: 60000 #~1 minute
@@ -37,7 +38,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+#    show-sql: true
     properties:
       hibernate:
         format_sql: true

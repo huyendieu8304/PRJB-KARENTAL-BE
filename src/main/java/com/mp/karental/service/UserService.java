@@ -63,7 +63,7 @@ public class UserService {
     RedisUtil redisUtil;
 
     /**
-     * Creates a new user account along with the associated user profile.
+     * Creates a new Customer or CarOwner account along with the associated user profile.
      *
      * @param request the account registration request containing the user's details
      * @return a {@code UserResponse} DTO containing the details of the newly created account and profile
@@ -79,6 +79,7 @@ public class UserService {
         if (role.isPresent()){
             account.setRole(role.get());
         } else {
+            log.info("Create new account failed");
             throw new AppException(ErrorCode.ROLE_NOT_FOUND_IN_DB);
         }
         account.setActive(false); //set status of the account, this will change after the email is verified
@@ -99,7 +100,7 @@ public class UserService {
         walletRepository.save(wallet);
 
         sendVerifyEmail(account);
-        log.info("Account created, email={}", account.getEmail());
+        log.info("Account created successfully, email={}, accountId={}", account.getEmail(), account.getId());
         return userMapper.toUserResponse(account, userProfile);
     }
 

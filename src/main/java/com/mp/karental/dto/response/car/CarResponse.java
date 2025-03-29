@@ -77,4 +77,6 @@ public class CarResponse {
     String carImageLeftUrl;
     String carImageRightUrl;
 
+    double averageRatingByCar;
+
 }

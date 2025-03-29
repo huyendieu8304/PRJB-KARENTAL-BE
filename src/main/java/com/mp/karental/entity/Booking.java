@@ -3,9 +3,11 @@ package com.mp.karental.entity;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
+import com.mp.karental.security.SecurityUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -27,6 +29,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
+@Slf4j
 public class Booking {
     @Id
     @Column(name = "booking_number", unique = true, nullable = false)
@@ -98,4 +101,22 @@ public class Booking {
     @Column(nullable = false)
     String driverHouseNumberStreet;
 
+    @Column(nullable = false)
+    String updateBy;
+
+
+    @PostPersist
+    public void onPostPersist() {
+        log.info("Account: {} - Successfully created Transaction with id: {}", SecurityUtil.getCurrentAccountId(), this.bookingNumber);
+    }
+
+    @PreUpdate
+    public void onPreUpdate() {
+        log.info("Account: {} - Updating Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
+
+    @PostUpdate
+    public void onPostUpdate() {
+        log.info("Account: {} - Updated Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
 }

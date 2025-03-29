@@ -58,6 +58,7 @@ public class FileService {
             log.info("Upload file {} to S3 successful", key);
             return true;
         } catch (IOException e) {
+            log.info("Upload file {} to S3 failed", key);
             throw new AppException(ErrorCode.UPLOAD_OBJECT_TO_S3_FAIL);
         }
     }
@@ -79,7 +80,7 @@ public class FileService {
                 .signatureDuration(Duration.ofMinutes(30)) //allow this url to be access in 30
                 .getObjectRequest(getObjectRequest)
                 .build();
-
+        log.info("Get url of the file with the key={} successful", uri);
         return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 

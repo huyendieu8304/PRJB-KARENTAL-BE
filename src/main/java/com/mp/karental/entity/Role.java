@@ -2,9 +2,11 @@ package com.mp.karental.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mp.karental.constant.ERole;
+import com.mp.karental.security.SecurityUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
@@ -25,6 +27,7 @@ import java.util.List;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
+@Slf4j
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,7 +37,19 @@ public class Role {
     @Enumerated(EnumType.STRING) //to save the name as String in db
     private ERole name;
 
-//    @JsonIgnore
-//    @OneToMany(mappedBy = "role")
-//    private List<Account> accounts;
+    @PostPersist
+    public void onPostPersist() {
+        log.info("Account: {} - Successfully created Role with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
+    }
+
+    @PreUpdate
+    public void onPreUpdate() {
+        log.info("Account: {} - Updating Role: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
+
+    @PostUpdate
+    public void onPostUpdate() {
+        log.info("Account: {} - Updated Role: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
+
 }
