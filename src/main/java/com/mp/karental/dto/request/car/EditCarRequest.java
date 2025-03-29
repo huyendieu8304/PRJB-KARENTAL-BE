@@ -49,15 +49,12 @@ public class EditCarRequest {
 
     ECarStatus status;
     @ValidDocument(message = "INVALID_DOCUMENT_FILE")
-    @RequiredField(fieldName = "Registration paper")
     MultipartFile registrationPaper;
 
     @ValidDocument(message = "INVALID_DOCUMENT_FILE")
-    @RequiredField(fieldName = "Certificate of inspection")
     MultipartFile certificateOfInspection;
 
     @ValidDocument(message = "INVALID_DOCUMENT_FILE")
-    @RequiredField(fieldName = "Insurance")
     MultipartFile insurance;
     //  MultipartFile**
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
