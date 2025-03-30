@@ -85,6 +85,16 @@ public class BookingController {
                                     | 3001 | There was error occurred during uploading files. Please try again.|
                                     """
                     ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3025 | There was error during sending cancelLed booking email to user.|
+                                    | 3026 | There was error during sending waiting confirm email to user.|
+                                    """
+                    ),
             }
     )
     @PostMapping(value = "/customer/create-book", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -302,116 +312,1060 @@ public class BookingController {
                 .data(wallet)
                 .build();
     }
-    /**
-     * Handles get an existing booking by booking number.
-     *
-     * @param bookingNumber The unique identifier of the booking to be updated.
-     * @return ApiResponse containing the get booking details.
-     */
+    @Operation(
+            summary = "Get a booking for customer",
+            description = "This api allows customers to view the booking details by booking number",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4014 | Can not view detail/edit booking of another account.|
+                                    | 4004 | User doesn't have permission to access the endpoint.|
+                                    """
+                    ),
+            }
+    )
     @GetMapping("/customer/{bookingNumber}")
-    public ApiResponse<BookingResponse> getBookingByBookingNumber(@PathVariable String bookingNumber) {
+    public ApiResponse<BookingResponse> getBookingByBookingNumber(@PathVariable @Parameter(description = "The booking number to be view", example = "BK202410200001") String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.getBookingDetailsByBookingNumber(bookingNumber))
                 .build();
     }
 
 
-    /**
-     * Handles get an existing booking by booking number.
-     *
-     * @param bookingNumber The unique identifier of the booking to be updated.
-     * @return ApiResponse containing the get booking details.
-     */
+    @Operation(
+            summary = "Get a booking for car owner",
+            description = "This api allows car owner to view the booking details by booking number",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    | 4004 | User doesn't have permission to access the endpoint.|
+                                    """
+                    ),
+            }
+    )
     @GetMapping("/car-owner/{bookingNumber}")
-    public ApiResponse<BookingResponse> getCustomerBookingDetails(@PathVariable String bookingNumber) {
+    public ApiResponse<BookingResponse> getCustomerBookingDetails(@PathVariable @Parameter(description = "The booking number to be view", example = "BK202410200001") String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.getBookingDetailsByBookingNumber(bookingNumber))
                 .build();
     }
 
-    /**
-     * API endpoint for car owners to confirm a booking.
-     *
-     * @param bookingNumber The unique booking number to be confirmed.
-     * @return BookingResponse containing updated booking details.
-     */
+    @Operation(
+            summary = "Confirm the booking",
+            description = "This api allows car owner to confirm the booking for customer",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "CONFIRMED",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3020 | The booking status does not allow this action.|
+                                    | 3021 | This booking has expired and cannot be confirmed.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3028 | There was error during sending confirmed booking email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/car-owner/{bookingNumber}/confirm")
-    public BookingResponse confirmBooking(@PathVariable String bookingNumber) {
-        return bookingService.confirmBooking(bookingNumber);
+    public ApiResponse<BookingResponse> confirmBooking(@PathVariable @Parameter(description = "The booking number to be confirm", example = "BK202410200001") String bookingNumber) {
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.confirmBooking(bookingNumber))
+                .build();
     }
 
-    /**
-     * Handles the cancellation of a booking by a customer.
-     * This endpoint allows a customer to cancel their booking based on the provided booking number.
-     * The cancellation process is managed by the {@code cancelBooking} method in {@code BookingService},
-     * which handles refunds, updates the booking status, and sends necessary email notifications.
-     *
-     * @param bookingNumber The unique identifier of the booking to be canceled.
-     * @return An {@link ApiResponse} containing the updated {@link BookingResponse} with the booking details.
-     */
+    @Operation(
+            summary = "Cancel the booking",
+            description = "This api allows customer to cancel the booking",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "CANCELLED",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3023 | The booking cannot be cancelled as it is already in progress, pending payment, completed,waiting_confirmed_return_car or cancelled.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4014 | Can not view detail/edit booking of another account.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3025 | There was error during sending cancelLed booking email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/customer/cancel-booking/{bookingNumber}")
-    public ApiResponse<BookingResponse> cancelBooking(@PathVariable String bookingNumber)  {
+    public ApiResponse<BookingResponse> cancelBooking(@PathVariable @Parameter(description = "The booking number to be cancel", example = "BK202410200001") String bookingNumber)  {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.cancelBooking(bookingNumber))
                 .build();
     }
 
+    @Operation(
+            summary = "Confirm pick up the booking",
+            description = "This api allows customer to confirm pick up the booking",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "IN_PROGRESS",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3024 | The booking cannot be pickup when status not confirmed.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4014 | Can not view detail/edit booking of another account.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/customer/confirm-pick-up/{bookingNumber}")
-    public ApiResponse<BookingResponse> confirmPickUpBooking(@PathVariable String bookingNumber){
+    public ApiResponse<BookingResponse> confirmPickUpBooking(@PathVariable @Parameter(description = "The booking number to be confirm pick up", example = "BK202410200001") String bookingNumber){
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.confirmPickUp(bookingNumber))
                 .build();
     }
 
+    @Operation(
+            summary = "Return car",
+            description = "This api allows customer to return the car",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "PENDING_PAYMENT",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3036 | The car cannot be return when booking status is not in-progress.|
+                                    | 3003 | The account is not exist in the system.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4014 | Can not view detail/edit booking of another account.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3038 | There was error during sending waiting confirmed return car email to user.|
+                                    | 3030 | There was error during sending pending payment booking email to user.|
+                                    | 3029 | There was error during sending completed booking email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/customer/return-car/{bookingNumber}")
-    public ApiResponse<BookingResponse> returnCar(@PathVariable String bookingNumber) {
+    public ApiResponse<BookingResponse> returnCar(@PathVariable @Parameter(description = "The booking number to be return car", example = "BK202410200001") String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.returnCar(bookingNumber))
                 .build();
     }
 
+    @Operation(
+            summary = "Confirm early return car",
+            description = "This api allows car owner to confirm the request return early the car",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "COMPLETED",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3020 | The booking status does not allow this action.|
+                                    | 3003 | The account is not exist in the system.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3030 | There was error during sending pending payment booking email to user.|
+                                    | 3029 | There was error during sending completed booking email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/car-owner/confirm-early-return/{bookingNumber}")
-    public ApiResponse<BookingResponse> confirmEarlyReturnCar(@PathVariable String bookingNumber){
+    public ApiResponse<BookingResponse> confirmEarlyReturnCar(@PathVariable @Parameter(description = "The booking number to be confirm return early car", example = "BK202410200001") String bookingNumber){
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.confirmEarlyReturnCar(bookingNumber))
                 .build();
     }
 
+    @Operation(
+            summary = "Reject early return car",
+            description = "This api allows car owner to reject the request return early the car",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "IN_PROGRESS",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3020 | The booking status does not allow this action.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3041 | There was error during sending reject early return car email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/car-owner/reject-early-return/{bookingNumber}")
-    public ApiResponse<BookingResponse> rejectEarlyReturnCar(@PathVariable String bookingNumber){
+    public ApiResponse<BookingResponse> rejectEarlyReturnCar(@PathVariable @Parameter(description = "The booking number to be reject early return car", example = "BK202410200001") String bookingNumber){
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.rejectWaitingConfirmedEarlyReturnCarBooking(bookingNumber))
                 .build();
     }
 
+    @Operation(
+            summary = "Reject Booking",
+            description = "This api allows car owner to reject the booking",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "CANCELLED",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3020 | The booking status does not allow this action.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3025 | There was error during sending cancelLed booking email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/car-owner/reject-booking/{bookingNumber}")
-    public ApiResponse<BookingResponse> rejectBooking(@PathVariable String bookingNumber){
+    public ApiResponse<BookingResponse> rejectBooking(@PathVariable @Parameter(description = "The booking number to be reject booking", example = "BK202410200001") String bookingNumber){
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.rejectWaitingConfirmedBooking(bookingNumber))
                 .build();
     }
 
+    @Operation(
+            summary = "Confirm Deposit Operator",
+            description = "This api allows operator to confirm the deposit of the booking",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "WAITING_CONFIRMED",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3020 | The booking status does not allow this action.|
+                                    | 3044 | This payment type is not supported in this case.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3026 | There was error during sending waiting confirm email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/operator/confirm-deposit/{bookingNumber}")
-    public ApiResponse<BookingResponse> confirmDeposit(@PathVariable String bookingNumber){
+    public ApiResponse<BookingResponse> confirmDeposit(@PathVariable @Parameter(description = "The booking number to be confirm deposit", example = "BK202410200001") String bookingNumber){
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.confirmDeposit(bookingNumber))
                 .build();
     }
+
+    @Operation(
+            summary = "Reject Deposit Operator",
+            description = "This api allows operator to reject the deposit of the booking",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "CANCELLED",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3020 | The booking status does not allow this action.|
+                                    | 3044 | This payment type is not supported in this case.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3025 | There was error during sending cancelLed booking email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/operator/reject-deposit/{bookingNumber}")
-    public ApiResponse<BookingResponse> rejectDeposit(@PathVariable String bookingNumber){
+    public ApiResponse<BookingResponse> rejectDeposit(@PathVariable @Parameter(description = "The booking number to be reject deposit", example = "BK202410200001") String bookingNumber){
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.rejectDeposit(bookingNumber))
                 .build();
     }
+
+    @Operation(
+            summary = "Pay deposit again",
+            description = "This api allows customer to pay deposit again",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "WAITING_CONFIRMED",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3020 | The booking status does not allow this action.|
+                                    | 3044 | This payment type is not supported in this case.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4014 | Can not view detail/edit booking of another account.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3025 | There was error during sending cancelLed booking email to user.|
+                                    | 3026 | There was error during sending waiting confirm email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/customer/pay-deposit-again/{bookingNumber}")
-    public ApiResponse<BookingResponse> payDepositAgain(@PathVariable String bookingNumber){
+    public ApiResponse<BookingResponse> payDepositAgain(@PathVariable @Parameter(description = "The booking number to be pay deposit again", example = "BK202410200001") String bookingNumber){
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.payDepositAgain(bookingNumber))
                 .build();
     }
 
+    @Operation(
+            summary = "Pay deposit again",
+            description = "This api allows customer to pay deposit again",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class,
+                                                            example = """
+                                            {
+                                                "bookingNumber": "BK202410200001",
+                                                "carId": "car1",
+                                                "status": "COMPLETED",
+                                                "pickUpLocation": "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng",
+                                                "pickUpTime": "2004-11-08T09:00:00",
+                                                "dropOffTime": "2004-11-08T18:00:00",
+                                                "totalPrice": 50000,
+                                                "basePrice": 50000,
+                                                "deposit": 10000,
+                                                "paymentType": "WALLET",
+                                                "driverFullName": "John Doe",
+                                                "driverPhoneNumber": "0886980035",
+                                                "driverNationalId": "A123456789",
+                                                "driverDob": "2004-11-08",
+                                                "driverEmail": "john.doe@example.com",
+                                                "driverDrivingLicenseUrl": "booking/123456/driver-driving-license.jpg",
+                                                "driverCityProvince": "Tỉnh Hà Giang",
+                                                "driverDistrict": "Thành phố Hà Giang",
+                                                "driverWard": "Phường Quang Trung",
+                                                "driverHouseNumberStreet": "211 Trần Duy Hưng",
+                                                "isDriver": true
+                                            }
+                                            """
+                                                    )
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3020 | The booking status does not allow this action.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4014 | Can not view detail/edit booking of another account.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3029 | There was error during sending completed booking email to user.|
+                                    | 3030 | There was error during sending pending payment booking email to user.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping("/customer/pay-total-payment-again/{bookingNumber}")
-    public ApiResponse<BookingResponse> payTotalPaymentAgain(@PathVariable String bookingNumber){
+    public ApiResponse<BookingResponse> payTotalPaymentAgain(@PathVariable @Parameter(description = "The booking number to be pay deposit again", example = "BK202410200001") String bookingNumber){
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.payTotalPaymentAgain(bookingNumber))
                 .build();

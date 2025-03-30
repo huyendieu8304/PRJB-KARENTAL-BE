@@ -639,9 +639,6 @@ public class BookingService {
      * @throws AppException If the booking is not found or the user does not have permission to access the booking.
      */
     public BookingResponse getBookingDetailsByBookingNumber(String bookingNumber) {
-        // Retrieve the currently logged-in user's account ID
-        String accountId = SecurityUtil.getCurrentAccountId();
-
         // Get the full account details of the currently logged-in user
         Account account = SecurityUtil.getCurrentAccount();
 
@@ -650,26 +647,11 @@ public class BookingService {
         // Check if the user is a CAR_OWNER
         if (ERole.CAR_OWNER.equals(account.getRole().getName())) {
             // Retrieve the booking details only if the booking is associated with the car owner's vehicles
-            booking = bookingRepository.findBookingByBookingNumberAndOwnerId(bookingNumber, accountId);
-
-            // If no booking is found, throw an exception indicating that it does not exist in the database
-            if (booking == null) {
-                throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-            }
-            if (!booking.getCar().getAccount().getId().equals(accountId)) {
-                throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
-            }
+            booking = validateAndGetBookingCarOwner(bookingNumber);
 
             // Check if the user is a CUSTOMER
         } else if (ERole.CUSTOMER.equals(account.getRole().getName())) {
-            // Retrieve the booking details (without filtering by owner)
-            booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-
-            // If the booking does not exist OR it does not belong to the current user, deny access
-            if (booking == null || !booking.getAccount().getId().equals(accountId)) {
-                throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
-            }
-
+            booking = validateAndGetBookingCustomer(bookingNumber);
             // If the user role is neither CAR_OWNER nor CUSTOMER, throw an unauthorized error
         } else {
             throw new AppException(ErrorCode.UNAUTHORIZED);
