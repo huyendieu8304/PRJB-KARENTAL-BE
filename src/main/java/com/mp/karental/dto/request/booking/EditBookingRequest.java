@@ -29,6 +29,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
+@Schema(name = "request.booking.EditBookingRequest", description = "DTO contain necessary information to make a car")
 public class EditBookingRequest {
     //driver
     //=============================================================

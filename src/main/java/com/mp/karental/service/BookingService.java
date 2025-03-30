@@ -436,7 +436,7 @@ public class BookingService {
         bookings = (bookingStatus != null)
                 ? bookingRepository.findByAccountIdAndStatus(accountId, bookingStatus, pageable)
                 : bookingRepository.findByAccountId(accountId, pageable);
-
+        logBookingAccess(accountId, bookings.getTotalElements());
         // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings, true);
     }
@@ -453,7 +453,7 @@ public class BookingService {
      */
     public BookingListResponse getBookingsOfOperator(int page, int size, String sort, String status) {
         // Retrieve the currently logged-in user's account ID
-        SecurityUtil.getCurrentAccount();
+        String accountId = SecurityUtil.getCurrentAccountId();
 
         // Create a Pageable object for pagination and sorting
         Pageable pageable = createPageable(page, size, sort);
@@ -470,7 +470,7 @@ public class BookingService {
         bookings = (bookingStatus != null)
                 ? bookingRepository.findBookingsByStatus(bookingStatus, pageable)
                 : bookingRepository.findAllBookings(bankCashTypes,pageable);
-
+        logBookingAccess(accountId, bookings.getTotalElements());
         // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings, false);
     }
@@ -491,8 +491,13 @@ public class BookingService {
         bookings = (bookingStatus != null)
                 ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
                 : bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
-
+        logBookingAccess(ownerId, bookings.getTotalElements());
         return getBookingListResponse(bookings, false);
+    }
+
+    private void logBookingAccess(String accountId, long recordCount) {
+        log.info("Successfully accessed booking information, number of records: {}, accessed by: {}",
+                recordCount, accountId);
     }
 
     /**
@@ -656,7 +661,8 @@ public class BookingService {
         } else {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
-
+        log.info("Successfully accessed booking's information, bookingNo: {}, accessed by: {}",
+                bookingNumber, account.getId());
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
 
     }
@@ -968,21 +974,28 @@ public class BookingService {
      */
     private Booking validateAndGetBookingOperator(String bookingNumber) {
         // Retrieve the currently authenticated account(operator)
-        SecurityUtil.getCurrentAccount();
+        Account account = SecurityUtil.getCurrentAccount();
+        String accountId = account.getId();
 
         // Fetch the booking from the database using the booking number
         Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
 
         // If no booking is found, throw an exception
         if (booking == null) {
+            log.info("Failed to access booking's information, bookingNo: {}, accessed by: {} (Operator)",
+                    bookingNumber, accountId);
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
         }
         // operator can only change when booking is pending deposit
         if(!EBookingStatus.PENDING_DEPOSIT.equals(booking.getStatus())) {
+            log.info("Failed to access booking's information due to invalid status, bookingNo: {}, accessed by: {} (Operator)",
+                    bookingNumber, accountId);
             throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
         }
         // if payment type of booking is wallet -> operator not supported, the system is handle
         if(EPaymentType.WALLET.equals(booking.getPaymentType())) {
+            log.info("Failed to access booking's information due to unsupported payment type, bookingNo: {}, accessed by: {} (Operator)",
+                    bookingNumber, accountId);
             throw new AppException(ErrorCode.UNSUPPORTED_PAYMENT_TYPE);
         }
         return booking;
@@ -1007,10 +1020,14 @@ public class BookingService {
 
         // If no booking is found, throw an exception
         if (booking == null) {
+            log.info("Failed to access booking's information, bookingNo: {}, accessed by: {} (Customer)",
+                    bookingNumber, account.getId());
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
         }
         // Ensure the booking belongs to the current authenticated user
         if (!booking.getAccount().getId().equals(account.getId())) {
+            log.info("Failed to access booking's information due to forbidden access, bookingNo: {}, accessed by: {} (Customer)",
+                    bookingNumber, account.getId());
             throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
         }
         return booking;
@@ -1034,6 +1051,8 @@ public class BookingService {
 
         // If no booking is found, throw an exception indicating that the booking does not exist
         if (booking == null) {
+            log.info("Failed to access booking's information, bookingNo: {}, accessed by: {} (Car Owner)",
+                    bookingNumber, SecurityUtil.getCurrentAccountId());
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
         }
 
@@ -1043,9 +1062,10 @@ public class BookingService {
         // Check if the booking belongs to the current car owner
         if (!booking.getCar().getAccount().getId().equals(accountId)) {
             // If the user is not the car owner, throw an exception indicating forbidden access
+            log.info("Failed to access booking's information due to forbidden access, bookingNo: {}, accessed by: {} (Car Owner)",
+                    bookingNumber, accountId);
             throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
-
         // Return the validated booking object
         return booking;
     }

@@ -677,14 +677,18 @@ public class CarService {
     public CarResponse getCarById(String id) {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
-
+        log.info("User {} is attempting to access car details with carId: {}", accountId, id);
         // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> {
+                    log.info("Failed to access car's information, carId: {}, accessed by: {}", id, accountId);
+                    return new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB);
+                });
 
         // Check if the car belongs to the current logged-in user
         if (!car.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS); // Custom error for unauthorized access
+            log.info("Failed to access car's information due to forbidden access, carId: {}, accessed by: {}", car.getId(), accountId);
+            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
 
         // Get average rating of car
@@ -701,7 +705,7 @@ public class CarService {
 
         // Set file URLs for car images and documents
         setCarResponseUrls(carResponse, car);
-
+        log.info("Successfully accessed car's information, carId: {}, accessed by: {}", car.getId(), accountId);
         return carResponse;
     }
 
