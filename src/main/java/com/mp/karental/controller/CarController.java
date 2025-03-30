@@ -45,7 +45,7 @@ import java.time.format.DateTimeParseException;
  * @version 1.0
  */
 @RestController
-@RequestMapping(value = "/car", produces = MediaType.MULTIPART_FORM_DATA_VALUE)
+@RequestMapping(value = "/car", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
@@ -123,13 +123,6 @@ public class CarController {
 
     }
 
-    /**
-     * Handles editing an existing car.
-     *
-     * @param request The request object containing updated car details.
-     * @param carId The unique identifier of the car to be updated.
-     * @return ApiResponse containing the updated car details.
-     */
     @PutMapping(value = "/car-owner/edit-car/{carId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<CarResponse> editCar(@ModelAttribute @Valid EditCarRequest request, @PathVariable String carId) {
         log.info("edit car {}", request);
@@ -138,12 +131,6 @@ public class CarController {
                 .build();
     }
 
-    /**
-     * Handles get an existing car by id.
-     *
-     * @param carId The unique identifier of the car to be updated.
-     * @return ApiResponse containing the get car details.
-     */
     @GetMapping("/car-owner/{carId}")
     public ApiResponse<CarResponse> getCarById(@PathVariable String carId) {
         return ApiResponse.<CarResponse>builder()
@@ -151,11 +138,6 @@ public class CarController {
                 .build();
     }
 
-    /**
-     * Retrieves car details including booking status within a specified date range.
-     *
-     * @return ApiResponse<CarDetailResponse> containing car details and booking status.
-     */
     @GetMapping("/customer/car-detail")
     public ApiResponse<CarDetailResponse> getCarDetail(
             @RequestParam String carId,

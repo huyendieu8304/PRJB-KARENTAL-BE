@@ -80,6 +80,7 @@ public class CarService {
 
         // Associate the car with the current account
         car.setAccount(account);
+        car.setCreatedAt(LocalDateTime.now());
 
         // Set default status for the new car
         car.setStatus(ECarStatus.NOT_VERIFIED);

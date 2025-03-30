@@ -108,7 +108,7 @@ public enum ErrorCode {
     EXCEL_DATA_LOAD_FAILED(3042, "Failed to load data from Excel file", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_CAR_VERIFICATION_EMAIL_FAIL(3043,"There was error during sending verify car to user", HttpStatus.SERVICE_UNAVAILABLE),
 
-    UNSUPPORTED_PAYMENT_TYPE(3044, "Wallet payment type is not supported by operator", HttpStatus.BAD_REQUEST),
+    UNSUPPORTED_PAYMENT_TYPE(3044, "This payment type is not supported in this case", HttpStatus.BAD_REQUEST),
     INSUFFICIENT_BALANCE(3045,"Your wallet does not have enough balance", HttpStatus.BAD_REQUEST),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),

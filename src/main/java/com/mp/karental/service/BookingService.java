@@ -127,6 +127,7 @@ public class BookingService {
         // Store car deposit and base price at the time of booking.
         booking.setDeposit(car.getDeposit());
         booking.setBasePrice(car.getBasePrice());
+        booking.setUpdateBy(SecurityUtil.getCurrentAccountId());
 
         // Handle paying deposit.
         if (booking.getPaymentType().equals(EPaymentType.WALLET)
@@ -195,9 +196,9 @@ public class BookingService {
 
             // Notify the customer about the cancellation
             String reason = "Your booking has been canceled because another customer has successfully placed a deposit for this car within the same rental period.";
-//            emailService.sendCancelledBookingEmail(pendingBooking.getAccount().getEmail(),
-//                    pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
-//                    reason);
+            emailService.sendCancelledBookingEmail(pendingBooking.getAccount().getEmail(),
+                    pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
+                    reason);
 
         }
 
@@ -205,11 +206,11 @@ public class BookingService {
         redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
 
         // Send confirmation emails to both the customer and car owner
-//        emailService.sendWaitingConfirmedEmail(booking.getAccount().getEmail(),
-//                booking.getCar().getAccount().getEmail(),
-//                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-//                booking.getBookingNumber()
-//        );
+        emailService.sendWaitingConfirmedEmail(booking.getAccount().getEmail(),
+                booking.getCar().getAccount().getEmail(),
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                booking.getBookingNumber()
+        );
     }
 
 
@@ -261,6 +262,7 @@ public class BookingService {
         }
 
         booking.setDriverDrivingLicenseUri(drivingLicenseKey);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccountId());
 
         // Save the booking to the database.
         bookingRepository.saveAndFlush(booking);
@@ -470,7 +472,7 @@ public class BookingService {
                 : bookingRepository.findAllBookings(bankCashTypes,pageable);
 
         // Convert the list of bookings into a BookingListResponse object to return
-        return getBookingListResponse(bookings);
+        return getBookingListResponse(bookings, false);
     }
 
 
