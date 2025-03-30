@@ -6,7 +6,6 @@ import com.mp.karental.dto.request.car.CarDetailRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
 import com.mp.karental.dto.request.car.SearchCarRequest;
 import com.mp.karental.dto.response.ApiResponse;
-import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.car.CarDetailResponse;
 import com.mp.karental.dto.response.car.CarDocumentsResponse;
 import com.mp.karental.dto.response.car.CarResponse;
@@ -15,6 +14,7 @@ import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.CarService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.SchemaProperty;
@@ -74,7 +74,7 @@ public class CarController {
                                             ),
                                             @SchemaProperty(
                                                     name = "data",
-                                                    schema = @Schema(type = "object")
+                                                    schema = @Schema(type = "object", implementation = CarResponse.class)
                                             )
                                     }
                             )
@@ -99,18 +99,16 @@ public class CarController {
                                     | 2010 | Your additional functions were not predefined. Please try another function.|
                                     | 2016 | Invalid file type. Accepted formats are .doc, .docx, .pdf, .jpeg, .jpg, .png.|
                                     | 2017 | Invalid file type. Accepted formats are .jpg, .jpeg, .png, .gif.|
-                                    """,
-                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                                    """
                     ),
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
                             responseCode = "503",
                             description = """
-                                    Forbidden
+                                    Service_Unavailable
                                     |code  | message |
                                     |------|-------------|
                                     | 3001 | There was error occurred during uploading files. Please try again.|
-                                    """,
-                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                                    """
                     ),
             }
     )
@@ -123,16 +121,124 @@ public class CarController {
 
     }
 
+    @Operation(
+            summary = "Edit car",
+            description = "This api allows car owner to edit the information of a car",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = CarResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3007 | The car is not exist in the system.|
+                                    | 2024 | Allowed transitions: NOT_VERIFIED → STOPPED, STOPPED → NOT_VERIFIED, VERIFIED → STOPPED.|
+                                    | 2018 | This attribute must be >=0.|
+                                    | 2000 | {fieldName} is required.|
+                                    | 2019 | The address is invalid.|
+                                    | 2010 | Your additional functions were not predefined. Please try another function.|
+                                    | 2016 | Invalid file type. Accepted formats are .doc, .docx, .pdf, .jpeg, .jpg, .png.|
+                                    | 2017 | Invalid file type. Accepted formats are .jpg, .jpeg, .png, .gif.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3001 | There was error occurred during uploading files. Please try again.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    | 3037 | The car cannot be stopped when has on-time booking.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping(value = "/car-owner/edit-car/{carId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<CarResponse> editCar(@ModelAttribute @Valid EditCarRequest request, @PathVariable String carId) {
+    public ApiResponse<CarResponse> editCar(@ModelAttribute @Valid EditCarRequest request, @PathVariable @Parameter(description = "The ID of the car to be edited", example = "car1") String carId) {
         log.info("edit car {}", request);
         return ApiResponse.<CarResponse>builder()
                 .data(carService.editCar(request, carId))
                 .build();
     }
 
+    @Operation(
+            summary = "Get car by id",
+            description = "This api allows car owner to get the information of a car by id",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = CarResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3007 | The car is not exist in the system.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    """
+                    ),
+            }
+    )
     @GetMapping("/car-owner/{carId}")
-    public ApiResponse<CarResponse> getCarById(@PathVariable String carId) {
+    public ApiResponse<CarResponse> getCarById(@PathVariable @Parameter(description = "The ID of the car", example = "car1") String carId) {
+        log.info("get car {}", carId);
         return ApiResponse.<CarResponse>builder()
                 .data(carService.getCarById(carId))
                 .build();
@@ -143,13 +249,11 @@ public class CarController {
             @RequestParam String carId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime pickUpTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dropOffTime) {
-
         CarDetailRequest request = CarDetailRequest.builder()
                 .carId(carId)
                 .pickUpTime(pickUpTime)
                 .dropOffTime(dropOffTime)
                 .build();
-
         return ApiResponse.<CarDetailResponse>builder()
                 .data(carService.getCarDetail(request))
                 .build();

@@ -8,6 +8,11 @@ import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.service.BookingService;
 import com.mp.karental.dto.response.booking.BookingListResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -29,13 +34,59 @@ public class BookingController {
 
     BookingService bookingService;  // Service layer dependency for handling business logic
 
-    /**
-     * Handles the customer booking request.
-     * This endpoint allows customers to create a new booking request with car details.
-     *
-     * @param bookingRequest The booking request payload, validated using @Valid
-     * @return ApiResponse containing the created booking details
-     */
+    @Operation(
+            summary = "Create a booking",
+            description = "This api allows customers to make a booking to rent a car ",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3007 | The car is not exist in the system.|
+                                    | 3003 | The account is not exist in the system.|
+                                    | 3010 | The car is not available.|
+                                    | 2031 | Driver's information is different from account holder, but the information is not fulfilled.|
+                                    | 2004 | Invalid phone number.|
+                                    | 2022 | National ID must contain exactly 12 digits.|
+                                    | 2026 | Invalid booking time.|
+                                    | 2028 | Invalid address component.|
+                                    | 2002 | Please enter a valid email address.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3001 | There was error occurred during uploading files. Please try again.|
+                                    """
+                    ),
+            }
+    )
     @PostMapping(value = "/customer/create-book", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<BookingResponse> createBooking(@ModelAttribute @Valid CreateBookingRequest bookingRequest) {
         log.info("create booking {}", bookingRequest);
@@ -44,8 +95,67 @@ public class BookingController {
                 .build();
     }
 
+    @Operation(
+            summary = "Edit a booking",
+            description = "This api allows customers to view/edit the booking details after renting a car",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    | 3019 | The booking cannot be edited as it is already in its current status.|
+                                    | 2031 | Driver's information is different from account holder, but the information is not fulfilled.|
+                                    | 2004 | Invalid phone number.|
+                                    | 2022 | National ID must contain exactly 12 digits.|
+                                    | 2002 | Please enter a valid email address.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4014 | Can not view detail/edit booking of another account.|
+                                    """
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "503",
+                            description = """
+                                    Service_Unavailable
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3001 | There was error occurred during uploading files. Please try again.|
+                                    """
+                    ),
+            }
+    )
     @PutMapping(value = "/customer/edit-book/{bookingNumber}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ApiResponse<BookingResponse> editBooking(@ModelAttribute @Valid EditBookingRequest editBookingRequest, @PathVariable String bookingNumber)  {
+    ApiResponse<BookingResponse> editBooking(@ModelAttribute @Valid EditBookingRequest editBookingRequest, @PathVariable @Parameter(description = "The booking number to be edited", example = "BK202410200001") String bookingNumber)  {
         log.info("edit booking {}", editBookingRequest);
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.editBooking(editBookingRequest, bookingNumber))
@@ -75,12 +185,48 @@ public class BookingController {
                 .build();
     }
 
+
+    @Operation(
+            summary = "Get all booking",
+            description = "This api allows operators to view all the bookings in the system",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingListResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+            }
+    )
     @GetMapping("/operator/all-bookings")
     public ApiResponse<BookingListResponse> getBookingsForOperator(
+            @Parameter(description = "Page number for pagination", example = "0")
             @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Size of the page", example = "10")
             @RequestParam(defaultValue = "10") int size,
+
+            @Parameter(description = "Filter by booking status", example = "CONFIRMED")
             @RequestParam(required = false) EBookingStatus status,
-            @RequestParam(defaultValue = "updatedAt,DESC") String sort) {
+
+            @Parameter(description = "Sorting criteria in format: field,order", example = "updatedAt,DESC")
+            @RequestParam(defaultValue = "updatedAt,DESC") String sort
+    ) {
 
         BookingListResponse response = bookingService.getBookingsOfOperator(page, size, sort,
                 (status != null) ? status.name() : null);
@@ -113,11 +259,42 @@ public class BookingController {
                 .build();
     }
 
-    /**
-     * API endpoint to retrieve the wallet of account user login.
-     *
-     * @return a wallet in `ApiResponse<WalletResponse>`
-     */
+    @Operation(
+            summary = "Get balance of wallet",
+            description = "This api allows customers to view the balance of their wallet",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Success")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = WalletResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3003 | The account is not exist in the system.|
+                                    """
+                    ),
+            }
+    )
     @GetMapping("/get-wallet")
     public ApiResponse<WalletResponse> getWallet() {
         WalletResponse wallet = bookingService.getWallet();

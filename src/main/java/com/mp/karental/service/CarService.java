@@ -88,6 +88,7 @@ public class CarService {
         // Set transmission and fuel type based on request
         car.setAutomatic(request.isAutomatic());
         car.setGasoline(request.isGasoline());
+        car.setUpdateBy(accountId);
 
         // Set car address components from request
         setCarAddress(request, car);
@@ -161,7 +162,7 @@ public class CarService {
         if (newStatus == ECarStatus.STOPPED) {
             cancelPendingDepositsForStoppedCar(car.getId());
         }
-
+        car.setUpdateBy(accountId);
         // Update the car's address details
         setCarAddress(request, car);
 
@@ -369,7 +370,7 @@ public class CarService {
         // If the request is an EditCarRequest, only update image files
         if (request instanceof EditCarRequest editCarRequest) {
             //when car status is not verify, owner can change the documents to have valid document to verify by operator
-            if (car.getStatus() == ECarStatus.NOT_VERIFIED) {
+            if (car.getStatus() == ECarStatus.NOT_VERIFIED || car.getStatus() == ECarStatus.STOPPED) {
                 if (editCarRequest.getRegistrationPaper() != null && !editCarRequest.getRegistrationPaper().isEmpty()) {
                     String s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(editCarRequest.getRegistrationPaper());
                     fileService.uploadFile(editCarRequest.getRegistrationPaper(), s3KeyRegistration);

@@ -61,22 +61,33 @@ public class CarResponse {
     boolean isGasoline;
 
     //documents
+    @Schema(description = "URL of the registration paper", example = "car/12345/car1/documents/registration-paper.pdf")
     String registrationPaperUrl;
     @Schema(example = "false")
     boolean registrationPaperUriIsVerified;
+    @Schema(description = "URL of the certificate of inspection", example = "car/12345/car1/documents/certificate-of-inspection.pdf")
     String certificateOfInspectionUrl;
     @Schema(example = "false")
     boolean certificateOfInspectionUriIsVerified;
+    @Schema(description = "URL of the insurance document", example = "car/12345/car1/documents/insurance.pdf")
     String insuranceUrl;
     @Schema(example = "false")
     boolean insuranceUriIsVerified;
 
     //car image
+    @Schema(description = "URL of the car's front side image", example = "car/12345/car1/images/car-front.jpg")
     String carImageFrontUrl;
+
+    @Schema(description = "URL of the car's back side image", example = "car/12345/car1/images/car-back.jpg")
     String carImageBackUrl;
+
+    @Schema(description = "URL of the car's left side image", example = "car/12345/car1/images/car-left.jpg")
     String carImageLeftUrl;
+
+    @Schema(description = "URL of the car's right side image", example = "car/12345/car1/images/car-right.jpg")
     String carImageRightUrl;
 
+    @Schema(example = "0")
     double averageRatingByCar;
 
 }
