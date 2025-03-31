@@ -2,6 +2,7 @@ package com.mp.karental.dto.response.booking;
 
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.EPaymentType;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
@@ -20,13 +21,16 @@ import org.springframework.data.domain.Page;
 @Getter
 @Setter
 @AllArgsConstructor
+@Schema(description = "Response containing a list of bookings and related statistics.")
 public class BookingListResponse {
-    //count all booking isn't COMPLETED or CANCELLED
-    int totalOnGoingBookings;
 
-    //count all booking is WAITING_CONFIRMED
-    int totalWaitingConfirmBooking;
+    @Schema(description = "Total number of ongoing bookings (not COMPLETED or CANCELLED).", example = "5")
+    private int totalOnGoingBookings;
 
+    @Schema(description = "Total number of bookings waiting for confirmation.", example = "2")
+    private int totalWaitingConfirmBooking;
+
+    @Schema(description = "Paginated list of booking details.")
     private Page<BookingThumbnailResponse> bookings;
 }
 

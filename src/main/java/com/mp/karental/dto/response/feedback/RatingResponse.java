@@ -2,6 +2,7 @@ package com.mp.karental.dto.response.feedback;
 
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,9 +21,18 @@ import java.util.Map;
 @Data
 @Builder
 @AllArgsConstructor
+@Schema(description = "Response object containing rating statistics for a car owner.")
 public class RatingResponse {
-    // Total feedback follow by rating (1-5 start)
+
+    @Schema(
+            description = "Total feedback count grouped by rating (1-5 stars)",
+            example = "{\"1\": 10, \"2\": 5, \"3\": 8, \"4\": 20, \"5\": 50}"
+    )
     private Map<Integer, Long> ratingCounts;
 
+    @Schema(
+            description = "The average rating received by the car owner, calculated from all feedback",
+            example = "4.5"
+    )
     private Double averageRatingByOwner;
 }

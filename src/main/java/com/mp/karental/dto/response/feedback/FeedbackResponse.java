@@ -1,5 +1,6 @@
 package com.mp.karental.dto.response.feedback;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,11 +20,21 @@ import java.time.LocalDateTime;
 @Builder
 @Data
 @NoArgsConstructor
+@Schema(description = "Response object containing feedback details for a booking.")
 public class FeedbackResponse {
-    String bookingId;
-    int rating;
-    String comment;
-    LocalDateTime createdAt;
-    String reviewerName;
 
+    @Schema(description = "Unique identifier for the booking associated with the feedback", example = "BK123456")
+    String bookingId;
+
+    @Schema(description = "Rating given by the customer, ranging from 1 to 5", example = "5")
+    int rating;
+
+    @Schema(description = "Optional comment provided by the customer", example = "Great experience! The car was in excellent condition.")
+    String comment;
+
+    @Schema(description = "Timestamp when the feedback was created", example = "2025-03-28T14:30:00")
+    LocalDateTime createdAt;
+
+    @Schema(description = "Full name of the reviewer who left the feedback", example = "John Doe")
+    String reviewerName;
 }

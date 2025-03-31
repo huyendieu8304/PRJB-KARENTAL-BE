@@ -6,8 +6,14 @@ import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
+import com.mp.karental.dto.response.user.UserResponse;
 import com.mp.karental.service.BookingService;
 import com.mp.karental.dto.response.booking.BookingListResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -60,6 +66,39 @@ public class BookingController {
      * @param sort sorting field and direction in the format "field,DIRECTION" (default is "createdAt,DESC")
      * @return a paginated list of bookings wrapped in `ApiResponse<Page<BookingThumbnailResponse>>`
      */
+    @Operation(
+            summary = "View list bookings",
+            description = "Customer view their list of booking.",
+            parameters = {
+                    @Parameter(name = "page", description = "Page number (default = 0)", example = "0"),
+                    @Parameter(name = "size", description = "Number of records per page (default = 10)", example = "10"),
+                    @Parameter(name = "status", description = "Booking status filter", schema = @Schema(implementation = EBookingStatus.class)),
+                    @Parameter(name = "sort", description = "Sorting field and direction (default = 'updatedAt,DESC')", example = "updatedAt,DESC")
+            },
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingListResponse.class)
+                                            )
+                                    }
+                            )
+                    )
+            }
+    )
     @GetMapping("/customer/my-bookings")
     public ApiResponse<BookingListResponse> getBookings(
             @RequestParam(defaultValue = "0") int page,
@@ -83,6 +122,39 @@ public class BookingController {
      * @param sort sorting field and direction in the format "field,DIRECTION" (default is "updatedAt,DESC")
      * @return a paginated list of bookings wrapped in `ApiResponse<Page<BookingThumbnailResponse>>`
      */
+    @Operation(
+            summary = "View list rentals",
+            description = "Car owner can view their list of rentals",
+            parameters = {
+                    @Parameter(name = "page", description = "Page number (default = 0)", example = "0"),
+                    @Parameter(name = "size", description = "Number of records per page (default = 10)", example = "10"),
+                    @Parameter(name = "status", description = "Booking status filter", schema = @Schema(implementation = EBookingStatus.class)),
+                    @Parameter(name = "sort", description = "Sorting field and direction (default = 'updatedAt,DESC')", example = "updatedAt,DESC")
+            },
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingListResponse.class)
+                                            )
+                                    }
+                            )
+                    )
+            }
+    )
     @GetMapping("/car-owner/rentals")
     public ApiResponse<BookingListResponse> getBookingsForCarOwner(
             @RequestParam(defaultValue = "0") int page,
@@ -116,6 +188,55 @@ public class BookingController {
      * @param bookingNumber The unique identifier of the booking to be updated.
      * @return ApiResponse containing the get booking details.
      */
+    @Operation(
+            summary = "View booking detail",
+            description = "Customer can view their detail booking.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "404",
+                            description = """
+                                    Not Found
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    | 4014 | Can not view detail/edit car of another account.|
+                                    
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @GetMapping("/customer/{bookingNumber}")
     public ApiResponse<BookingResponse> getBookingByBookingNumber(@PathVariable String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
@@ -130,8 +251,57 @@ public class BookingController {
      * @param bookingNumber The unique identifier of the booking to be updated.
      * @return ApiResponse containing the get booking details.
      */
+    @Operation(
+            summary = "View booking detail",
+            description = "Car owner can view their detail booking.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "404",
+                            description = """
+                                    Not Found
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    | 4014 | Can not view detail/edit car of another account.|
+                                    
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @GetMapping("/car-owner/{bookingNumber}")
-    public ApiResponse<BookingResponse> getCustomerBookingDetails(@PathVariable String bookingNumber) {
+    public ApiResponse<BookingResponse> getCarOwnerBookingDetails(@PathVariable String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.getBookingDetailsByBookingNumber(bookingNumber))
                 .build();
@@ -143,6 +313,66 @@ public class BookingController {
      * @param bookingNumber The unique booking number to be confirmed.
      * @return BookingResponse containing updated booking details.
      */
+    @Operation(
+            summary = "Confirm booking",
+            description = "Car owner can confirm customer's booking.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3020 | This booking cannot be confirmed due to its current status.|
+                                    | 3021 | This booking has expired and cannot be confirmed.|
+                                    
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "404",
+                            description = """
+                                    Not Found
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3018 | The booking is not exist in the system.|
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @PutMapping("/car-owner/{bookingNumber}/confirm")
     public BookingResponse confirmBooking(@PathVariable String bookingNumber) {
         return bookingService.confirmBooking(bookingNumber);

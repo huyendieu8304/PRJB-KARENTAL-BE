@@ -14,6 +14,10 @@ import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.CarService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -86,6 +90,55 @@ public class CarController {
      * @param carId The unique identifier of the car to be updated.
      * @return ApiResponse containing the get car details.
      */
+    @Operation(
+            summary = "View car detail",
+            description = "Car owner can view their car detail.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = CarResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3007 | The car is not exist in the system.|
+
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 4010 | Can not view detail/edit car of another account.|
+                                    
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @GetMapping("/car-owner/{carId}")
     public ApiResponse<CarResponse> getCarById(@PathVariable String carId) {
         return ApiResponse.<CarResponse>builder()
@@ -98,6 +151,56 @@ public class CarController {
      *
      * @return ApiResponse<CarDetailResponse> containing car details and booking status.
      */
+    @Operation(
+            summary = "View car detail",
+            description = "Customer can view car detail.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = CarDetailResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 2025 | Invalid date range. Pick-up date must be before drop-off date.|
+                                    | 3007 | The car is not exist in the system.|
+
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = """
+                                    Forbidden
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3008 | This car has not been verified and cannot be viewed.|
+                                    
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @GetMapping("/customer/car-detail")
     public ApiResponse<CarDetailResponse> getCarDetail(
             @RequestParam String carId,
@@ -124,6 +227,33 @@ public class CarController {
      * @param sort The sorting criteria in the format "field,order" (default is "productionYear,DESC").
      * @return ApiResponse containing a paginated list of car thumbnails.
      */
+    @Operation(
+            summary = "View list car",
+            description = "Car owner can view their list car.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = CarThumbnailResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+            }
+    )
     @GetMapping("/car-owner/my-cars")
     public ApiResponse<Page<CarThumbnailResponse>> getCars(
             @RequestParam(defaultValue = "0") int page,
@@ -147,6 +277,34 @@ public class CarController {
      * @param sort        The sorting criteria in the format "field,direction" (default: "productionYear,desc").
      * @return A response entity containing a paginated list of available cars.
      */
+    @Operation(
+            summary = "Search Car",
+            description = "Customer can search car.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = CarThumbnailResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+
+            }
+    )
     @GetMapping("/customer/search-car")
     public ApiResponse<Page<CarThumbnailResponse>> searchCars(
             @RequestParam String address,
@@ -187,6 +345,33 @@ public class CarController {
      * @param status The status filter (optional).
      * @return A paginated list of cars.
      */
+    @Operation(
+            summary = "View list all car",
+            description = "Operator can view list all car.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = CarThumbnailResponse.class)
+                                            )
+                                    }
+                            )
+                    )
+            }
+    )
     @GetMapping(value = "/operator/list")
     public ApiResponse<Page<CarThumbnailResponse>> getCarListForOperator(
             @RequestParam(defaultValue = "0") int page,
@@ -210,6 +395,44 @@ public class CarController {
      * @param carId The unique identifier of the car.
      * @return An {@link ApiResponse} containing the car's document details.
      */
+    @Operation(
+            summary = "View document car",
+            description = "Operator can view document of car owner.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = CarDocumentsResponse.class)
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 3007 | The car is not exist in the system.|
+
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @GetMapping(value = "/operator/documents/{carId}")
     public ApiResponse<CarDocumentsResponse> getCarDocuments(@PathVariable String carId) {
         return ApiResponse.<CarDocumentsResponse>builder()
@@ -225,6 +448,44 @@ public class CarController {
      * @param carId The unique identifier of the car to be verified.
      * @return CarResponse containing the updated car details after verification.
      */
+    @Operation(
+            summary = "Verify car",
+            description = "Operator verifies a car that is currently in NOT_VERIFIED status.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "string", example = "Car has been verified successfully.")
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                    Bad request
+                    |code  | message |
+                    |------|--------------------------------------|
+                    | 3007 | The car is not exist in the system. |
+                    | 2024 | Car status must be NOT_VERIFIED. |
+                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
     @PutMapping(value = "/operator/verify/{carId}")
     public ApiResponse<String> verifyCar(@PathVariable String carId) {
         return ApiResponse.<String>builder()
