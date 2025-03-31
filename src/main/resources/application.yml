@@ -25,8 +25,8 @@ application:
 #      refresh-token-expiration: 60000 #~1 minute
 
 spring:
-  profiles:
-    active: prod
+#  profiles:
+#    active: prod
   application:
     name: karental
   datasource:

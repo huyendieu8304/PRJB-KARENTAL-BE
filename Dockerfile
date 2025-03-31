@@ -12,14 +12,6 @@
 ##STAGE 2: create image
 FROM amazoncorretto:17
 
-## instal Redis in container
-#RUN yum install -y epel-release && \
-#    yum install -y redis && \
-#    yum clean all
-#
-#COPY redis.conf /etc/redis/redis.conf
-
-
 # Change from ARG to ENV, ENV would be used during run
 ENV AWS_REGION=${AWS_REGION}
 ENV AWS_S3_BUCKETNAME=${AWS_S3_BUCKETNAME}
