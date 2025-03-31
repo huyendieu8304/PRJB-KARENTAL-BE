@@ -745,16 +745,18 @@ public class CarService {
      * @return Pageable object with sorting applied.
      */
     private Pageable createPageableForOperator(int page, int size, String sort) {
-        // Ensure page size is within valid limits (default 10, max 100)
+        // Ensure the page size is within a valid range (default 10, max 100)
         size = (size > 0 && size <= 100) ? size : 10;
 
-        // Ensure page index is non-negative
+        // Ensure the page index is non-negative
         page = Math.max(page, 0);
 
-        // Default sorting by updatedAt in descending order
-        Sort defaultSort = Sort.by(Sort.Direction.DESC, "updatedAt");
+        // List of allowed fields for sorting
+        List<String> allowedSortFields = List.of("updatedAt", "basePrice", "productionYear");
 
-        // Apply custom sorting if a valid sort parameter is provided
+        Sort sortCriteria = null;
+
+        // Check if sorting parameters are provided
         if (sort != null && !sort.isBlank()) {
             String[] sortParams = sort.split(",");
             if (sortParams.length == 2) {
@@ -762,15 +764,21 @@ public class CarService {
                 String requestedDirection = sortParams[1].trim().toUpperCase();
                 Sort.Direction direction = "ASC".equals(requestedDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
-                // Allow sorting only by updateAt
-                if ("updatedAt".equals(requestedField)) {
-                    defaultSort = Sort.by(direction, requestedField);
+                // Apply sorting only if the requested field is allowed
+                if (allowedSortFields.contains(requestedField)) {
+                    sortCriteria = Sort.by(direction, requestedField);
                 }
             }
         }
 
-        return PageRequest.of(page, size, defaultSort);
+        // If no valid sorting parameter is provided, default to sorting by updatedAt (descending)
+        if (sortCriteria == null) {
+            sortCriteria = Sort.by(Sort.Direction.DESC, "updatedAt");
+        }
+
+        return PageRequest.of(page, size, sortCriteria);
     }
+
 
     /**
      * Retrieves the document details of a specific car.

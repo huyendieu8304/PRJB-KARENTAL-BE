@@ -376,7 +376,7 @@ public class CarController {
     public ApiResponse<Page<CarThumbnailResponse>> getCarListForOperator(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "updatedAt,desc") String sort,
+            @RequestParam(required = false) String sort,
             @RequestParam(required = false) ECarStatus status) {
         log.info("Fetching car list for operator with filters - Page: {}, Size: {}, Sort: {}, Status: {}", page, size, sort, status);
         Page<CarThumbnailResponse> carList = carService.getAllCarsForOperator(page, size, sort, status);
