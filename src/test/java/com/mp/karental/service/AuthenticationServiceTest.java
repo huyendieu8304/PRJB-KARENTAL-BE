@@ -88,7 +88,6 @@ class AuthenticationServiceTest {
     private static final String FORGOT_PASSWORD_TOKEN = "forgot-token";
     private static final String NEW_PASSWORD = "new-password";
     private static final String ENCODED_PASSWORD = "encoded-password";
-    //TODO: sửa lại khi deploy
     private static final String DOMAIN_NAME = "http://localhost:8080/karental";
 
     @BeforeEach
@@ -96,10 +95,12 @@ class AuthenticationServiceTest {
         // Set up share variable in generate cookie
         ReflectionTestUtils.setField(authenticationService, "accessTokenCookieName", "accessToken");
         ReflectionTestUtils.setField(authenticationService, "refreshTokenCookieName", "refreshToken");
+        ReflectionTestUtils.setField(authenticationService, "csrfTokenCookieName", "csrfToken");
         ReflectionTestUtils.setField(authenticationService, "contextPath", "/myApp");
         ReflectionTestUtils.setField(authenticationService, "accessTokenExpiration", 3600L);
         ReflectionTestUtils.setField(authenticationService, "refreshTokenExpiration", 7200L);
         ReflectionTestUtils.setField(authenticationService, "refreshTokenUrl", "/karental/auth/refresh-token");
+        ReflectionTestUtils.setField(authenticationService, "csrfTokenHeaderName", "X-CSRF-TOKEN" );
 
     }
 
@@ -157,7 +158,7 @@ class AuthenticationServiceTest {
         List<String> setCookieHeaders = responseEntity.getHeaders().get(HttpHeaders.SET_COOKIE);
         assertNotNull(setCookieHeaders);
         //  sendApiResponseResponseEntity has 4 header SET_COOKIE
-        assertEquals(2, setCookieHeaders.size());
+        assertEquals(4, setCookieHeaders.size());
         // check cookies' name contains "accessToken" and "refreshToken"
         boolean hasAccessTokenCookie = setCookieHeaders.stream().anyMatch(cookie -> cookie.contains("accessToken"));
         boolean hasRefreshTokenCookie = setCookieHeaders.stream().anyMatch(cookie -> cookie.contains("refreshToken"));
@@ -226,7 +227,7 @@ class AuthenticationServiceTest {
     void testRefreshToken_Fail_NoToken() {
         when(httpServletRequest.getCookies()).thenReturn(null);
 
-        //assert throw exceptiion ìf no token in cookie
+        //assert throw exception ìf no token in cookie
         AppException exception = assertThrows(AppException.class, () -> {
             authenticationService.refreshToken(httpServletRequest);
         });
@@ -279,8 +280,7 @@ class AuthenticationServiceTest {
         when(httpServletRequest.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
                 new jakarta.servlet.http.Cookie("refreshToken", refreshToken)
         });
-        when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
-        when(tokenService.isRefreshTokenInvalidated(refreshToken)).thenReturn(false);
+
 
         when(jwtUtils.getUserAccountIdFromRefreshToken(refreshToken)).thenReturn(accountId);
         when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
@@ -325,12 +325,14 @@ class AuthenticationServiceTest {
         // Given
         String accessToken = "validAccessToken";
         String refreshToken = "validRefreshToken";
+        String csrfToken = "csrfToken";
 
         Cookie cookieAccess = new Cookie("accessToken", accessToken);
         Cookie cookieRefresh = new Cookie("refreshToken", refreshToken);
 
         Instant mockInstant = mock(Instant.class);
         when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });
+        when(httpServletRequest.getHeader(anyString())).thenReturn(csrfToken);
 
         // mock valid not throw exception
         when(jwtUtils.validateJwtRefreshToken(refreshToken)).thenReturn(true);
@@ -338,6 +340,9 @@ class AuthenticationServiceTest {
 
         when(jwtUtils.validateJwtAccessToken(accessToken)).thenReturn(true);
         when(jwtUtils.getExpirationAtFromAccessToken(accessToken)).thenReturn(mockInstant);
+
+        when(jwtUtils.validateJwtCsrfToken(csrfToken)).thenReturn(true);
+        when(jwtUtils.getExpirationAtFromCsrfToken(csrfToken)).thenReturn(mockInstant);
 
         // logout
         ResponseEntity<ApiResponse<String>> response = authenticationService.logout(httpServletRequest);
@@ -386,10 +391,10 @@ class AuthenticationServiceTest {
         //Given
         String accessToken = "validAccessToken";
         String refreshToken = "invalidRefreshToken";
+        String csrfToken = "vallidCsrfToken";
 
         Cookie cookieAccess = new Cookie("accessToken", accessToken);
         Cookie cookieRefresh = new Cookie("refreshToken", refreshToken);
-
         Instant mockInstant = mock(Instant.class);
 
         when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{ cookieAccess, cookieRefresh });

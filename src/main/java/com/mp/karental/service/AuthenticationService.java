@@ -161,10 +161,19 @@ public class AuthenticationService {
     public ResponseEntity<ApiResponse<String>> refreshToken(HttpServletRequest request) {
         log.info("Processing refresh token request");
 
-        getTokensAndInvalidateTokens(request);
-
         //get the refresh token out from cookies
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
+        if (refreshToken == null || refreshToken.trim().isEmpty()){
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
+        jwtUtils.validateJwtRefreshToken(refreshToken);
+
+        if(tokenService.isRefreshTokenInvalidated(refreshToken)){
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
+        getTokensAndInvalidateTokens(request);
 
         //get user account's id from refresh token to generate new access token
         String accountId = jwtUtils.getUserAccountIdFromRefreshToken(refreshToken);

@@ -68,7 +68,8 @@ class UserDetailsServiceImplTest {
     @ParameterizedTest(name = "[{index} loadUserByUsername_inactiveAccount={0}]")
     @CsvSource({
             "true, false",
-            "false, true"
+            "false, true",
+            "false, false"
     })
     void loadUserByUsername_inactiveAccount(boolean isActive, boolean isEmailVerified) {
         //Given
@@ -83,8 +84,10 @@ class UserDetailsServiceImplTest {
 
         when(accountRepository.findByEmail(email)).thenReturn(Optional.of(dummyAccount));
 
-        //asert
+        //assert
         assertThrows(InternalAuthenticationServiceException.class, () -> userDetailsServiceImpl.loadUserByUsername(email));
 
     }
+
+
 }
