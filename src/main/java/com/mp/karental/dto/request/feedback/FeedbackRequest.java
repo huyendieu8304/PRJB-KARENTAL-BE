@@ -23,7 +23,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Request DTO for submitting feedback on a booking.")
+@Schema(name = "request.car.FeedbackRequest",description = "Request DTO for submitting feedback on a booking.")
 public class FeedbackRequest {
 
     @RequiredField(message = "Booking ID")

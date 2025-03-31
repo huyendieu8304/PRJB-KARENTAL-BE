@@ -19,7 +19,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder(toBuilder = true)
-@Schema(description = "Response containing car document details and their verification statuses.")
+@Schema(name = "response.car.CarDocumentsResponse",description = "Response containing car document details and their verification statuses.")
 public class CarDocumentsResponse {
 
     @Schema(description = "Unique identifier for the car document", example = "123e4567-e89b-12d3-a456-426614174000")

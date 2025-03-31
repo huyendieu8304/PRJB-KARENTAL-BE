@@ -22,7 +22,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Schema(description = "Response object containing the top 6 cities with the highest number of registered cars.")
+@Schema(name = "response.car.HomepageCityResponse",description = "Response object containing the top 6 cities with the highest number of registered cars.")
 public class HomepageCityResponse {
 
     @Schema(description = "List of cities with their respective car counts.")

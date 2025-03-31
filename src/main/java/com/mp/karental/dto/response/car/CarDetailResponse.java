@@ -16,7 +16,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Detailed information about a car.")
+@Schema(name = "response.car.CarDetailResponse",description = "Detailed information about a car.")
 public class CarDetailResponse {
 
     @Schema(description = "License plate of the car", example = "30A-123.45")

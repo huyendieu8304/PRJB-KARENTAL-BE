@@ -19,7 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Response object containing the latest 4 five-star feedbacks.")
+@Schema(name = "response.car.HomepageFeedbackResponse",description = "Response object containing the latest 4 five-star feedbacks.")
 public class HomepageFeedbackResponse {
 
     @Schema(description = "List of the latest five-star feedbacks.",

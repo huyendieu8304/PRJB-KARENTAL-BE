@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Schema(description = "Request object for searching available cars within a specified date range and location filter.")
+@Schema(name = "request.car.SearchCarRequest",description = "Request object for searching available cars within a specified date range and location filter.")
 public class SearchCarRequest {
 
     @RequiredField(message = "Pick-up time")

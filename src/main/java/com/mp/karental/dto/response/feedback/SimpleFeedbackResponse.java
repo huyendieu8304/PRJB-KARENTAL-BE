@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Simplified feedback response containing only rating, comment, createdAt, and reviewerName.")
+@Schema(name = "response.car.SimpleFeedbackResponse",description = "Simplified feedback response containing only rating, comment, createdAt, and reviewerName.")
 public class SimpleFeedbackResponse {
 
     @Schema(description = "Customer rating for the car (1-5 stars)", example = "5")

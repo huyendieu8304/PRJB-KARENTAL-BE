@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Request object for fetching car details within a specified date range.")
+@Schema(name = "request.car.CarDetailRequest",description = "Request object for fetching car details within a specified date range.")
 public class CarDetailRequest {
 
     @RequiredField(message = "carId")
@@ -34,3 +34,4 @@ public class CarDetailRequest {
     @Schema(description = "Drop-off date and time in ISO format", example = "2025-04-05T15:00:00")
     private LocalDateTime dropOffTime;
 }
+

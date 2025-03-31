@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @Builder
 @Data
 @NoArgsConstructor
-@Schema(description = "Detailed feedback response including booking details, customer review, and car details.")
+@Schema(name = "response.car.FeedbackDetailResponse",description = "Detailed feedback response including booking details, customer review, and car details.")
 public class FeedbackDetailResponse {
 
     @Schema(description = "Unique identifier of the booking", example = "b12345")

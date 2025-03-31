@@ -20,7 +20,7 @@ import java.util.Map;
 @Builder
 @Data
 @NoArgsConstructor
-@Schema(description = "Response object containing a feedback report for a car owner, including a list of feedback and pagination details.")
+@Schema(name = "response.car.FeedbackReportResponse",description = "Response object containing a feedback report for a car owner, including a list of feedback and pagination details.")
 public class FeedbackReportResponse {
 
     @Schema(

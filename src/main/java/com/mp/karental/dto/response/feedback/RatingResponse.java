@@ -21,7 +21,7 @@ import java.util.Map;
 @Data
 @Builder
 @AllArgsConstructor
-@Schema(description = "Response object containing rating statistics for a car owner.")
+@Schema(name = "response.car.RatingResponse",description = "Response object containing rating statistics for a car owner.")
 public class RatingResponse {
 
     @Schema(

@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Summary response containing essential car details for listing.")
+@Schema(name = "response.car.CarThumbnailResponse",description = "Summary response containing essential car details for listing.")
 public class CarThumbnailResponse {
 
     @Schema(description = "Unique identifier of the car", example = "123e4567-e89b-12d3-a456-426614174000")
