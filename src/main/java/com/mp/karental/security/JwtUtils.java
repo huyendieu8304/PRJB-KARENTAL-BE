@@ -102,9 +102,9 @@ public class JwtUtils {
                     .build()
                     .parse(accessToken);
             return true;
-        } catch (ExpiredJwtException e) {
-            //JWT token is expired
-            throw new  AppException(ErrorCode.ACCESS_TOKEN_EXPIRED);
+//        } catch (ExpiredJwtException e) {
+//            //JWT token is expired
+//            throw new  AppException(ErrorCode.ACCESS_TOKEN_EXPIRED);
         } catch (JwtException | IllegalArgumentException e) {
             //jwt invalid or empty/null
             throw new AppException(ErrorCode.UNAUTHENTICATED);

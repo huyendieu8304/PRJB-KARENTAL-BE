@@ -93,36 +93,31 @@ class AuthTokenFilterTest {
 
 
     @Test
-    void testDoFilterInternal_NoCSRFToken() {
+    void testDoFilterInternal_NoCSRFToken() throws ServletException, IOException {
         when(request.getRequestURI()).thenReturn("/secure");
         when(request.getContextPath()).thenReturn("");
         when(request.getHeader(csrfTokenHeaderName)).thenReturn(null);
 
-        AppException exception = assertThrows(AppException.class, () ->
-                authTokenFilter.doFilterInternal(request, response, filterChain)
-        );
+        authTokenFilter.doFilterInternal(request, response, filterChain);
 
-        assertEquals(ErrorCode.INVALID_CSRF_TOKEN, exception.getErrorCode());
+        verify(request).setAttribute("ERROR_CODE", ErrorCode.INVALID_CSRF_TOKEN.toString());
     }
 
     @Test
-    void testDoFilterInternal_InvalidCSRFToken(){
+    void testDoFilterInternal_InvalidCSRFToken() throws ServletException, IOException {
         when(request.getRequestURI()).thenReturn("/secure");
         when(request.getContextPath()).thenReturn("");
         when(request.getHeader(csrfTokenHeaderName)).thenReturn("invalidCsrfToken");
 
         when(jwtUtils.validateJwtCsrfToken("invalidCsrfToken")).thenThrow(new AppException(ErrorCode.INVALID_CSRF_TOKEN));
 
-        AppException exception = assertThrows(AppException.class, () ->
-                authTokenFilter.doFilterInternal(request, response, filterChain)
-        );
+        authTokenFilter.doFilterInternal(request, response, filterChain);
 
-        assertEquals(ErrorCode.INVALID_CSRF_TOKEN, exception.getErrorCode());
-
+        verify(request).setAttribute("ERROR_CODE", ErrorCode.INVALID_CSRF_TOKEN.toString());
     }
 
     @Test
-    void testDoFilterInternal_NoJwtCookie() {
+    void testDoFilterInternal_NoJwtCookie() throws ServletException, IOException {
         when(request.getRequestURI()).thenReturn("/secure");
         when(request.getContextPath()).thenReturn("");
 
@@ -131,11 +126,9 @@ class AuthTokenFilterTest {
 
         when(request.getCookies()).thenReturn(null);
 
-        AppException exception = assertThrows(AppException.class, () ->
-                authTokenFilter.doFilterInternal(request, response, filterChain)
-        );
+        authTokenFilter.doFilterInternal(request, response, filterChain);
 
-        assertEquals(ErrorCode.UNAUTHENTICATED, exception.getErrorCode());
+        verify(request).setAttribute("ERROR_CODE", ErrorCode.UNAUTHENTICATED.toString());
     }
 
     @Test
@@ -208,11 +201,9 @@ class AuthTokenFilterTest {
 
         when(tokenService.isAccessTokenInvalidated(accessToken)).thenReturn(true);
 
-        AppException exception = assertThrows(AppException.class, () ->
-                authTokenFilter.doFilterInternal(request, response, filterChain)
-        );
+        authTokenFilter.doFilterInternal(request, response, filterChain);
 
-        assertEquals(ErrorCode.UNAUTHENTICATED, exception.getErrorCode());
+        verify(request).setAttribute("ERROR_CODE", ErrorCode.UNAUTHENTICATED.toString());
     }
 
     @Test
@@ -241,11 +232,9 @@ class AuthTokenFilterTest {
         when(tokenService.isAccessTokenInvalidated(accessToken)).thenReturn(false);
         when(tokenService.isCsrfTokenInvalidated(csrfToken)).thenReturn(true);
 
-        AppException exception = assertThrows(AppException.class, () ->
-                authTokenFilter.doFilterInternal(request, response, filterChain)
-        );
+        authTokenFilter.doFilterInternal(request, response, filterChain);
 
-        assertEquals(ErrorCode.UNAUTHENTICATED, exception.getErrorCode());
+        verify(request).setAttribute("ERROR_CODE", ErrorCode.INVALID_CSRF_TOKEN.toString());
     }
 
 

@@ -17,6 +17,8 @@ application:
       csrf-token-cookie-name: karental-jwt-csrf
       csrf-token-secret-key: ${JWT-CSRF-SECRET-KEY}
       csrf-token-header-name: X-CSRF-TOKEN
+#      access-token-expiration: 15000 #milisecond ~ 15s
+#      refresh-token-expiration: 60000 #~1 minute
     public-endpoints:
       "/user/register,
       /user/check-unique-email,
@@ -24,8 +26,7 @@ application:
       /user/verify-email/**,
       /auth/**"
 ##      FOR TEST
-#      access-token-expiration: 15000 #milisecond ~ 15s
-#      refresh-token-expiration: 60000 #~1 minute
+
 
 spring:
 #  profiles:
