@@ -71,7 +71,7 @@ public class LoggingAspect {
      */
     @AfterThrowing(pointcut = "execution(* com.mp.karental.controller..*(..))", throwing = "exception")
     public void handleControllerException(Exception exception) {
-        log.error("Exception in Controller: " + exception.getMessage(), exception);
+        log.error("Exception in Controller: {}", exception.getMessage());
     }
 
     /**
@@ -79,7 +79,7 @@ public class LoggingAspect {
      */
     @AfterThrowing(pointcut = "execution(* com.mp.karental.service..*(..))", throwing = "exception")
     public void handleServiceException(Exception exception) {
-        log.error("Exception in Service: " + exception.getMessage(), exception);
+        log.error("Exception in Service: {}", exception.getMessage());
     }
 
     /**
@@ -87,7 +87,7 @@ public class LoggingAspect {
      */
     @AfterThrowing(pointcut = "execution(* com.mp.karental.repository..*(..))", throwing = "exception")
     public void handleRepositoryException(Exception exception) {
-        log.error("Exception in Repository: " + exception.getMessage(), exception);
+        log.error("Exception in Repository: {}", exception.getMessage());
     }
 
 }

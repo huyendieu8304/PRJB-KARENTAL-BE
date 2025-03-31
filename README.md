@@ -71,9 +71,9 @@ This application has already implemented Spring doc, Swagger API, to get file .y
 4. Save the file to your device
 
 ## Build application
-`mvn clean package -Dspring.profiles.active=prod`
+`mvn clean package `
 Or you want to build the project but skip testing
-`mvn clean package -DskipTests -Dspring.profiles.active=prod`
+`mvn clean package -DskipTests `
 
 If your computer doesn't have Maven, you can replace `mvn` with `./mvnw`, which reside in the source root.
 

@@ -15,7 +15,7 @@ application:
       access-token-expiration: 3600000  #milisecond ~ 1 hours
       refresh-token-expiration: 86400000 #~1day
       csrf-token-cookie-name: karental-jwt-csrf
-      csrf-token-secret-key: ${JWT-CSRF-SECRET-KEY}
+      csrf-token-secret-key: ${JWT_CSRF_SECRET_KEY}
       csrf-token-header-name: X-CSRF-TOKEN
 #      access-token-expiration: 15000 #milisecond ~ 15s
 #      refresh-token-expiration: 60000 #~1 minute
@@ -30,8 +30,8 @@ application:
 
 
 spring:
-#  profiles:
-#    active: prod
+  profiles:
+    active: prod
   application:
     name: karental
   datasource:
