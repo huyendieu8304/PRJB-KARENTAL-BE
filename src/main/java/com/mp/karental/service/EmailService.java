@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -46,6 +47,7 @@ public class EmailService {
      * @param to         Recipient's email address.
      * @param confirmUrl URL for email verification.
      */
+    @Async
     public void sendRegisterEmail(String to, String confirmUrl) {
         String subject = "Welcome to Karental, " + to;
         String htmlContent = "<p><strong>Thank you for registering to our system!</strong></p>"
@@ -68,6 +70,7 @@ public class EmailService {
      * @param to                Recipient's email address.
      * @param forgotPasswordUrl URL for password reset.
      */
+    @Async
     public void sendForgotPasswordEmail(String to, String forgotPasswordUrl) {
         String subject = "Rent-a-car Password Reset";
         String htmlContent = "<p>We have just received a password reset request for " + to + ".</p>"
@@ -81,6 +84,7 @@ public class EmailService {
     }
 
     //RENT CAR
+    @Async
     public void sendWaitingConfirmedEmail(String toCustomer, String toCarOwner, String carName, String bookingNumber) {
         String subjectToCustomer = "Your Booking is waiting for confirmation";
         String bodyToCustomer = String.format(
@@ -107,7 +111,7 @@ public class EmailService {
             throw new AppException(ErrorCode.SEND_WAITING_CONFIRM_EMAIL_FAIL);
         }
     }
-
+    @Async
     public void sendCancelledBookingEmail(String toCustomer, String carName, String reason) {
         String subject = "Your Booking Has Been Cancelled";
         String body = String.format(
@@ -124,6 +128,7 @@ public class EmailService {
 
 
     //    //CANCEL BOOKING
+    @Async
     public void sendBookingCancellationEmailToCustomer(String to, EBookingStatus bookingStatus, String bookingNumber, String carName) {
         String subject;
         String body;
@@ -171,7 +176,7 @@ public class EmailService {
             throw new AppException(ErrorCode.SEND_CANCELLED_BOOKING_EMAIL_FAIL);
         }
     }
-
+    @Async
     public void sendBookingCancellationEmailToCarOwner(String to, String bookingNumber, String carName) {
         String subject = "Booking Cancellation Notification";
         String body = String.format(
@@ -196,6 +201,7 @@ public class EmailService {
      * @param carName       The name of the booked car.
      * @param bookingNumber The unique booking number.
      */
+    @Async
     public void sendConfirmBookingEmail(String to, String carName, String bookingNumber) {
         // Email subject including the booking number
         String subject = "Booking Confirmed - " + bookingNumber;
@@ -216,6 +222,7 @@ public class EmailService {
     }
 
     //RETURN CAR
+    @Async
     public void sendPaymentEmailToCustomer(String to, String bookingNumber, long amount, boolean isRefund)  {
         String subject = "Car Returned - Payment Deducted (Booking No: " + bookingNumber + ")";
         String body = String.format(
@@ -246,7 +253,7 @@ public class EmailService {
             throw new AppException(ErrorCode.SEND_COMPLETED_BOOKING_EMAIL_FAIL);
         }
     }
-
+    @Async
     public void sendPaymentEmailToCarOwner(String to, String bookingNumber, long amount) {
         String subject = "Car Returned - Payment Processed (Booking No: " + bookingNumber + ")";
         String body = String.format(
@@ -263,7 +270,7 @@ public class EmailService {
         }
     }
 
-
+    @Async
     public void sendPendingPaymentEmail(String to, String bookingNumber, long amount) {
         String subject = "Car Returned - Payment Due (Booking No: " + bookingNumber + ")";
         String body = String.format(
@@ -281,7 +288,7 @@ public class EmailService {
             throw new AppException(ErrorCode.SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL);
         }
     }
-
+    @Async
     public void sendWaitingConfirmReturnCarEmail(String to, String bookingNumber) {
         String subject = "Early Car Return Request - Booking No: " + bookingNumber;
         String body = String.format(
@@ -302,7 +309,7 @@ public class EmailService {
             throw new AppException(ErrorCode.SEND_WAITING_CONFIRMED_RETURN_CAR_BOOKING_EMAIL_FAIL);
         }
     }
-
+    @Async
     public void sendEarlyReturnRejectedEmail(String to, String bookingNumber) {
         String subject = "Early Car Return Request Rejected - Booking No: " + bookingNumber;
         String body = String.format(
@@ -322,6 +329,7 @@ public class EmailService {
     }
 
     // reminder overdue pick up
+    @Async
     public void sendPickUpReminderEmail(Booking booking) {
         String subject = "Reminder: Pick up your rental car - Booking #" + booking.getBookingNumber();
         String message = "Dear " + booking.getAccount().getProfile().getFullName() + ",\n\n"
@@ -339,6 +347,7 @@ public class EmailService {
         }
     }
     // reminder overdue pick up
+    @Async
     public void sendDropOffReminderEmail(Booking booking) {
         String subject = "Reminder: Return your rental car - Booking #" + booking.getBookingNumber();
         String message = "Dear " + booking.getAccount().getProfile().getFullName() + ",\n\n"
@@ -368,7 +377,8 @@ public class EmailService {
      * @param htmlContent HTML-formatted email content.
      * @throws MessagingException If an error occurs while sending the email.
      */
-    private void sendEmail(String to, String subject, String htmlContent) throws MessagingException {
+    @Async
+    public void sendEmail(String to, String subject, String htmlContent) throws MessagingException {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
         helper.setTo(to);
@@ -386,6 +396,7 @@ public class EmailService {
      * @param to        Recipient's email address.
      * @param walletUrl URL to view the wallet balance and transactions.
      */
+    @Async
     public void sendWalletUpdateEmail(String to, String walletUrl){
         String subject = "There’s an update to your wallet";
         String htmlContent = String.format(
@@ -417,6 +428,7 @@ public class EmailService {
      * @param carName The name of the car that has been verified.
      * @param carId   The unique identifier of the verified car.
      */
+    @Async
     public void sendCarVerificationEmail(String to, String carName, String carId) {
         String subject = "Car Verification Approved - " + carName;
         String body = String.format(

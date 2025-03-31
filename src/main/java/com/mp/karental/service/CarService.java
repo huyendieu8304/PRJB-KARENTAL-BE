@@ -80,6 +80,7 @@ public class CarService {
 
         // Associate the car with the current account
         car.setAccount(account);
+        car.setCreatedAt(LocalDateTime.now());
 
         // Set default status for the new car
         car.setStatus(ECarStatus.NOT_VERIFIED);
@@ -87,6 +88,7 @@ public class CarService {
         // Set transmission and fuel type based on request
         car.setAutomatic(request.isAutomatic());
         car.setGasoline(request.isGasoline());
+        car.setUpdateBy(accountId);
 
         // Set car address components from request
         setCarAddress(request, car);
@@ -160,7 +162,7 @@ public class CarService {
         if (newStatus == ECarStatus.STOPPED) {
             cancelPendingDepositsForStoppedCar(car.getId());
         }
-
+        car.setUpdateBy(accountId);
         // Update the car's address details
         setCarAddress(request, car);
 
@@ -274,12 +276,12 @@ public class CarService {
         String address = null;
 
         // Check if the request is an instance of AddCarRequest and retrieve the address
-        if (request instanceof AddCarRequest) {
-            address = ((AddCarRequest) request).getAddress();
+        if (request instanceof AddCarRequest addCarRequest) {
+            address = addCarRequest.getAddress();
         }
         // Check if the request is an instance of EditCarRequest and retrieve the address
-        else if (request instanceof EditCarRequest) {
-            address = ((EditCarRequest) request).getAddress();
+        else if (request instanceof EditCarRequest editCarRequest) {
+            address = editCarRequest.getAddress();
         }
 
         // If an address is provided and is not empty, split it into components
@@ -325,14 +327,14 @@ public class CarService {
         MultipartFile imageRight;
 
         // If the request is an AddCarRequest, handle document and image uploads
-        if (request instanceof AddCarRequest) {
-            registrationPaper = ((AddCarRequest) request).getRegistrationPaper();
-            certificateOfInspection = ((AddCarRequest) request).getCertificateOfInspection();
-            insurance = ((AddCarRequest) request).getInsurance();
-            imageFront = ((AddCarRequest) request).getCarImageFront();
-            imageBack = ((AddCarRequest) request).getCarImageBack();
-            imageLeft = ((AddCarRequest) request).getCarImageLeft();
-            imageRight = ((AddCarRequest) request).getCarImageRight();
+        if (request instanceof AddCarRequest addCarRequest) {
+            registrationPaper = addCarRequest.getRegistrationPaper();
+            certificateOfInspection = addCarRequest.getCertificateOfInspection();
+            insurance = addCarRequest.getInsurance();
+            imageFront = addCarRequest.getCarImageFront();
+            imageBack = addCarRequest.getCarImageBack();
+            imageLeft = addCarRequest.getCarImageLeft();
+            imageRight = addCarRequest.getCarImageRight();
 
             // Construct S3 keys for document files
             String s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(registrationPaper);
@@ -366,25 +368,44 @@ public class CarService {
         }
 
         // If the request is an EditCarRequest, only update image files
-        if (request instanceof EditCarRequest) {
-            if (((EditCarRequest) request).getCarImageFront() != null && !((EditCarRequest) request).getCarImageFront().isEmpty()) {
-                s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(((EditCarRequest) request).getCarImageFront());
-                fileService.uploadFile(((EditCarRequest) request).getCarImageFront(), s3KeyImageFront);
+        if (request instanceof EditCarRequest editCarRequest) {
+            //when car status is not verify, owner can change the documents to have valid document to verify by operator
+            if (car.getStatus() == ECarStatus.NOT_VERIFIED || car.getStatus() == ECarStatus.STOPPED) {
+                if (editCarRequest.getRegistrationPaper() != null && !editCarRequest.getRegistrationPaper().isEmpty()) {
+                    String s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(editCarRequest.getRegistrationPaper());
+                    fileService.uploadFile(editCarRequest.getRegistrationPaper(), s3KeyRegistration);
+                    car.setRegistrationPaperUri(s3KeyRegistration);
+                }
+                if (editCarRequest.getCertificateOfInspection() != null && !editCarRequest.getCertificateOfInspection().isEmpty()) {
+                    String s3KeyCertificate = baseDocumentsUri + "certificate-of-inspection" + fileService.getFileExtension(editCarRequest.getCertificateOfInspection());
+                    fileService.uploadFile(editCarRequest.getCertificateOfInspection(), s3KeyCertificate);
+                    car.setCertificateOfInspectionUri(s3KeyCertificate);
+                }
+                if (editCarRequest.getInsurance() != null && !editCarRequest.getInsurance().isEmpty()) {
+                    String s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(editCarRequest.getInsurance());
+                    fileService.uploadFile(editCarRequest.getInsurance(), s3KeyInsurance);
+                    car.setInsuranceUri(s3KeyInsurance);
+                }
+            }
+
+            if (editCarRequest.getCarImageFront() != null && !editCarRequest.getCarImageFront().isEmpty()) {
+                s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(editCarRequest.getCarImageFront());
+                fileService.uploadFile(editCarRequest.getCarImageFront(), s3KeyImageFront);
                 car.setCarImageFront(s3KeyImageFront);
             }
-            if (((EditCarRequest) request).getCarImageBack() != null && !((EditCarRequest) request).getCarImageBack().isEmpty()) {
+            if (editCarRequest.getCarImageBack() != null && !editCarRequest.getCarImageBack().isEmpty()) {
                 s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(((EditCarRequest) request).getCarImageBack());
                 fileService.uploadFile(((EditCarRequest) request).getCarImageBack(), s3KeyImageBack);
                 car.setCarImageBack(s3KeyImageBack);
             }
-            if (((EditCarRequest) request).getCarImageLeft() != null && !((EditCarRequest) request).getCarImageLeft().isEmpty()) {
-                s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(((EditCarRequest) request).getCarImageLeft());
-                fileService.uploadFile(((EditCarRequest) request).getCarImageLeft(), s3KeyImageLeft);
+            if (editCarRequest.getCarImageLeft() != null && !editCarRequest.getCarImageLeft().isEmpty()) {
+                s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(editCarRequest.getCarImageLeft());
+                fileService.uploadFile(editCarRequest.getCarImageLeft(), s3KeyImageLeft);
                 car.setCarImageLeft(s3KeyImageLeft);
             }
-            if (((EditCarRequest) request).getCarImageRight() != null && !((EditCarRequest) request).getCarImageRight().isEmpty()) {
-                s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(((EditCarRequest) request).getCarImageRight());
-                fileService.uploadFile(((EditCarRequest) request).getCarImageRight(), s3KeyImageRight);
+            if (editCarRequest.getCarImageRight() != null && !(editCarRequest.getCarImageRight().isEmpty())) {
+                s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(editCarRequest.getCarImageRight());
+                fileService.uploadFile(editCarRequest.getCarImageRight(), s3KeyImageRight);
                 car.setCarImageRight(s3KeyImageRight);
             }
         }
@@ -656,14 +677,18 @@ public class CarService {
     public CarResponse getCarById(String id) {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
-
+        log.info("User {} is attempting to access car details with carId: {}", accountId, id);
         // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> {
+                    log.info("Failed to access car's information, carId: {}, accessed by: {}", id, accountId);
+                    return new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB);
+                });
 
         // Check if the car belongs to the current logged-in user
         if (!car.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS); // Custom error for unauthorized access
+            log.info("Failed to access car's information due to forbidden access, carId: {}, accessed by: {}", car.getId(), accountId);
+            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
 
         // Get average rating of car
@@ -680,7 +705,7 @@ public class CarService {
 
         // Set file URLs for car images and documents
         setCarResponseUrls(carResponse, car);
-
+        log.info("Successfully accessed car's information, carId: {}, accessed by: {}", car.getId(), accountId);
         return carResponse;
     }
 

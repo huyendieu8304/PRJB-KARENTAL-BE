@@ -21,94 +21,73 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Response containing car details.")
+@Schema(name = "response.car.CarResponse", description = "Data of a car")
 public class CarResponse {
-    @Schema(description = "Unique identifier of the car", example = "123e4567-e89b-12d3-a456-426614174000")
+    @Schema(description = "id of car", example = "car1")
     String id;
-
-    @Schema(description = "License plate of the car", example = "30A-123.45")
+    @Schema(description = "license plate of car", example = "28F-125.13")
     String licensePlate;
-
-    @Schema(description = "Brand of the car", example = "Toyota")
+    @Schema(description = "brand of car", example = "Toyota")
     String brand;
-
-    @Schema(description = "Model of the car", example = "Camry")
+    @Schema(description = "model of car", example = "Camry")
     String model;
-
-    @Schema(description = "Current status of the car", example = "AVAILABLE")
+    @Schema(description = "status of car", example = "NOT_VERIFIED")
     String status;
-
-    @Schema(description = "Color of the car", example = "Red")
+    @Schema(description = "color of car", example = "Black")
     String color;
-
-    @Schema(description = "Number of seats in the car", example = "5")
+    @Schema(description = "number of seats of car", example = "4")
     int numberOfSeats;
-
-    @Schema(description = "Year the car was manufactured", example = "2020")
+    @Schema(description = "production year of car", example = "2000")
     int productionYear;
-
-    @Schema(description = "Current mileage of the car in kilometers", example = "15000.5")
+    @Schema(description = "mileage of car", example = "15000.0")
     float mileage;
-
-    @Schema(description = "Fuel consumption in liters per 100 km", example = "6.5")
+    @Schema(description = "fuel consumption of car", example = "7.5")
     float fuelConsumption;
-
-    @Schema(description = "Base rental price of the car per day", example = "500000")
+    @Schema(description = "base price of car", example = "1000000")
     long basePrice;
-
-    @Schema(description = "Deposit amount required for the car rental", example = "2000000")
+    @Schema(description = "deposit of car", example = "500000")
     long deposit;
-
-    @Schema(description = "Address where the car is available for pickup", example = "123 Main St, Hanoi, Vietnam")
+    @Schema(description = "address of car", example = "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung,211 Trần Duy Hưng")
     String address;
-
-    @Schema(description = "Additional description of the car", example = "Well-maintained, good condition")
+    @Schema(example = "xe toyota camry")
     String description;
-
-    @Schema(description = "Additional functionalities of the car", example = "GPS, Sunroof")
+    @Schema(example = "Sun Roof, Bluetooth")
     String additionalFunction;
-
-    @Schema(description = "Terms of use for renting the car", example = "No smoking allowed, Fuel must be refilled before return")
+    @Schema(example = "No smoking")
     String termOfUse;
-
-    @Schema(description = "Indicates if the car has an automatic transmission", example = "true")
+    @Schema(example = "true")
     boolean isAutomatic;
-
-    @Schema(description = "Indicates if the car runs on gasoline", example = "true")
+    @Schema(example = "true")
     boolean isGasoline;
 
-    // Documents
-    @Schema(description = "URL of the car's registration paper", example = "https://example.com/registration.pdf")
+    //documents
+    @Schema(description = "URL of the registration paper", example = "car/12345/car1/documents/registration-paper.pdf")
     String registrationPaperUrl;
-
-    @Schema(description = "Indicates whether the registration paper has been verified", example = "true")
+    @Schema(example = "false")
     boolean registrationPaperUriIsVerified;
-
-    @Schema(description = "URL of the car's certificate of inspection", example = "https://example.com/inspection.pdf")
+    @Schema(description = "URL of the certificate of inspection", example = "car/12345/car1/documents/certificate-of-inspection.pdf")
     String certificateOfInspectionUrl;
-
-    @Schema(description = "Indicates whether the certificate of inspection has been verified", example = "true")
+    @Schema(example = "false")
     boolean certificateOfInspectionUriIsVerified;
-
-    @Schema(description = "URL of the car's insurance document", example = "https://example.com/insurance.pdf")
+    @Schema(description = "URL of the insurance document", example = "car/12345/car1/documents/insurance.pdf")
     String insuranceUrl;
-
-    @Schema(description = "Indicates whether the insurance document has been verified", example = "true")
+    @Schema(example = "false")
     boolean insuranceUriIsVerified;
 
-    // Car images
-    @Schema(description = "URL of the car's front-side image", example = "https://example.com/car_front.jpg")
+    //car image
+    @Schema(description = "URL of the car's front side image", example = "car/12345/car1/images/car-front.jpg")
     String carImageFrontUrl;
 
-    @Schema(description = "URL of the car's back-side image", example = "https://example.com/car_back.jpg")
+    @Schema(description = "URL of the car's back side image", example = "car/12345/car1/images/car-back.jpg")
     String carImageBackUrl;
 
-    @Schema(description = "URL of the car's left-side image", example = "https://example.com/car_left.jpg")
+    @Schema(description = "URL of the car's left side image", example = "car/12345/car1/images/car-left.jpg")
     String carImageLeftUrl;
 
-    @Schema(description = "URL of the car's right-side image", example = "https://example.com/car_right.jpg")
+    @Schema(description = "URL of the car's right side image", example = "car/12345/car1/images/car-right.jpg")
     String carImageRightUrl;
 
-    @Schema(description = "Average rating of the car based on customer reviews", example = "4.5")
+    @Schema(example = "0")
     double averageRatingByCar;
+
 }

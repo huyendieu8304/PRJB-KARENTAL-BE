@@ -24,71 +24,52 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-@Schema(description = "Response containing booking details.")
+@Schema(name = "response.booking.BookingResponse", description = "DTO containing information about a booking response")
 public class BookingResponse {
-
-    @Schema(description = "Unique identifier for the booking", example = "BK-20240329-001")
+    @Schema(example = "BK202410200001", description = "The unique booking number")
     String bookingNumber;
-
-    @Schema(description = "Unique identifier for the car", example = "CAR-12345")
+    @Schema(example = "car1", description = "The ID of the booked car")
     String carId;
-
-    @Schema(description = "Current status of the booking", implementation = EBookingStatus.class)
+    @Schema(description = "The current status of the booking", example = "WAITING_CONFIRMED")
     EBookingStatus status;
-
-    @Schema(description = "Pickup location", example = "123 Main Street, New York, NY")
+    @Schema(example = "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng", description = "The pickup location for the car rental")
     String pickUpLocation;
-
-    @Schema(description = "Pickup date and time", example = "2025-04-01T10:00:00")
+    @Schema(example = "2004-11-08T09:00:00", description = "The pickup time for the rental car")
     LocalDateTime pickUpTime;
-
-    @Schema(description = "Drop-off date and time", example = "2025-04-05T18:00:00")
+    @Schema(example = "2004-11-08T18:00:00", description = "The drop-off time for the rental car")
     LocalDateTime dropOffTime;
-
-    @Schema(description = "Total price of the booking", example = "1500000")
+    @Schema(example = "50000", description = "The total price for the booking")
     long totalPrice;
-
-    @Schema(description = "Base price of the car rental", example = "1200000")
+    @Schema(example = "50000", description = "The base price for booking per day of this car")
     long basePrice;
-
-    @Schema(description = "Deposit amount required for the booking", example = "300000")
+    @Schema(example = "10000", description = "The deposit amount for the booking")
     long deposit;
-
-    @Schema(description = "Payment method used", implementation = EPaymentType.class)
+    @Schema(description = "The payment type for the booking", example = "WALLET")
     EPaymentType paymentType;
 
     // Driver Information
-    @Schema(description = "Full name of the driver", example = "Nguyen Van A")
+    @Schema(example = "John Doe", description = "The full name of the driver")
     String driverFullName;
-
-    @Schema(description = "Phone number of the driver", example = "+84901234567")
+    @Schema(example = "0886980035", description = "The phone number of the driver")
     String driverPhoneNumber;
-
-    @Schema(description = "National ID of the driver", example = "123456789")
+    @Schema(example = "A123456789", description = "The national ID of the driver")
     String driverNationalId;
-
-    @Schema(description = "Date of birth of the driver", example = "1990-05-15")
+    @Schema(example = "2004-11-08", description = "The date of birth of the driver (must be at least 18 years old)")
     LocalDate driverDob;
-
-    @Schema(description = "Email of the driver", example = "nguyenvana@example.com")
+    @Schema(example = "john.doe@example.com", description = "The email address of the driver")
     String driverEmail;
-
-    @Schema(description = "URL to the driver's driving license image", example = "https://example.com/license.jpg")
+    @Schema(description = "URL of the driver's driving license image", example = "booking/123456/driver-driving-license.jpg")
     String driverDrivingLicenseUrl;
 
     // Driver Address
-    @Schema(description = "City/Province where the driver resides", example = "Hanoi")
+    @Schema(example = "Tỉnh Hà Giang", description = "The city or province of the driver")
     String driverCityProvince;
-
-    @Schema(description = "District where the driver resides", example = "Cau Giay")
+    @Schema(example = "Thành phố Hà Giang", description = "The district of the driver")
     String driverDistrict;
-
-    @Schema(description = "Ward where the driver resides", example = "Dich Vong")
+    @Schema(example = "Phường Quang Trung", description = "The ward of the driver")
     String driverWard;
-
-    @Schema(description = "House number and street of the driver", example = "123 Hoang Quoc Viet")
+    @Schema(example = "211 Trần Duy Hưng", description = "The house number and street of the driver")
     String driverHouseNumberStreet;
-
-    @Schema(description = "Indicates whether the driver is the one renting the car", example = "true")
+    @Schema(example = "true", description = "Indicates if the driver is different from the renter (true) or the renter is also the driver (false)")
     boolean isDriver;
 }

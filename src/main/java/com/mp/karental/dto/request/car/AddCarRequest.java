@@ -9,12 +9,13 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Represents the request payload for adding a new car.
+ * Represents the request payload for add a new car.
  * <p>
  * This class encapsulates the necessary data required to create a new car,
  * including car information.
  * </p>
  * @author QuangPM20
+ *
  * @version 1.0
  */
 
@@ -24,114 +25,114 @@ import org.springframework.web.multipart.MultipartFile;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 @ValidBrandModel(message = "INVALID_BRAND_MODEL")
-@Schema(description = "Request payload for adding a new car.")
+@Schema(name = "request.car.AddCarRequest", description = "DTO contain necessary information to add a car")
 public class AddCarRequest {
 
-    @Schema(description = "License plate number of the car", example = "30A-123.45")
     @RequiredField(fieldName = "License plate")
     @Pattern(regexp = "^(1[1-9]|[2-9][0-9])[A-Z]-\\d{3}\\.\\d{2}$", message = "INVALID_LICENSE")
     @UniqueLicensePlate(message = "NOT_UNIQUE_LICENSE")
+    @Schema(example = "28F-125.13", pattern = "^(1[1-9]|[2-9][0-9])[A-Z]-\\d{3}\\.\\d{2}$", description = "The license plate number following the format (11-99)(A-Z)-(000-999).(00-99)")
     String licensePlate;
 
-    @Schema(description = "Brand of the car", example = "Toyota")
     @RequiredField(fieldName = "Brand of the car")
     @ValidBrand(message = "INVALID_BRAND")
+    @Schema(example = "Toyota", description = "The brand of the car, which must be from a predefined list of valid brands")
     String brand;
 
-    @Schema(description = "Car model", example = "Camry")
     @RequiredField(fieldName = "Car model")
     @ValidModel(message = "INVALID_MODEL")
+    @Schema(example = "Camry", description = "The model of the car, which must be from a predefined list of valid models for the selected brand")
     String model;
 
-    @Schema(description = "Color of the car", example = "Red")
     @RequiredField(fieldName = "Color of the car")
     @ValidColor(message = "INVALID_COLOR")
+    @Schema(example = "Black", description = "The color of the car, which must be from a predefined list of valid colors")
     String color;
 
-    @Schema(description = "Number of seats in the car", example = "5")
     @ValidNumberOfSeats(message = "INVALID_NUMBER_OF_SEAT")
+    @Schema(example = "4", description = "The number of seats in the car, allowed values are 4, 5, or 7")
     int numberOfSeats;
 
-    @Schema(description = "Year the car was manufactured", example = "2020")
     @ValidProductionYear(message = "INVALID_PRODUCTION_YEAR")
+    @Schema(example = "2000", description = "The production year of the car, must be between 1990 and 2030")
     int productionYear;
 
-    @Schema(description = "Mileage the car has traveled (in km)", example = "15000")
     @Min(value = 0, message = "INVALID_VALUE_MIN")
     @RequiredField(fieldName = "Mileage that the car has gone")
+    @Schema(example = "15000", description = "The mileage of the car in kilometers")
     float mileage;
 
-    @Schema(description = "Fuel consumption of the car (liters per 100 km)", example = "7.5")
     @Min(value = 0, message = "INVALID_VALUE_MIN")
+    @Schema(example = "7.5", description = "The fuel consumption of the car in liters per 100 kilometers")
     float fuelConsumption;
 
-    @Schema(description = "Base price of the car rental", example = "500000")
     @Min(value = 0, message = "INVALID_VALUE_MIN")
     @RequiredField(fieldName = "Car's base price")
+    @Schema(example = "1000000", description = "The base rental price of the car per day")
     long basePrice;
 
-    @Schema(description = "Deposit amount required for renting the car", example = "200000")
     @Min(value = 0, message = "INVALID_VALUE_MIN")
     @RequiredField(fieldName = "Deposit value")
+    @Schema(example = "500000", description = "The deposit required for renting the car")
     long deposit;
 
-    @Schema(description = "Address where the car is available", example = "123 Le Loi, Hanoi")
     @RequiredField(fieldName = "Address")
     @ValidAddress(message = "INVALID_ADDRESS")
+    @Schema(example = "Tỉnh Hà Giang, Thành phố Hà Giang, Phường Quang Trung, 211 Trần Duy Hưng", description = "The address where the car is available for rent")
     String address;
 
-    @Schema(description = "Additional description about the car", example = "Well-maintained, smoke-free car")
+    @Schema(example = "xe toyota camry", description = "A brief description of the car")
     String description;
 
-    @Schema(description = "Additional functions or features of the car", example = "Sunroof, Bluetooth connectivity")
-    @ValidAdditionalFunction(message = "INVALID_ADDITIONAL_FUNCTION")
+    @ValidAdditionalFunction(message = "INVALID_ADDITIONAL_FUNTION")
+    @Schema(example = "Sun Roof, Bluetooth", description = "Additional functions or features available in the car")
     String additionalFunction;
 
-    @Schema(description = "Terms of use for renting the car", example = "No smoking inside the car")
+    @Schema(example = "No smoking", description = "Terms of use or rental restrictions for the car")
     String termOfUse;
 
-    @Schema(description = "Indicates if the car has automatic transmission", example = "true")
     @RequiredField(fieldName = "Transmission type")
+    @Schema(example = "true", description = "Indicates whether the car has an automatic transmission (true) or manual (false)")
     boolean isAutomatic;
 
-    @Schema(description = "Indicates if the car uses gasoline", example = "true")
     @RequiredField(fieldName = "Fuel type")
+    @Schema(example = "true", description = "Indicates whether the car uses gasoline (true) or diesel (false)")
     boolean isGasoline;
 
-    // MultipartFile (Car documents)
-    @Schema(description = "Registration paper document file")
+    // Document files
     @ValidDocument(message = "INVALID_DOCUMENT_FILE")
     @RequiredField(fieldName = "Registration paper")
+    @Schema(type = "string", format = "binary", description = "Registration paper file (.doc, .docx, .pdf, .jpeg, .jpg, .png)")
     MultipartFile registrationPaper;
 
-    @Schema(description = "Certificate of inspection document file")
     @ValidDocument(message = "INVALID_DOCUMENT_FILE")
     @RequiredField(fieldName = "Certificate of inspection")
+    @Schema(type = "string", format = "binary", description = "Certificate of inspection file (.doc, .docx, .pdf, .jpeg, .jpg, .png)")
     MultipartFile certificateOfInspection;
 
-    @Schema(description = "Insurance document file")
     @ValidDocument(message = "INVALID_DOCUMENT_FILE")
     @RequiredField(fieldName = "Insurance")
+    @Schema(type = "string", format = "binary", description = "Insurance file (.doc, .docx, .pdf, .jpeg, .jpg, .png)")
     MultipartFile insurance;
 
-    // MultipartFile (Car images)
-    @Schema(description = "Front-side image of the car")
+    // Car images
     @RequiredField(fieldName = "Car's front side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
+    @Schema(type = "string", format = "binary", description = "Car's front side image (.jpg, .jpeg, .png, .gif)")
     MultipartFile carImageFront;
 
-    @Schema(description = "Back-side image of the car")
     @RequiredField(fieldName = "Car's back side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
+    @Schema(type = "string", format = "binary", description = "Car's back side image (.jpg, .jpeg, .png, .gif)")
     MultipartFile carImageBack;
 
-    @Schema(description = "Left-side image of the car")
     @RequiredField(fieldName = "Car's left side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
+    @Schema(type = "string", format = "binary", description = "Car's left side image (.jpg, .jpeg, .png, .gif)")
     MultipartFile carImageLeft;
 
-    @Schema(description = "Right-side image of the car")
     @RequiredField(fieldName = "Car's right side image")
     @ValidImageCar(message = "INVALID_CAR_IMAGE_FILE")
+    @Schema(type = "string", format = "binary", description = "Car's right side image (.jpg, .jpeg, .png, .gif)")
     MultipartFile carImageRight;
 }

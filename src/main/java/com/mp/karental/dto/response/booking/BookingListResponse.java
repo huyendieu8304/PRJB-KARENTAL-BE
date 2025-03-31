@@ -21,16 +21,17 @@ import org.springframework.data.domain.Page;
 @Getter
 @Setter
 @AllArgsConstructor
-@Schema(description = "Response containing a list of bookings and related statistics.")
+@Schema(name = "response.booking.BookingListResponse", description = "Response DTO containing a list of booking thumbnails and summary counts.")
 public class BookingListResponse {
+    //count all booking isn't COMPLETED or CANCELLED
+    @Schema(example = "5", description = "Total number of bookings that are not COMPLETED or CANCELLED.")
+    int totalOnGoingBookings;
 
-    @Schema(description = "Total number of ongoing bookings (not COMPLETED or CANCELLED).", example = "5")
-    private int totalOnGoingBookings;
+    //count all booking is WAITING_CONFIRMED
+    @Schema(example = "2", description = "Total number of bookings in WAITING_CONFIRMED status.")
+    int totalWaitingConfirmBooking;
 
-    @Schema(description = "Total number of bookings waiting for confirmation.", example = "2")
-    private int totalWaitingConfirmBooking;
-
-    @Schema(description = "Paginated list of booking details.")
+    @Schema(description = "Paginated list of booking thumbnails.", implementation = BookingThumbnailResponse.class)
     private Page<BookingThumbnailResponse> bookings;
 }
 
