@@ -114,6 +114,8 @@ public enum ErrorCode {
     INVALID_FORGOT_PASSWORD_TOKEN(4012, "This link has expired. Please go back to Homepage and try again.", HttpStatus.BAD_REQUEST),
     FORBIDDEN_PROFILE_INCOMPLETE(4013, "Please complete your individual profile to booking", HttpStatus.FORBIDDEN),
     FORBIDDEN_BOOKING_ACCESS(4014, "Can not view detail/edit booking of another account", HttpStatus.FORBIDDEN),
+    INVALID_CSRF_TOKEN(4015, "Invalid or missing CSRF token. Access denied.", HttpStatus.FORBIDDEN),
+
     ;
 
     /**

@@ -46,6 +46,12 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @NonFinal
     private String accessTokenCookieName;
 
+    @Value("${application.security.jwt.csrf-token-header-name}")
+    @NonFinal
+    private String csrfTokenHeaderName;
+
+
+
     @Value("${application.security.public-endpoints}")
     @NonFinal
     private String[] publicEndpoints;
@@ -77,28 +83,50 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        String jwt = null;
+        //get csrf token from header
+        String csrfToken = request.getHeader(csrfTokenHeaderName);
+        if (csrfToken == null || csrfToken.trim().isEmpty()) {
+            log.info("Missing CSRF token in header");
+            throw new AppException(ErrorCode.INVALID_CSRF_TOKEN);
+        }
+        //validate csrf token
+        jwtUtils.validateJwtCsrfToken(csrfToken);
+
+
+        //get access token from cookie
+        String accessToken = null;
         Cookie cookie = WebUtils.getCookie(request, accessTokenCookieName);
         if (cookie != null) {
-            jwt = cookie.getValue();
-            log.info("Cookie found token: {}", jwt);
+            accessToken = cookie.getValue();
+            log.info("Cookie found token: {}", accessToken);
         } else {
             log.info("Missing access token cookie");
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
-        //validate jwt
-        jwtUtils.validateJwtAccessToken(jwt);
+        //validate accessToken
+        jwtUtils.validateJwtAccessToken(accessToken);
 
-        //token still valid -> check whether it invalidated (by logout)
-        if(tokenService.isAccessTokenInvalidated(jwt)){
-            //access token is invalidated
+
+        //is the email in the csrf token same as the one in access token
+        String email = jwtUtils.getUserEmailFromAccessToken(accessToken);
+        String csrfEmail = jwtUtils.getUserEmailFromCsrfToken(csrfToken);
+        if (!email.equalsIgnoreCase(csrfEmail)) {
+            log.info("The email in access token {} is different from the one in csrf token {}", email, csrfEmail);
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
-        // JWT is valid
-        //get the email of the user to
-        String email = jwtUtils.getUserEmailFromAccessToken(jwt);
+        //access token and csrf still valid -> check whether it invalidated (by logout or refresh)
+        if(tokenService.isAccessTokenInvalidated(accessToken)){
+            //access token is invalidated
+            log.info("The access token is invalidated, {}", accessToken);
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        if (tokenService.isCsrfTokenInvalidated(csrfToken)) {
+            log.info("The csrf token is invalidated, {}", csrfToken);
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
 
         //Load UserDetails (the information of authenticated user)
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
