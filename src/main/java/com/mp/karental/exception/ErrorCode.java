@@ -95,7 +95,7 @@ public enum ErrorCode {
     SEND_COMPLETED_BOOKING_EMAIL_FAIL(3029,"There was error during sending completed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL(3030,"There was error during sending pending payment booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     FEEDBACK_TIME_EXPIRED(3031, "Feedback is only allowed within 30 days after drop-off.", HttpStatus.BAD_REQUEST),
-    FEEDBACK_TOO_LONG(3032, "Feedback content must not exceed 250 characters.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_TOO_LONG(3032, "Feedback content must not exceed 2000 characters.", HttpStatus.BAD_REQUEST),
     BOOKING_NOT_COMPLETED(3033, "This booking is not COMPLETED.", HttpStatus.BAD_REQUEST),
     FEEDBACK_NOT_FOUND(3034, "Feedback not found for the given booking ID.", HttpStatus.NOT_FOUND),
     FEEDBACK_ALREADY_EXISTS(3035, "This booking is already exists.", HttpStatus.BAD_REQUEST),

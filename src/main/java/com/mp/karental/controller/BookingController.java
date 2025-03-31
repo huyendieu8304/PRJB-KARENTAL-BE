@@ -6,6 +6,7 @@ import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.dto.response.*;
 import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
+import com.mp.karental.dto.response.user.UserResponse;
 import com.mp.karental.service.BookingService;
 import com.mp.karental.dto.response.booking.BookingListResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -180,6 +181,39 @@ public class BookingController {
      * @param sort sorting field and direction in the format "field,DIRECTION" (default is "createdAt,DESC")
      * @return a paginated list of bookings wrapped in `ApiResponse<Page<BookingThumbnailResponse>>`
      */
+    @Operation(
+            summary = "View list bookings",
+            description = "Customer view their list of booking.",
+            parameters = {
+                    @Parameter(name = "page", description = "Page number (default = 0)", example = "0"),
+                    @Parameter(name = "size", description = "Number of records per page (default = 10)", example = "10"),
+                    @Parameter(name = "status", description = "Booking status filter", schema = @Schema(implementation = EBookingStatus.class)),
+                    @Parameter(name = "sort", description = "Sorting field and direction (default = 'updatedAt,DESC')", example = "updatedAt,DESC")
+            },
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingListResponse.class)
+                                            )
+                                    }
+                            )
+                    )
+            }
+    )
     @GetMapping("/customer/my-bookings")
     public ApiResponse<BookingListResponse> getBookings(
             @RequestParam(defaultValue = "0") int page,
@@ -254,6 +288,39 @@ public class BookingController {
      * @param sort sorting field and direction in the format "field,DIRECTION" (default is "updatedAt,DESC")
      * @return a paginated list of bookings wrapped in `ApiResponse<Page<BookingThumbnailResponse>>`
      */
+    @Operation(
+            summary = "View list rentals",
+            description = "Car owner can view their list of rentals",
+            parameters = {
+                    @Parameter(name = "page", description = "Page number (default = 0)", example = "0"),
+                    @Parameter(name = "size", description = "Number of records per page (default = 10)", example = "10"),
+                    @Parameter(name = "status", description = "Booking status filter", schema = @Schema(implementation = EBookingStatus.class)),
+                    @Parameter(name = "sort", description = "Sorting field and direction (default = 'updatedAt,DESC')", example = "updatedAt,DESC")
+            },
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "Successful!")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object", implementation = BookingListResponse.class)
+                                            )
+                                    }
+                            )
+                    )
+            }
+    )
     @GetMapping("/car-owner/rentals")
     public ApiResponse<BookingListResponse> getBookingsForCarOwner(
             @RequestParam(defaultValue = "0") int page,
