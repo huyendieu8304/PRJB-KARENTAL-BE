@@ -2128,11 +2128,10 @@ class BookingServiceTest {
         booking.setCar(car);
 
         
-        when(SecurityUtil.getCurrentAccountId()).thenReturn(wrongOwnerId);
         when(SecurityUtil.getCurrentAccount()).thenReturn(carOwnerAccount);
 
-        
-        when(bookingRepository.findBookingByBookingNumberAndOwnerId(bookingNumber, wrongOwnerId)).thenReturn(booking);
+
+        when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(booking);
 
         // Act & Assert
         AppException exception = assertThrows(AppException.class, () -> {
@@ -2214,8 +2213,9 @@ class BookingServiceTest {
     void testConfirmPickUp_BookingNotFound() {
         // Arrange
         String bookingNumber = "B123";
-
-        when(SecurityUtil.getCurrentAccountId()).thenReturn("123");
+        Account account = new Account();
+        account.setId("123");
+        when(SecurityUtil.getCurrentAccount()).thenReturn(account);
         when(bookingRepository.findBookingByBookingNumber(bookingNumber)).thenReturn(null); 
 
         // Act & Assert
@@ -2272,9 +2272,6 @@ class BookingServiceTest {
     void cancelBooking_ShouldThrowException() {
         // Arrange
         String bookingNumber = "B123";
-        Account mockAccount = new Account();
-        mockAccount.setId("user123");
-        mockAccount.setEmail("test@example.com");
 
         LocalDateTime mockPickUpTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0);
         LocalDateTime mockDropOffTime = LocalDateTime.now().plusDays(2).withHour(20).withMinute(0).withSecond(0);
@@ -2285,6 +2282,7 @@ class BookingServiceTest {
         car.setBrand("Toyota");
         car.setModel("Camry");
         car.setAccount(account);
+        when(SecurityUtil.getCurrentAccount()).thenReturn(account);
 
 
             
@@ -4628,8 +4626,8 @@ CreateBookingRequest request = new CreateBookingRequest();
         role.setName(ERole.CAR_OWNER);
         owner.setRole(role);
 
-        when(SecurityUtil.getCurrentAccount()).thenReturn(owner);
-        when(bookingRepository.findBookingByBookingNumberAndOwnerId("BK001", "user123")).thenReturn(null);
+        lenient().when(SecurityUtil.getCurrentAccount()).thenReturn(owner);
+        lenient().when(bookingRepository.findBookingByBookingNumberAndOwnerId("BK001", "user123")).thenReturn(null);
 
         // When & Then
         AppException exception = assertThrows(AppException.class, () -> bookingService.getBookingDetailsByBookingNumber("BK001"));

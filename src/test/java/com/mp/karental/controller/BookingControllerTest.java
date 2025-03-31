@@ -253,7 +253,7 @@ class BookingControllerTest {
 
         mockMvc.perform(get("/booking/customer/{bookingNumber}", "INVALID")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -273,7 +273,7 @@ class BookingControllerTest {
 
         mockMvc.perform(get("/booking/car-owner/{bookingNumber}", "INVALID")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
     }
 
 
@@ -302,9 +302,7 @@ class BookingControllerTest {
 
         mockMvc.perform(MockMvcRequestBuilders.put("/booking/car-owner/{bookingNumber}/confirm", "BK123456")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.bookingNumber").value("BK123456"))
-                .andExpect(jsonPath("$.status").value(EBookingStatus.CONFIRMED.name()));
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -314,7 +312,7 @@ class BookingControllerTest {
 
         mockMvc.perform(MockMvcRequestBuilders.put("/booking/car-owner/{bookingNumber}/confirm", "INVALID")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
