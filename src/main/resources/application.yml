@@ -24,7 +24,8 @@ application:
       /user/check-unique-email,
       /user/resend-verify-email/**,
       /user/verify-email/**,
-      /auth/**"
+      /auth/**,
+      /homepage/**"
 ##      FOR TEST
 
 

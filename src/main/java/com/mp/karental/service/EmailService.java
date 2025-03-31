@@ -408,4 +408,29 @@ public class EmailService {
     private String getCurrentFormattedDateTime() {
         return LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
     }
+
+
+    /**
+     * Sends an email notification to the car owner when their car is successfully verified.
+     *
+     * @param to      Recipient's email address (car owner's email).
+     * @param carName The name of the car that has been verified.
+     * @param carId   The unique identifier of the verified car.
+     */
+    public void sendCarVerificationEmail(String to, String carName, String carId) {
+        String subject = "Car Verification Approved - " + carName;
+        String body = String.format(
+                "<p>Dear Car Owner,</p>"
+                        + "<p>Your car <strong>%s</strong> (ID: %s) has been successfully verified.</p>"
+                        + "<p>You can now list your car for rental on our platform.</p>"
+                        + "<p>Thank you for choosing our service!</p>",
+                carName, carId);
+
+        try {
+            sendEmail(to, subject, body);
+        } catch (MessagingException e) {
+            throw new AppException(ErrorCode.SEND_CAR_VERIFICATION_EMAIL_FAIL);
+        }
+    }
+
 }

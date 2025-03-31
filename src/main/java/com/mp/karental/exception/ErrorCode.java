@@ -57,6 +57,9 @@ public enum ErrorCode {
     INVALID_DATE_FORMAT(2029, "Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST),
     INVALID_TRANSACTION_TYPE(2030,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
     INVALID_DRIVER_INFO(2031,"Driver's information is different from account holder, but the information is not fulfilled",HttpStatus.BAD_REQUEST),
+    INVALID_COMMENT_LENGTH(2032,"The comment length is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_RATING_RANGE(2033, "The rating range is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_CAR_STATUS(2034, "The status must be NOT_VERIFIED", HttpStatus.BAD_REQUEST),
 
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occurred during uploading files. Please try again.", HttpStatus.SERVICE_UNAVAILABLE),
@@ -91,6 +94,11 @@ public enum ErrorCode {
     SEND_CONFIRMED_BOOKING_EMAIL_FAIL(3028,"There was error during sending confirmed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_COMPLETED_BOOKING_EMAIL_FAIL(3029,"There was error during sending completed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL(3030,"There was error during sending pending payment booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    FEEDBACK_TIME_EXPIRED(3031, "Feedback is only allowed within 30 days after drop-off.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_TOO_LONG(3032, "Feedback content must not exceed 250 characters.", HttpStatus.BAD_REQUEST),
+    BOOKING_NOT_COMPLETED(3033, "This booking is not COMPLETED.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_NOT_FOUND(3034, "Feedback not found for the given booking ID.", HttpStatus.NOT_FOUND),
+    FEEDBACK_ALREADY_EXISTS(3035, "This booking is already exists.", HttpStatus.BAD_REQUEST),
     CAR_CANNOT_RETURN(3036,"The car cannot be return when booking status is not in-progress", HttpStatus.FORBIDDEN),
     CAR_CANNOT_STOPPED(3037,"The car cannot be stopped when has on-time booking", HttpStatus.FORBIDDEN),
     SEND_WAITING_CONFIRMED_RETURN_CAR_BOOKING_EMAIL_FAIL(3038,"There was error during sending waiting confirmed return car email to user", HttpStatus.SERVICE_UNAVAILABLE),
@@ -98,6 +106,9 @@ public enum ErrorCode {
     SEND_REMINDER_DROP_OFF_EMAIL_FAIL(3040,"There was error during sending reminder drop off email to user", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_EARLY_RETURN_REJECTED_EMAIL_FAIL(3041, "There was error during sending reject early return car email to user", HttpStatus.SERVICE_UNAVAILABLE),
     EXCEL_DATA_LOAD_FAILED(3042, "Failed to load data from Excel file", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_CAR_VERIFICATION_EMAIL_FAIL(3043,"There was error during sending verify car to user", HttpStatus.SERVICE_UNAVAILABLE),
+
+
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),

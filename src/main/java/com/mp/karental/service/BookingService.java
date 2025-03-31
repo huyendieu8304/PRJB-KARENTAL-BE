@@ -436,7 +436,7 @@ public class BookingService {
                 : bookingRepository.findByAccountId(accountId, pageable);
 
         // Convert the list of bookings into a BookingListResponse object to return
-        return getBookingListResponse(bookings);
+        return getBookingListResponse(bookings, true);
     }
 
 
@@ -456,14 +456,14 @@ public class BookingService {
                 ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
                 : bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
 
-        return getBookingListResponse(bookings);
+        return getBookingListResponse(bookings, false);
     }
 
     /**
      * Converts a page of `Booking` objects into `BookingListResponse`.
      * Includes booking details, car images, and additional computed fields.
      */
-    private BookingListResponse getBookingListResponse(Page<Booking> bookings) {
+    private BookingListResponse getBookingListResponse(Page<Booking> bookings, boolean isCustomer) {
         // Retrieve the current user's account ID
         String currentUserId = SecurityUtil.getCurrentAccountId();
 
@@ -478,7 +478,6 @@ public class BookingService {
 
             response.setNumberOfDay((int) numberOfDay);
             response.setTotalPrice(totalPrice);
-            response.setUpdatedAt(booking.getUpdatedAt());
 
             // Retrieve car images
             response.setCarImageFrontUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
@@ -490,26 +489,28 @@ public class BookingService {
         });
 
         // Count the number of ongoing bookings for the current user
-        int totalOnGoingBookings = bookingRepository.countOngoingBookingsByCar(
+        // If Customer, get status booking ongoing
+        int totalOnGoingBookings = isCustomer
+                ? bookingRepository.countOngoingBookingsByCar(
                 currentUserId,
                 List.of(
                         EBookingStatus.PENDING_DEPOSIT,
                         EBookingStatus.WAITING_CONFIRMED,
                         EBookingStatus.CONFIRMED,
                         EBookingStatus.IN_PROGRESS,
-                        EBookingStatus.PENDING_PAYMENT,
-                        EBookingStatus.WAITING_CONFIRMED_RETURN_CAR
+                        EBookingStatus.PENDING_PAYMENT
                 )
-        );
-
+        )
+                : 0;
         // Count the number of bookings that are waiting for confirmation for the car owner
-        int totalWaitingConfirmBooking = bookingRepository.countBookingsByOwnerAndStatus(
-                currentUserId,
-                EBookingStatus.WAITING_CONFIRMED
-        );
+        // If Car Owner, get booking waiting confirm
+        int totalWaitingConfirmBooking = isCustomer
+                ? 0
+                : bookingRepository.countBookingsByOwnerAndStatus(currentUserId, EBookingStatus.WAITING_CONFIRMED);
 
         return new BookingListResponse(totalOnGoingBookings, totalWaitingConfirmBooking, bookingResponses);
     }
+
 
     /**
      * Creates a `Pageable` object for pagination and sorting.
@@ -536,7 +537,7 @@ public class BookingService {
                 String requestedDirection = sortParams[1].trim().toUpperCase();
 
                 // Validate field name (only allow predefined fields)
-                if (FIELD_UPDATED_AT.equals(requestedField) || FIELD_BASE_PRICE.equals(requestedField)) {
+                if (FIELD_BASE_PRICE.equals(requestedField)) {
                     sortField = requestedField;
                 }
 
@@ -557,11 +558,14 @@ public class BookingService {
      * If the status is invalid or not found, returns `null` (defaulting to all bookings).
      */
     private EBookingStatus parseStatus(String statusStr) {
+        if (statusStr == null || statusStr.isBlank()) {
+            return null; // Return null to get all bookings
+        }
         try {
             // Convert the input string to an EBookingStatus enum
             return EBookingStatus.valueOf(statusStr.toUpperCase());
 
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             log.info("parsing booking status {} to enum fail", statusStr);
             return null;
         }
@@ -659,6 +663,7 @@ public class BookingService {
 
         // Update the booking status to CONFIRMED
         booking.setStatus(EBookingStatus.CONFIRMED);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         bookingRepository.saveAndFlush(booking);
 
         emailService.sendConfirmBookingEmail(booking.getAccount().getEmail(),
@@ -712,6 +717,7 @@ public class BookingService {
 
         // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         bookingRepository.saveAndFlush(booking);
 
         // Return the updated booking details
@@ -734,6 +740,7 @@ public class BookingService {
         }
         // Update the booking status to IN_PROGRESS to indicate the pick-up process has started
         booking.setStatus(EBookingStatus.IN_PROGRESS);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
 
         // Save the updated booking status to the database
         bookingRepository.saveAndFlush(booking);
@@ -812,6 +819,8 @@ public class BookingService {
 
         // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
+
         bookingRepository.saveAndFlush(booking);
 
         // Process the refund for the booking deposit
@@ -841,6 +850,8 @@ public class BookingService {
 
         // Update the booking status to IN_PROGRESS instead of canceling
         booking.setStatus(EBookingStatus.IN_PROGRESS);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
+
         bookingRepository.saveAndFlush(booking);
         emailService.sendEarlyReturnRejectedEmail(booking.getAccount().getEmail(), bookingNumber);
         // Return the updated booking details as a response
@@ -959,6 +970,7 @@ public class BookingService {
                     remainingMoney >= 0
             );
         }
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
 
         // Save the updated booking status to the database
         bookingRepository.saveAndFlush(booking);

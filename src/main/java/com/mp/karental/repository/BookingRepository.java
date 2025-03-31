@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.Optional;
  * @version 1.0
  * @see JpaRepository
  */
+@Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.status = 'COMPLETED' AND b.car.id = :carId")
     long countCompletedBookingsByCar(@Param("carId") String carId);
@@ -95,11 +97,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("""
     SELECT COUNT(b) FROM Booking b
-    WHERE b.car.account.id = :ownerId
+    WHERE b.account.id= :customerId
     AND (:statuses IS NULL OR b.status IN :statuses)
 """)
     int countOngoingBookingsByCar(
-            @Param("ownerId") String ownerId,
+            @Param("customerId") String customerId,
             @Param("statuses") List<EBookingStatus> statuses
     );
 

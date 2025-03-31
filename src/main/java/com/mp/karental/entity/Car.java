@@ -128,6 +128,9 @@ public class Car {
     @UpdateTimestamp
     LocalDateTime updatedAt;
 
+    @Column(nullable = false)
+    String updateBy;
+
     @PostPersist
     public void onPostPersist() {
         log.info("Account: {} - Successfully created Car with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
