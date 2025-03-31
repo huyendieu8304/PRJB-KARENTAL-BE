@@ -8,6 +8,7 @@ import com.mp.karental.dto.response.feedback.FeedbackResponse;
 import com.mp.karental.dto.response.feedback.RatingResponse;
 import com.mp.karental.service.FeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.SchemaProperty;
@@ -128,7 +129,7 @@ public class FeedbackController {
             }
     )
     @GetMapping("/customer/view-ratings/{bookingId}")
-    public ApiResponse<FeedbackResponse> getFeedbackByBookingId(@PathVariable String bookingId) {
+    public ApiResponse<FeedbackResponse> getFeedbackByBookingId(@PathVariable @Parameter(description = "The booking id to be vew rating.", example = "BK001") String bookingId) {
         return ApiResponse.<FeedbackResponse>builder()
                 .data(feedbackService.getFeedbackByBookingId(bookingId))
                 .message("Feedback retrieved successfully.")
@@ -170,7 +171,7 @@ public class FeedbackController {
             }
     )
     @GetMapping("/car/{carId}")
-    public ApiResponse<List<FeedbackResponse>> getFeedbackByCarId(@PathVariable String carId) {
+    public ApiResponse<List<FeedbackResponse>> getFeedbackByCarId(@PathVariable @Parameter(description = "The car id to be vew feedback.", example = "car1") String carId) {
         return ApiResponse.<List<FeedbackResponse>>builder()
                 .data(feedbackService.getFeedbackByCarId(carId))
                 .message("Car feedback retrieved successfully.")
