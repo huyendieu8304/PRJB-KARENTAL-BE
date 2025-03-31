@@ -25,3 +25,10 @@ payment:
     return-url: ${VNPAY_RETURN_URL}
 application:
   domain: ${DOMAIN_NAME}
+cloud:
+  aws:
+    region:
+      static: ${AWS_REGION}
+    s3:
+      buckets:
+        name: ${AWS_S3_BUCKETNAME}

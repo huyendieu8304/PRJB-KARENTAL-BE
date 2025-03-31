@@ -73,6 +73,8 @@ This application has already implemented Spring doc, Swagger API, to get file .y
 Or you want to build the project but skip testing
 `mvn clean package -DskipTests`
 
+If your computer doesn't have Maven, you can replace `mvn` with `./mvnw`, which reside in the source root.
+
 ## Build docker image
 In root directory of the source code run `docker build -t <your-dockerhub-username>/karental:<tagname> .`
 then push the image to docker hub `docker push huyendieu8304/karental:<tagname>`
