@@ -82,12 +82,12 @@ public enum ErrorCode {
     TRANSACTION_NOT_FOUND_IN_DB(3017, "The transaction is not exist in the system", HttpStatus.NOT_FOUND),
     BOOKING_NOT_FOUND_IN_DB(3018, "The booking is not exist in the system", HttpStatus.NOT_FOUND),
     BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in its current status.", HttpStatus.BAD_REQUEST),
-    INVALID_BOOKING_STATUS(3020, "This booking cannot be confirmed due to its current status.", HttpStatus.BAD_REQUEST),
+    INVALID_BOOKING_STATUS(3020, "The booking status does not allow this action.", HttpStatus.BAD_REQUEST),
     BOOKING_EXPIRED(3021, "This booking has expired and cannot be confirmed.", HttpStatus.BAD_REQUEST),
 
     EMAIL_NOT_USED_BY_ANY_ACCOUNT(3022, "The email address you’ve entered does not exist. Please try again.", HttpStatus.BAD_REQUEST),
-    BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed,waiting_confirmed_return_car or cancelled.", HttpStatus.FORBIDDEN),
-    BOOKING_CANNOT_PICKUP(3024,"The booking cannot be pickup when status not confirmed, from 30 minutes before the pickup time and before the drop-off time.", HttpStatus.FORBIDDEN),
+    BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed,waiting_confirmed_return_car or cancelled.", HttpStatus.BAD_REQUEST),
+    BOOKING_CANNOT_PICKUP(3024,"The booking cannot be pickup when status not confirmed", HttpStatus.FORBIDDEN),
     SEND_CANCELLED_BOOKING_EMAIL_FAIL(3025,"There was error during sending cancelLed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_WAITING_CONFIRM_EMAIL_FAIL(3026,"There was error during sending waiting confirm email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_WALLET_UPDATE_EMAIL_FAIL(3027,"There was error during sending wallet update email to user.", HttpStatus.SERVICE_UNAVAILABLE),
@@ -95,7 +95,7 @@ public enum ErrorCode {
     SEND_COMPLETED_BOOKING_EMAIL_FAIL(3029,"There was error during sending completed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL(3030,"There was error during sending pending payment booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     FEEDBACK_TIME_EXPIRED(3031, "Feedback is only allowed within 30 days after drop-off.", HttpStatus.BAD_REQUEST),
-    FEEDBACK_TOO_LONG(3032, "Feedback content must not exceed 250 characters.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_TOO_LONG(3032, "Feedback content must not exceed 2000 characters.", HttpStatus.BAD_REQUEST),
     BOOKING_NOT_COMPLETED(3033, "This booking is not COMPLETED.", HttpStatus.BAD_REQUEST),
     FEEDBACK_NOT_FOUND(3034, "Feedback not found for the given booking ID.", HttpStatus.NOT_FOUND),
     FEEDBACK_ALREADY_EXISTS(3035, "This booking is already exists.", HttpStatus.BAD_REQUEST),
@@ -108,14 +108,15 @@ public enum ErrorCode {
     EXCEL_DATA_LOAD_FAILED(3042, "Failed to load data from Excel file", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_CAR_VERIFICATION_EMAIL_FAIL(3043,"There was error during sending verify car to user", HttpStatus.SERVICE_UNAVAILABLE),
 
-
+    UNSUPPORTED_PAYMENT_TYPE(3044, "This payment type is not supported in this case", HttpStatus.BAD_REQUEST),
+    INSUFFICIENT_BALANCE(3045,"Your wallet does not have enough balance", HttpStatus.BAD_REQUEST),
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_ERROR_KEY(4001, "The error key could be misspelled", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_LOGIN_INFORMATION(4002, "Either email address or password is incorrect. Please try again.", HttpStatus.UNAUTHORIZED),
     UNAUTHENTICATED(4003, "Unauthenticated access. The access token is invalid", HttpStatus.UNAUTHORIZED), //401
     UNAUTHORIZED(4004, "User doesn't have permission to access the endpoint.", HttpStatus.FORBIDDEN), //403
-//    ACCESS_TOKEN_EXPIRED(4005, "The access token is expired. Please try again", HttpStatus.UNAUTHORIZED),
+    ACCESS_TOKEN_EXPIRED(4005, "The access token is expired. Please try again", HttpStatus.UNAUTHORIZED),
     ACCOUNT_IS_INACTIVE(4006, "Your account is inactive.", HttpStatus.FORBIDDEN),
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
 
