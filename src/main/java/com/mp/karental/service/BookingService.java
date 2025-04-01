@@ -896,16 +896,39 @@ public class BookingService {
      */
     public BookingResponse confirmDeposit(String bookingNumber) {
         Booking booking = validateAndGetBookingOperator(bookingNumber);
-        // Retrieve customer and car owner email addresses
-        String customerEmail = booking.getAccount().getEmail();
-        String carOwnerEmail = booking.getCar().getAccount().getEmail();
-
         //change the status to waiting confirmed and save the booking,
-        // then send email waiting confirmed to customer and owner
         booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         bookingRepository.saveAndFlush(booking);
-        emailService.sendWaitingConfirmedEmail(customerEmail,carOwnerEmail,
-                booking.getCar().getBrand() + " " + booking.getCar().getModel(),bookingNumber);
+        // then send email waiting confirmed to customer and owner
+        // Cancel overlapping pending deposit bookings for the same car
+        List<Booking> overlappingBookings = bookingRepository.findByCarIdAndStatusAndTimeOverlap(
+                booking.getCar().getId(),
+                EBookingStatus.PENDING_DEPOSIT,
+                booking.getPickUpTime(),
+                booking.getDropOffTime()
+        );
+
+        for (Booking pendingBooking : overlappingBookings) {
+            pendingBooking.setStatus(EBookingStatus.CANCELLED);
+            bookingRepository.saveAndFlush(pendingBooking);
+
+            // Notify the customer about the cancellation
+            String reason = "Your booking has been canceled because another customer has successfully placed a deposit for this car within the same rental period.";
+            emailService.sendCancelledBookingEmail(pendingBooking.getAccount().getEmail(),
+                    pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
+                    reason);
+
+        }
+
+        // Remove the cached pending deposit booking from Redis
+        redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
+
+        // Send confirmation emails to both the customer and car owner
+        emailService.sendWaitingConfirmedEmail(booking.getAccount().getEmail(),
+                booking.getCar().getAccount().getEmail(),
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                booking.getBookingNumber()
+        );
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
