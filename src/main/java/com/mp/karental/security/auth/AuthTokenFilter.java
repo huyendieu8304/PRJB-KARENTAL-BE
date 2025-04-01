@@ -84,15 +84,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         }
 
         try {
-            //get csrf token from header
-            String csrfToken = request.getHeader(csrfTokenHeaderName);
-            if (csrfToken == null || csrfToken.trim().isEmpty()) {
-                log.info("Missing CSRF token in header");
-                throw new AppException(ErrorCode.INVALID_CSRF_TOKEN);
-            }
-            //validate csrf token
-            jwtUtils.validateJwtCsrfToken(csrfToken);
-
 
             //get access token from cookie
             String accessToken = null;
@@ -105,8 +96,19 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 throw new AppException(ErrorCode.UNAUTHENTICATED);
             }
 
+            //get csrf token from header
+            String csrfToken = request.getHeader(csrfTokenHeaderName);
+            if (csrfToken == null || csrfToken.trim().isEmpty()) {
+                log.info("Missing CSRF token in header");
+                throw new AppException(ErrorCode.INVALID_CSRF_TOKEN);
+            }
+
             //validate accessToken
             jwtUtils.validateJwtAccessToken(accessToken);
+
+            //validate csrf token
+            jwtUtils.validateJwtCsrfToken(csrfToken);
+
 
 
             //is the email in the csrf token same as the one in access token
