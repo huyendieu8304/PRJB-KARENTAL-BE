@@ -31,10 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service class for handling car operations.
@@ -428,6 +426,7 @@ public class CarService {
 
         // Retrieve the list of cars owned by the current user
         Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
+        log.info("Successfully access to car information, number of records: {}, accessBy {}", cars.getTotalElements(), accountId);
 
         return cars.map(car -> {
             CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
@@ -458,17 +457,22 @@ public class CarService {
 
         // Validate that the pick-up date is before the drop-off date
         if (request.getPickUpTime().isAfter(request.getDropOffTime())) {
+            log.info("Fail access to car's information, invalid date range, accessBy {}", accountId);
             throw new AppException(ErrorCode.INVALID_DATE_RANGE);
         }
 
         // Retrieve car details from the database
         Car car = carRepository.findById(request.getCarId())
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> {
+                    log.info("Fail access to car's information, carId: {}, accessBy {}", request.getCarId(), accountId);
+                    return new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB);
+                });
 
         double averageRating = getAverageRatingByCar(request.getCarId());
 
         // Check if the car is verified
         if (car.getStatus() != ECarStatus.VERIFIED) {
+            log.info("Fail access to car's information, carId: {}, car is not verified, accessBy {}", request.getCarId(), accountId);
             throw new AppException(ErrorCode.CAR_NOT_VERIFIED);
         }
 
@@ -523,6 +527,7 @@ public class CarService {
         // Count the number of completed bookings for this car and set it
         long noOfRides = bookingRepository.countCompletedBookingsByCar(request.getCarId());
         response.setNoOfRides(noOfRides);
+        log.info("Successfully access to car's information, carId: {}, accessBy {}", request.getCarId(), accountId);
 
         return response;
     }
@@ -663,7 +668,8 @@ public class CarService {
             response.setNoOfRides(noOfRides);
             availableCars.add(response);
         }
-
+        log.info("Successfully completed search request, total available cars: {}, accessBy: {}",
+                availableCars.size(), SecurityUtil.getCurrentAccountId());
         return new PageImpl<>(availableCars, pageable, verifiedCars.getTotalElements());
     }
 
@@ -731,11 +737,14 @@ public class CarService {
      * @return A page of CarThumbnailResponse objects containing summarized car information.
      */
     public Page<CarThumbnailResponse> getAllCarsForOperator(int page, int size, String sort, ECarStatus status) {
+        log.info("Operator {} is requesting all cars with status {}", SecurityUtil.getCurrentAccountId(), status);
+
         // Create a pageable object with sorting based on the provided parameters
         Pageable pageable = createPageableForOperator(page, size, sort);
 
         // Fetch cars from the repository, filtering by status if provided
         Page<Car> cars = carRepository.findCars(status, pageable);
+        log.info("Successfully retrieved {} cars for operator {}, status: {}", cars.getTotalElements(), SecurityUtil.getCurrentAccountId(), status);
 
         // Convert each Car entity into a CarThumbnailResponse DTO
         return cars.map(car -> {
@@ -818,8 +827,15 @@ public class CarService {
      */
     @Transactional(readOnly = true)
     public CarDocumentsResponse getCarDocuments(String carId) {
+        log.info("User {} is requesting documents for car {}", SecurityUtil.getCurrentAccountId(), carId);
+
         Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> {
+                    log.warn("Fail access to car's documents, carId: {}, accessBy: {}", carId, SecurityUtil.getCurrentAccountId());
+                    return new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB);
+                });
+
+        log.info("Successfully accessed car's documents, carId: {}, accessBy: {}", carId, SecurityUtil.getCurrentAccountId());
 
         // Map entity to DTO and update URLs
         return carMapper.toCarDocumentsResponse(car).toBuilder()
@@ -843,10 +859,15 @@ public class CarService {
 
         // Retrieve car from database
         Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> {
+                    log.warn("Fail access to car verification, carId: {}, accessBy: {}", carId, SecurityUtil.getCurrentAccountId());
+                    return new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB);
+                });
 
         // Validate that the car is in NOT_VERIFIED status
         if (!ECarStatus.NOT_VERIFIED.equals(car.getStatus())) {
+            log.warn("Invalid car status for verification, carId: {}, currentStatus: {}, accessBy: {}",
+                    carId, car.getStatus(), SecurityUtil.getCurrentAccountId());
             throw new AppException(ErrorCode.INVALID_CAR_STATUS);
         }
 

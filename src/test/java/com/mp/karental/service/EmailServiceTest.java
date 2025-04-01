@@ -49,6 +49,10 @@ class EmailServiceTest {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
 
     }
+    @Test
+    void testSendCarVerificationEmail() throws MessagingException {
+        emailService.sendCarVerificationEmail("customer@example.com", "Toyota Camry", "123");
+    }
 
     @Test
     void testSendWaitingConfirmReturnEmail_Failure() throws MessagingException {
@@ -70,7 +74,7 @@ class EmailServiceTest {
         );
 
         // Verify send was attempted
-        verify(mailSender, times(1)).send(any(MimeMessage.class));
+        verify(mailSender, times(3)).send(any(MimeMessage.class));
     }
 
     @Test
@@ -93,7 +97,7 @@ class EmailServiceTest {
         );
 
         // Verify send was attempted
-        verify(mailSender, times(1)).send(any(MimeMessage.class));
+        verify(mailSender, times(3)).send(any(MimeMessage.class));
     }
 
     @Test
@@ -177,7 +181,7 @@ class EmailServiceTest {
         );
 
         // Verify send was attempted
-        verify(mailSender, times(1)).send(any(MimeMessage.class));
+        verify(mailSender, times(3)).send(any(MimeMessage.class));
     }
 
     @Test
@@ -202,7 +206,7 @@ class EmailServiceTest {
         );
 
         // Verify send was attempted
-        verify(mailSender, times(1)).send(any(MimeMessage.class));
+        verify(mailSender, times(3)).send(any(MimeMessage.class));
     }
 
     @Test
@@ -226,7 +230,7 @@ class EmailServiceTest {
         );
 
         // Verify send was attempted
-        verify(mailSender, times(1)).send(any(MimeMessage.class));
+        verify(mailSender, times(3)).send(any(MimeMessage.class));
     }
 
     @Test
@@ -251,7 +255,7 @@ class EmailServiceTest {
         );
 
         // Verify send was attempted
-        verify(mailSender, times(1)).send(any(MimeMessage.class));
+        verify(mailSender, times(3)).send(any(MimeMessage.class));
     }
     @Test
     void testSendRegisterEmail() throws MessagingException {
