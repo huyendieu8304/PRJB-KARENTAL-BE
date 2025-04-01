@@ -76,7 +76,7 @@ public class TransactionService {
         walletRepository.save(wallet);
         transactionRepository.save(transaction);
         //send email if withdraw successfully
-        emailService.sendWalletUpdateEmail(currentUser.getEmail(), "http://localhost:3000/#/my-wallet");
+        emailService.sendWalletUpdateEmail(currentUser.getEmail(), "http://karental.okne.site/#/my-wallet");
         TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(transaction);
         // return response for Withdraw transaction
         return transactionResponse;
