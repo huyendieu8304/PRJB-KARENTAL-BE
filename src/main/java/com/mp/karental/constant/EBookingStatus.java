@@ -16,5 +16,6 @@ public enum EBookingStatus {
     CANCELLED, //cancelled booking
     IN_PROGRESS, //customer picked up car
     PENDING_PAYMENT, //customer returned car but hasn't complete payment
-    COMPLETED //returned car and completed payment
+    COMPLETED, //returned car and completed payment
+    WAITING_CONFIRMED_RETURN_CAR //waiting car owner confirmed when return before drop off time
 }

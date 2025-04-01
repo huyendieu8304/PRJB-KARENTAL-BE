@@ -39,11 +39,17 @@ public class JwtUtils {
     @NonFinal
     private String refreshTokenSecretKey;
 
+    @Value("${application.security.jwt.csrf-token-secret-key}")
+    @NonFinal
+    private String csrfTokenSecretKey;
+
+
+
     /**
      * get the jwt SecretKey from secret key in environment variable
      * @return SecretKey object which is used in generate and decode token
      */
-    private SecretKey getScretKey(String secretKey) {
+    private SecretKey getSecretKey(String secretKey) {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -65,13 +71,17 @@ public class JwtUtils {
         return generateJwtToken(accountId, refreshTokenSecretKey, refreshTokenExpiration);
     }
 
+    public String generateCsrfTokenFromUserEmail(String email){
+        return generateJwtToken(email, csrfTokenSecretKey, accessTokenExpiration);
+    }
+
     private String generateJwtToken(String email, String secretKey, long expiration){
         return Jwts.builder()
                 .subject(email)
                 .issuer("${spring.application.name}")
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration)) //set expiration date for token
-                .signWith(getScretKey(secretKey)) //the algorithm is automatically determine by the api of jjwt
+                .signWith(getSecretKey(secretKey)) //the algorithm is automatically determine by the api of jjwt
                 .compact();
     }
 
@@ -88,20 +98,15 @@ public class JwtUtils {
     public boolean validateJwtAccessToken(String accessToken) {
         try {
             Jwts.parser()
-                    .verifyWith(getScretKey(accessTokenSecretKey))
+                    .verifyWith(getSecretKey(accessTokenSecretKey))
                     .build()
                     .parse(accessToken);
             return true;
-        } catch (MalformedJwtException e) {
-            //Invalid JWT token
-            throw new  AppException(ErrorCode.UNAUTHENTICATED);
-        } catch (ExpiredJwtException e) {
-            //JWT token is expired
-            throw new  AppException(ErrorCode.ACCESS_TOKEN_EXPIRED);
-        } catch (JwtException e) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        } catch (IllegalArgumentException e) {
-            //JWT claims string is empty
+//        } catch (ExpiredJwtException e) {
+//            //JWT token is expired
+//            throw new  AppException(ErrorCode.ACCESS_TOKEN_EXPIRED);
+        } catch (JwtException | IllegalArgumentException e) {
+            //jwt invalid or empty/null
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
     }
@@ -114,18 +119,28 @@ public class JwtUtils {
     public boolean validateJwtRefreshToken(String refreshToken) {
         try {
             Jwts.parser()
-                    .verifyWith(getScretKey(refreshTokenSecretKey))
+                    .verifyWith(getSecretKey(refreshTokenSecretKey))
                     .build()
                     .parse(refreshToken);
             return true;
         } catch (ExpiredJwtException e) {
             //JWT token is expired
             throw new  AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
+            //jwt invalid or empty/null
             throw new AppException(ErrorCode.UNAUTHENTICATED);
-        } catch (IllegalArgumentException e) {
-            //JWT claims string is empty
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+    }
+
+    public boolean validateJwtCsrfToken(String csrfToken) {
+        try {
+            Jwts.parser()
+                    .verifyWith(getSecretKey(csrfTokenSecretKey))
+                    .build()
+                    .parse(csrfToken);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new AppException(ErrorCode.INVALID_CSRF_TOKEN);
         }
     }
 
@@ -141,7 +156,7 @@ public class JwtUtils {
      */
     public String getUserEmailFromAccessToken(String accessToken) {
         return Jwts.parser()
-                .verifyWith(getScretKey(accessTokenSecretKey))
+                .verifyWith(getSecretKey(accessTokenSecretKey))
                 .build()
                 .parseSignedClaims(accessToken)
                 .getPayload()
@@ -150,16 +165,25 @@ public class JwtUtils {
 
     public String getUserAccountIdFromRefreshToken(String refreshToken) {
         return Jwts.parser()
-                .verifyWith(getScretKey(refreshTokenSecretKey))
+                .verifyWith(getSecretKey(refreshTokenSecretKey))
                 .build()
                 .parseSignedClaims(refreshToken)
                 .getPayload()
                 .getSubject();
     }
 
+    public String getUserEmailFromCsrfToken(String csrfToken) {
+        return Jwts.parser()
+                .verifyWith(getSecretKey(csrfTokenSecretKey))
+                .build()
+                .parseSignedClaims(csrfToken)
+                .getPayload()
+                .getSubject();
+    }
+
     public Instant getExpirationAtFromAccessToken(String accessToken) {
         return Jwts.parser()
-                .verifyWith(getScretKey(accessTokenSecretKey))
+                .verifyWith(getSecretKey(accessTokenSecretKey))
                 .build()
                 .parseSignedClaims(accessToken)
                 .getPayload()
@@ -169,9 +193,19 @@ public class JwtUtils {
 
     public Instant getExpirationAtFromRefreshToken(String refreshToken) {
         return Jwts.parser()
-                .verifyWith(getScretKey(refreshTokenSecretKey))
+                .verifyWith(getSecretKey(refreshTokenSecretKey))
                 .build()
                 .parseSignedClaims(refreshToken)
+                .getPayload()
+                .getExpiration()
+                .toInstant();
+    }
+
+    public Instant getExpirationAtFromCsrfToken(String csrfToken) {
+        return Jwts.parser()
+                .verifyWith(getSecretKey(csrfTokenSecretKey))
+                .build()
+                .parseSignedClaims(csrfToken)
                 .getPayload()
                 .getExpiration()
                 .toInstant();

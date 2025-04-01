@@ -9,6 +9,8 @@ import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.security.entity.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,6 +41,7 @@ class UserDetailsServiceImplTest {
         Account dummyAccount = Account.builder()
                 .email(email)
                 .isActive(true)
+                .isEmailVerified(true)
                 .role(Role.builder().name(ERole.CUSTOMER).build())
                 .build();
 
@@ -62,21 +65,29 @@ class UserDetailsServiceImplTest {
 
     }
 
-    @Test
-    void loadUserByUsername_inactiveAccount() {
+    @ParameterizedTest(name = "[{index} loadUserByUsername_inactiveAccount={0}]")
+    @CsvSource({
+            "true, false",
+            "false, true",
+            "false, false"
+    })
+    void loadUserByUsername_inactiveAccount(boolean isActive, boolean isEmailVerified) {
         //Given
         String email = "test@email.com";
 
         Account dummyAccount = Account.builder()
                 .email(email)
                 .isActive(false)
+                .isEmailVerified(false)
                 .role(Role.builder().name(ERole.CUSTOMER).build())
                 .build();
 
         when(accountRepository.findByEmail(email)).thenReturn(Optional.of(dummyAccount));
 
-        //asert
+        //assert
         assertThrows(InternalAuthenticationServiceException.class, () -> userDetailsServiceImpl.loadUserByUsername(email));
 
     }
+
+
 }

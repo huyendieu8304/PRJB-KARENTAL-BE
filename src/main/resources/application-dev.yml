@@ -1,0 +1,19 @@
+application:
+  security:
+    public-endpoints:
+      "/user/register,
+      /user/check-unique-email,
+      /user/resend-verify-email/**,
+      /user/verify-email/**,
+      /auth/**,
+      /h2-console/**,
+      /swagger-ui.html,
+      /swagger-ui/**,
+      /v3/api-docs/**,
+      /v3/api-docs.yaml,
+      /swagger-config,
+      /swagger-resources/**
+      "
+springdoc:
+  swagger-ui:
+    enabled: true

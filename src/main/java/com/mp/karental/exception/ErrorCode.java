@@ -57,6 +57,9 @@ public enum ErrorCode {
     INVALID_DATE_FORMAT(2029, "Invalid date format. Please use yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST),
     INVALID_TRANSACTION_TYPE(2030,"The transaction type is invalid", HttpStatus.BAD_REQUEST),
     INVALID_DRIVER_INFO(2031,"Driver's information is different from account holder, but the information is not fulfilled",HttpStatus.BAD_REQUEST),
+    INVALID_COMMENT_LENGTH(2032,"The comment length is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_RATING_RANGE(2033, "The rating range is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_CAR_STATUS(2034, "The status must be NOT_VERIFIED", HttpStatus.BAD_REQUEST),
 
     //range 3xxx
     UPLOAD_OBJECT_TO_S3_FAIL(3001, "There was error occurred during uploading files. Please try again.", HttpStatus.SERVICE_UNAVAILABLE),
@@ -78,21 +81,33 @@ public enum ErrorCode {
     SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL(3016, "There was error during sending forgot password email, please try again.", HttpStatus.SERVICE_UNAVAILABLE),
     TRANSACTION_NOT_FOUND_IN_DB(3017, "The transaction is not exist in the system", HttpStatus.NOT_FOUND),
     BOOKING_NOT_FOUND_IN_DB(3018, "The booking is not exist in the system", HttpStatus.NOT_FOUND),
-    BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
+    BOOKING_CANNOT_BE_EDITED(3019, "The booking cannot be edited as it is already in its current status.", HttpStatus.BAD_REQUEST),
     INVALID_BOOKING_STATUS(3020, "This booking cannot be confirmed due to its current status.", HttpStatus.BAD_REQUEST),
     BOOKING_EXPIRED(3021, "This booking has expired and cannot be confirmed.", HttpStatus.BAD_REQUEST),
 
     EMAIL_NOT_USED_BY_ANY_ACCOUNT(3022, "The email address you’ve entered does not exist. Please try again.", HttpStatus.BAD_REQUEST),
-    BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed, or cancelled.", HttpStatus.FORBIDDEN),
+    BOOKING_CANNOT_CANCEL(3023,"The booking cannot be cancelled as it is already in progress, pending payment, completed,waiting_confirmed_return_car or cancelled.", HttpStatus.FORBIDDEN),
     BOOKING_CANNOT_PICKUP(3024,"The booking cannot be pickup when status not confirmed, from 30 minutes before the pickup time and before the drop-off time.", HttpStatus.FORBIDDEN),
     SEND_CANCELLED_BOOKING_EMAIL_FAIL(3025,"There was error during sending cancelLed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_WAITING_CONFIRM_EMAIL_FAIL(3026,"There was error during sending waiting confirm email to user.", HttpStatus.SERVICE_UNAVAILABLE),
     SEND_WALLET_UPDATE_EMAIL_FAIL(3027,"There was error during sending wallet update email to user.", HttpStatus.SERVICE_UNAVAILABLE),
-    SEND_CONFIRMED_BOOKING_EMAIL_FAIL(3028,"There was error during sending confirmed booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
-    SEND_COMPLETED_BOOKING_EMAIL_FAIL(3029,"There was error during sending completed booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
-    SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL(3030,"There was error during sending pending payment booking to user.", HttpStatus.SERVICE_UNAVAILABLE),
-    CAR_CANNOT_RETURN(3036,"The car cannot be return when booking status is not in-progress and cannot return before the drop off time", HttpStatus.FORBIDDEN),
+    SEND_CONFIRMED_BOOKING_EMAIL_FAIL(3028,"There was error during sending confirmed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_COMPLETED_BOOKING_EMAIL_FAIL(3029,"There was error during sending completed booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL(3030,"There was error during sending pending payment booking email to user.", HttpStatus.SERVICE_UNAVAILABLE),
+    FEEDBACK_TIME_EXPIRED(3031, "Feedback is only allowed within 30 days after drop-off.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_TOO_LONG(3032, "Feedback content must not exceed 250 characters.", HttpStatus.BAD_REQUEST),
+    BOOKING_NOT_COMPLETED(3033, "This booking is not COMPLETED.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_NOT_FOUND(3034, "Feedback not found for the given booking ID.", HttpStatus.NOT_FOUND),
+    FEEDBACK_ALREADY_EXISTS(3035, "This booking is already exists.", HttpStatus.BAD_REQUEST),
+    CAR_CANNOT_RETURN(3036,"The car cannot be return when booking status is not in-progress", HttpStatus.FORBIDDEN),
     CAR_CANNOT_STOPPED(3037,"The car cannot be stopped when has on-time booking", HttpStatus.FORBIDDEN),
+    SEND_WAITING_CONFIRMED_RETURN_CAR_BOOKING_EMAIL_FAIL(3038,"There was error during sending waiting confirmed return car email to user", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_REMINDER_PICK_UP_EMAIL_FAIL(3039,"There was error during sending reminder pick up email to user", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_REMINDER_DROP_OFF_EMAIL_FAIL(3040,"There was error during sending reminder drop off email to user", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_EARLY_RETURN_REJECTED_EMAIL_FAIL(3041, "There was error during sending reject early return car email to user", HttpStatus.SERVICE_UNAVAILABLE),
+    EXCEL_DATA_LOAD_FAILED(3042, "Failed to load data from Excel file", HttpStatus.SERVICE_UNAVAILABLE),
+    SEND_CAR_VERIFICATION_EMAIL_FAIL(3043,"There was error during sending verify car to user", HttpStatus.SERVICE_UNAVAILABLE),
+
 
     //range 4xxx
     UNCATEGORIZED_EXCEPTION(4000, "There was error happen during run time", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -100,7 +115,7 @@ public enum ErrorCode {
     INVALID_LOGIN_INFORMATION(4002, "Either email address or password is incorrect. Please try again.", HttpStatus.UNAUTHORIZED),
     UNAUTHENTICATED(4003, "Unauthenticated access. The access token is invalid", HttpStatus.UNAUTHORIZED), //401
     UNAUTHORIZED(4004, "User doesn't have permission to access the endpoint.", HttpStatus.FORBIDDEN), //403
-    ACCESS_TOKEN_EXPIRED(4005, "The access token is expired. Please try again", HttpStatus.UNAUTHORIZED),
+//    ACCESS_TOKEN_EXPIRED(4005, "The access token is expired. Please try again", HttpStatus.UNAUTHORIZED),
     ACCOUNT_IS_INACTIVE(4006, "Your account is inactive.", HttpStatus.FORBIDDEN),
     REFRESH_TOKEN_EXPIRED(4008, "The refresh token is expired. Please login again.", HttpStatus.UNAUTHORIZED),
 
@@ -110,6 +125,8 @@ public enum ErrorCode {
     INVALID_FORGOT_PASSWORD_TOKEN(4012, "This link has expired. Please go back to Homepage and try again.", HttpStatus.BAD_REQUEST),
     FORBIDDEN_PROFILE_INCOMPLETE(4013, "Please complete your individual profile to booking", HttpStatus.FORBIDDEN),
     FORBIDDEN_BOOKING_ACCESS(4014, "Can not view detail/edit booking of another account", HttpStatus.FORBIDDEN),
+    INVALID_CSRF_TOKEN(4015, "Invalid or missing CSRF token. Access denied.", HttpStatus.FORBIDDEN),
+
     ;
 
     /**

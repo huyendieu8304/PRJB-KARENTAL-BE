@@ -1,8 +1,10 @@
 package com.mp.karental.entity;
 
+import com.mp.karental.security.SecurityUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 /**
@@ -21,6 +23,7 @@ import java.util.List;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
+@Slf4j
 public class Wallet {
     @Id
     String id;
@@ -32,4 +35,19 @@ public class Wallet {
     @Column(nullable = false, columnDefinition = "bigint default 0")
     long balance;
 
+    @PostPersist
+    public void onPostPersist() {
+        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
+        log.info("Account: {} - Successfully created Wallet with id: {}", accountId, this.id);
+    }
+
+    @PreUpdate
+    public void onPreUpdate() {
+        log.info("Account: {} - Updating Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
+
+    @PostUpdate
+    public void onPostUpdate() {
+        log.info("Account: {} - Updated Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
 }

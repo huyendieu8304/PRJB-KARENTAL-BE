@@ -23,8 +23,6 @@ import java.time.LocalDateTime;
 @Builder
 public class BookingThumbnailResponse {
 
-    LocalDateTime updatedAt;
-
     String bookingNumber;
 
     EBookingStatus status;

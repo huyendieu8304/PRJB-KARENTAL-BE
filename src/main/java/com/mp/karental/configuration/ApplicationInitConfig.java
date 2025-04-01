@@ -2,6 +2,7 @@ package com.mp.karental.configuration;
 
 import com.mp.karental.constant.ERole;
 import com.mp.karental.entity.Role;
+import com.mp.karental.logging.LoggingConfig;
 import com.mp.karental.repository.RoleRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class ApplicationInitConfig {
 
-//    LoggingConfig loggingConfig;
+    LoggingConfig loggingConfig;
     RoleRepository roleRepository;
 
     /**
@@ -44,7 +45,7 @@ public class ApplicationInitConfig {
     ApplicationRunner init() {
         return args -> {
             //set up logging for the application
-//            loggingConfig.setupLogging();
+            loggingConfig.setupLogging();
 
             //create 2 roles Customer and car owner
             if (roleRepository.findByName(ERole.CAR_OWNER).isEmpty()) {

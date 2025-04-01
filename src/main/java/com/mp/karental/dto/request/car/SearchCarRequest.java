@@ -20,11 +20,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class SearchCarRequest {
 
-    @NotNull(message = "Pick-up date is required")
+    @RequiredField(message = "Pick-up time")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime pickUpTime;
 
-    @NotNull(message = "Drop-off date is required")
+    @RequiredField(message = "Drop-off time")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime dropOffTime;
 

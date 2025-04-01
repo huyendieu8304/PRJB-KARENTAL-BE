@@ -31,7 +31,7 @@ class AuthenticationControllerTest {
         // Given
         LoginRequest loginRequest = new LoginRequest("abc@example.com", "password");
         ApiResponse<LoginResponse> apiResponse = mock(ApiResponse.class);
-        ResponseEntity<ApiResponse<?>> mockResponse = ResponseEntity.ok(apiResponse);
+        ResponseEntity<ApiResponse<LoginResponse>> mockResponse = ResponseEntity.ok(apiResponse);
 
         when(authenticationService.login(any(LoginRequest.class))).thenReturn(mockResponse);
 
@@ -48,8 +48,8 @@ class AuthenticationControllerTest {
     void refreshToken_shouldCallAuthenticationService() {
         // Given
         HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-        ApiResponse<LoginResponse> apiResponse = mock(ApiResponse.class);
-        ResponseEntity<ApiResponse<?>> mockResponse = ResponseEntity.ok(apiResponse);
+        ApiResponse<String> apiResponse = mock(ApiResponse.class);
+        ResponseEntity<ApiResponse<String>> mockResponse = ResponseEntity.ok(apiResponse);
 
         when(authenticationService.refreshToken(any(HttpServletRequest.class))).thenReturn(mockResponse);
 
@@ -66,8 +66,8 @@ class AuthenticationControllerTest {
     void logout_shouldCallAuthenticationService() {
         // Given
         HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-        ApiResponse<LoginResponse> apiResponse = mock(ApiResponse.class);
-        ResponseEntity<ApiResponse<?>> mockResponse = ResponseEntity.ok(apiResponse);
+        ApiResponse<String> apiResponse = mock(ApiResponse.class);
+        ResponseEntity<ApiResponse<String>> mockResponse = ResponseEntity.ok(apiResponse);
 
         when(authenticationService.logout(any(HttpServletRequest.class))).thenReturn(mockResponse);
 

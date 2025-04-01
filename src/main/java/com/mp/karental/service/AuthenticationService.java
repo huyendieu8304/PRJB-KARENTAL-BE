@@ -49,19 +49,18 @@ import org.springframework.web.util.WebUtils;
 @Slf4j
 public class AuthenticationService {
 
-    //TODO: sửa lại khi deploy
-    @Value("${front-end.domain-name}")
+    @Value("${front-end.base-url}")
     @NonFinal
-    private String frontEndDomainName;
+    private String frontEndBaseUrl;
 
+    //=======================================
+    @Value("${server.servlet.context-path}")
+    @NonFinal
+    private String contextPath;
 
     @Value("${application.security.jwt.access-token-cookie-name}")
     @NonFinal
     private String accessTokenCookieName;
-
-    @Value("${server.servlet.context-path}")
-    @NonFinal
-    private String contextPath;
 
     @Value("${application.security.jwt.access-token-expiration}")
     @NonFinal
@@ -78,9 +77,20 @@ public class AuthenticationService {
     @NonFinal
     private long refreshTokenExpiration;
     //=======================================
-    //TODO: check this again
+    @Value("${application.security.jwt.csrf-token-cookie-name}")
+    @NonFinal
+    private String csrfTokenCookieName;
+
+    @Value("${application.security.jwt.csrf-token-header-name}")
+    @NonFinal
+    private String csrfTokenHeaderName;
+
     @NonFinal
     private String logoutUrl = "/karental/auth/logout";
+
+    @Value("${application.domain}")
+    @NonFinal
+    private String domain;
 
 
     AuthenticationManager authenticationManager;
@@ -95,7 +105,7 @@ public class AuthenticationService {
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
 
-    public ResponseEntity<ApiResponse<?>> login(LoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(LoginRequest request) {
         log.info("Processing login request, email={}", request.getEmail());
         //authenticate user's login information
         Authentication authentication = null;
@@ -106,10 +116,10 @@ public class AuthenticationService {
                             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
                     );
         } catch (InternalAuthenticationServiceException e) {
+            log.info("Login fail, account is inactive - email={}", request.getEmail());
             throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
-//        } catch (UsernameNotFoundException e) {
-//            throw new AppException(ErrorCode.ACCOUNT_NOT_FOUND_IN_DB);
         } catch (BadCredentialsException e) {
+            log.info("Login fail, invalid login information - email={}", request.getEmail());
             throw new AppException(ErrorCode.INVALID_LOGIN_INFORMATION);
         }
 
@@ -117,52 +127,52 @@ public class AuthenticationService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        //generate tokens
-        String accessToken = jwtUtils.generateAccessTokenFromUserEmail(userDetails.getEmail());
-        String refreshToken = jwtUtils.generateRefreshTokenFromAccountId(userDetails.getAccoutnId());
+
 
         //put user's role and fullname in response
         String role = userDetails.getRole().getName().toString();
         String fullName = userProfileRepository.findById(userDetails.getAccoutnId()).get().getFullName();
+        String csrfToken = jwtUtils.generateCsrfTokenFromUserEmail(userDetails.getEmail());
         ApiResponse<LoginResponse> apiResponse = ApiResponse.<LoginResponse>builder()
-                .data(new LoginResponse(role, fullName))
+                .data(new LoginResponse(role, fullName, csrfToken))
                 .build();
         log.info("Account with email={} logged in successfully", request.getEmail());
-        return sendApiResponseResponseEntity(accessToken, refreshToken, apiResponse);
+        return sendApiResponseResponseEntity(userDetails.getEmail(), userDetails.getAccoutnId(), apiResponse);
     }
 
-    private ResponseEntity<ApiResponse<?>> sendApiResponseResponseEntity(String accessToken, String refreshToken, ApiResponse<?> apiResponse) {
+    private <T> ResponseEntity<ApiResponse<T>> sendApiResponseResponseEntity(String email, String accountId, ApiResponse<T> apiResponse) {
+        //generate tokens
+        String accessToken = jwtUtils.generateAccessTokenFromUserEmail(email);
+        String refreshToken = jwtUtils.generateRefreshTokenFromAccountId(accountId);
+
         //Generate token cookie
-        ResponseCookie accessTokenCookie = generateCookie(accessTokenCookieName, accessToken, contextPath, accessTokenExpiration);
-        ResponseCookie refreshTokenCookie = generateCookie(refreshTokenCookieName, refreshToken, refreshTokenUrl, refreshTokenExpiration);
-        ResponseCookie refreshTokenCookieLogout = generateCookie(refreshTokenCookieName, refreshToken, logoutUrl, refreshTokenExpiration);
+        ResponseCookie accessTokenCookie = generateCookie(accessTokenCookieName, accessToken, contextPath, accessTokenExpiration, true);
+        ResponseCookie refreshTokenCookie = generateCookie(refreshTokenCookieName, refreshToken, refreshTokenUrl, refreshTokenExpiration, true);
+        ResponseCookie refreshTokenCookieLogout = generateCookie(refreshTokenCookieName, refreshToken, logoutUrl, refreshTokenExpiration, true);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieLogout.toString())
+                .header(HttpHeaders.SET_COOKIE,refreshTokenCookieLogout.toString())
                 .body(apiResponse);
     }
 
-    public ResponseEntity<ApiResponse<?>> refreshToken(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<String>> refreshToken(HttpServletRequest request) {
         log.info("Processing refresh token request");
+
         //get the refresh token out from cookies
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
-
-        //refresh token not exist in the cookies
-        if (refreshToken == null || refreshToken.isEmpty()) {
+        if (refreshToken == null || refreshToken.trim().isEmpty()){
             throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        //validate jwt refresh token
-        if (jwtUtils.validateJwtRefreshToken(refreshToken)) {
-            //the refresh token still not expire but found invalidated
-            if (tokenService.isRefreshTokenInvalidated(refreshToken)) {
-                throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
-            }
-            //save old refresh token to invalidate table
-            tokenService.invalidateRefreshToken(refreshToken, jwtUtils.getExpirationAtFromRefreshToken(refreshToken));
+        jwtUtils.validateJwtRefreshToken(refreshToken);
+
+        if(tokenService.isRefreshTokenInvalidated(refreshToken)){
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
+
+        getTokensAndInvalidateTokens(request);
 
         //get user account's id from refresh token to generate new access token
         String accountId = jwtUtils.getUserAccountIdFromRefreshToken(refreshToken);
@@ -172,24 +182,44 @@ public class AuthenticationService {
         if (!account.isActive()) {
             throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
         }
-
-        //generate tokens
-        String newAccessToken = jwtUtils.generateAccessTokenFromUserEmail(account.getEmail());
-        String newRefreshToken = jwtUtils.generateRefreshTokenFromAccountId(account.getId());
+        String csrfToken = jwtUtils.generateCsrfTokenFromUserEmail(account.getEmail());
 
         ApiResponse<String> apiResponse = ApiResponse.<String>builder()
-                .data("Successfully refresh token")
+                .data(csrfToken)
                 .build();
         log.info("New refresh token is generated for account with email={}", account.getEmail());
-        return sendApiResponseResponseEntity(newAccessToken, newRefreshToken, apiResponse);
+        return sendApiResponseResponseEntity(account.getEmail(), account.getId(), apiResponse);
     }
 
-    public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request) {
-        log.info("Processing refresh token request");
+    public ResponseEntity<ApiResponse<String>> logout(HttpServletRequest request) {
+        log.info("Processing logout request");
+
+        getTokensAndInvalidateTokens(request);
+
+        ApiResponse<String> apiResponse = ApiResponse.<String>builder()
+                .data("Successfully logged out")
+                .build();
+        log.info("Logged out successfully");
+        return sendLogoutApiResponseResponseEntity(apiResponse);
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> sendLogoutApiResponseResponseEntity(ApiResponse<T> apiResponse) {
+        //Generate token cookie
+        ResponseCookie accessTokenCookie = generateCookie(accessTokenCookieName, null, contextPath, 0, true);
+        ResponseCookie refreshTokenCookie = generateCookie(refreshTokenCookieName, null, refreshTokenUrl, 0, true);
+        ResponseCookie refreshTokenCookieLogout = generateCookie(refreshTokenCookieName, null, logoutUrl, 0, true);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieLogout.toString())
+                .body(apiResponse);
+    }
+
+    private void getTokensAndInvalidateTokens(HttpServletRequest request) {
         //get tokens out from cookies
         String accessToken = getCookieValueByName(request, accessTokenCookieName);
         String refreshToken = getCookieValueByName(request, refreshTokenCookieName);
-
 
         //refresh token exist in cookie
         if (refreshToken != null && !refreshToken.isEmpty()) {
@@ -198,7 +228,7 @@ public class AuthenticationService {
                 //the refresh token still not expire, invalidate it by saving to redis
                 tokenService.invalidateRefreshToken(refreshToken, jwtUtils.getExpirationAtFromRefreshToken(refreshToken));
             } catch (Exception e) {
-                log.info("Invalid refresh token, user can not refresh access token with this refresh token -> successfully logout ");
+                log.info("Invalid refresh token, user can not refresh access token with this refresh token");
             }
         }
 
@@ -206,21 +236,26 @@ public class AuthenticationService {
         if (accessToken != null && !accessToken.isEmpty()) {
             try {
                 jwtUtils.validateJwtAccessToken(accessToken);
-                //the access token still not expire
+                //the access token still not expire, invalidate it
                 tokenService.invalidateAccessToken(accessToken, jwtUtils.getExpirationAtFromAccessToken(accessToken));
 
             } catch (Exception e) {
-                log.info("Invalid access token, user can not be authenticated with this access token -> successfully logout ");
+                log.info("Invalid access token, user can not be authenticated with this access token");
             }
         }
 
-        ApiResponse<String> apiResponse = ApiResponse.<String>builder()
-                .data("Successfully logged out")
-                .build();
-        log.info("Logged out successfully");
-        return sendApiResponseResponseEntity(null, null, apiResponse);
-    }
+        String csrfToken = request.getHeader(csrfTokenHeaderName);
+        if (csrfToken != null && !csrfToken.isEmpty()) {
+            try {
+                jwtUtils.validateJwtCsrfToken(csrfToken);
+                //the csrf token still not expire, invalidate it by saving to redis
+                tokenService.invalidateCsrfToken(csrfToken, jwtUtils.getExpirationAtFromCsrfToken(csrfToken));
+            } catch (Exception e) {
+                log.info("Invalid csrf token, user can not access with this csrf token");
+            }
+        }
 
+    }
     /**
      * Create cookie to return to the client
      *
@@ -229,12 +264,13 @@ public class AuthenticationService {
      * @param path        the domain that this cookie sent along
      * @return ResponseCookie object
      */
-    private ResponseCookie generateCookie(String cookieName, String cookieValue, String path, long maxAgeMiliseconds) {
+    private ResponseCookie generateCookie(String cookieName, String cookieValue, String path, long maxAgeMiliseconds, boolean isHttpOnly) {
         return ResponseCookie
                 .from(cookieName, cookieValue)
                 .path(path)
+                .domain(domain)
                 .maxAge(maxAgeMiliseconds / 1000) // seconds ~ 1days
-                .httpOnly(true)
+                .httpOnly(isHttpOnly)
                 .secure(true)
                 .sameSite("None")
                 .build();
@@ -272,7 +308,7 @@ public class AuthenticationService {
 
         //send email
         String changePasswordToken = redisUtil.generateForgotPasswordToken(account.getId());
-        String forgotPasswordUrl = frontEndDomainName + "/auth/forgot-password/verify?t=" + changePasswordToken;
+        String forgotPasswordUrl = frontEndBaseUrl + "/auth/forgot-password/verify?t=" + changePasswordToken;
         log.info("Verify email url: {}", forgotPasswordUrl);
         emailService.sendForgotPasswordEmail(email, forgotPasswordUrl);
     }
@@ -281,14 +317,14 @@ public class AuthenticationService {
      * verify that the user really forgot the password
      *
      * @param forgotPasswordToken
-     * @return  change password token if the token is valid
+     * @return change password token if the token is valid
      */
     public String verifyForgotPassword(String forgotPasswordToken) {
         log.info("user with token={} request to change password.", forgotPasswordToken);
         //verify forgot password token
         verifyForgotPasswordToken(forgotPasswordToken);
 
-        //generate  change password token
+        //return change password token
         return forgotPasswordToken;
     }
 
@@ -302,6 +338,7 @@ public class AuthenticationService {
             if (!account.isEmailVerified() || !account.isActive()) {
                 throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
             }
+            log.info("Forgot password token is valid");
             return account;
         } else {
             log.info("Forgot password token is invalid!");

@@ -4,32 +4,45 @@ server:
     context-path: /karental
 
 application:
+  domain: localhost
+  email: ${APPLICATION_EMAIL}
   security:
     jwt:
-      access-token-secret-key: ${JWT_ACCESS_SECRET_KEY:k6jc9lypr7vm7api0r9v7y2k1c37hr4hneeqlkm93lr355hran2nhpwhqv8pnuqvbq29a2tfsfcf9ebikbn0arzllmhjrp7hp4z3emfxqyozg2hrozcyhmxaa1wulr7s}
+      access-token-secret-key: ${JWT_ACCESS_SECRET_KEY}
       access-token-cookie-name: karental-jwt
       refresh-token-cookie-name: karental-jwt-refresh
-      #TODO: cái key này phải bỏ vào biến môi trường
-      refresh-token-secret-key: ${JWT_REFRESH_SECRET_KEY:4iyhevpv5jvq34g7ugtzw1dyuegkq683gctxs9xzye9ufwee6y7w6b0pwxc00na4te7s4w0e3rw1tu5756ws3pi58unz9chg4f04bh9bw9kyfftieupth6x3gy80saus}
+      refresh-token-secret-key: ${JWT_REFRESH_SECRET_KEY}
       access-token-expiration: 3600000  #milisecond ~ 1 hours
       refresh-token-expiration: 86400000 #~1day
-
-##      FOR TEST
+      csrf-token-cookie-name: karental-jwt-csrf
+      csrf-token-secret-key: ${JWT_CSRF_SECRET_KEY}
+      csrf-token-header-name: X-CSRF-TOKEN
 #      access-token-expiration: 15000 #milisecond ~ 15s
 #      refresh-token-expiration: 60000 #~1 minute
+    public-endpoints:
+      "/user/register,
+      /user/check-unique-email,
+      /user/resend-verify-email/**,
+      /user/verify-email/**,
+      /auth/**,
+      /homepage/**"
+##      FOR TEST
+
 
 spring:
+  profiles:
+    active: prod
   application:
     name: karental
   datasource:
-    url: "jdbc:mysql://localhost:3306/karental"
+    url: jdbc:mysql://localhost:3306/karental
     driverClassName: "com.mysql.cj.jdbc.Driver"
     username: root
     password: root
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+#    show-sql: true
     properties:
       hibernate:
         format_sql: true
@@ -37,17 +50,6 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 50MB
-#  mail:
-#    host: smtp.gmail.com
-#    port: 587
-#    username: ${EMAIL_USERNAME}
-#    password: ${EMAIL_PASSWORD}
-#    properties:
-#      mail:
-#        smtp:
-#          auth: true
-#          starttls:
-#            enable: true
   mail:
     host: sandbox.smtp.mailtrap.io
     port: 2525
@@ -60,8 +62,6 @@ spring:
           starttls:
             enable: true
     default-encoding: UTF-8
-
-
   data:
     redis:
       host: localhost
@@ -69,6 +69,10 @@ spring:
       password:
       timeout: 6000
       database: 0
+
+springdoc:
+  swagger-ui:
+    enabled: false
 cloud:
   aws:
     region:
@@ -77,7 +81,7 @@ cloud:
       buckets:
         name: karental
 front-end:
-  domain-name: http://localhost:3000
+  base-url: http://localhost:3000
 
 payment:
   vnpay:

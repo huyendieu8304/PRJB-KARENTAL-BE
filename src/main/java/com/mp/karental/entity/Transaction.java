@@ -2,9 +2,11 @@ package com.mp.karental.entity;
 
 import com.mp.karental.constant.ETransactionStatus;
 import com.mp.karental.constant.ETransactionType;
+import com.mp.karental.security.SecurityUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Immutable;
 
@@ -26,6 +28,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
+@Slf4j
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -54,4 +57,19 @@ public class Transaction {
     Booking bookingNumber;
     @Enumerated(EnumType.STRING)
     ETransactionStatus status;
+
+    @PostPersist
+    public void onPostPersist() {
+        log.info("Account: {} - Successfully created Transaction with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
+    }
+
+    @PreUpdate
+    public void onPreUpdate() {
+        log.info("Account: {} - Updating Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
+
+    @PostUpdate
+    public void onPostUpdate() {
+        log.info("Account: {} - Updated Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+    }
 }

@@ -124,4 +124,46 @@ class TokenServiceTest {
         assertFalse(result);
         verify(redisTemplate).hasKey("refreshTk:" + token);
     }
+
+    @Test
+    void invalidateCsrfToken_ShouldSetKeyAndExpireAt() {
+        // Arrange
+        String token = "test-csrf-token";
+        Instant expireAt = Instant.now().plusSeconds(3600);
+
+        // Act
+        tokenService.invalidateCsrfToken(token, expireAt);
+
+        // Assert
+        verify(redisTemplate.opsForValue()).set("csrfTk:" + token, "");
+        verify(redisTemplate).expireAt("csrfTk:" + token, expireAt);
+    }
+
+    @Test
+    void isCsrfTokenInvalidated_ShouldReturnTrue_WhenKeyExists() {
+        // Arrange
+        String token = "test-csrf-token";
+        when(redisTemplate.hasKey("csrfTk:" + token)).thenReturn(true);
+
+        // Act
+        boolean result = tokenService.isCsrfTokenInvalidated(token);
+
+        // Assert
+        assertTrue(result);
+        verify(redisTemplate).hasKey("csrfTk:" + token);
+    }
+
+    @Test
+    void isCsrfTokenInvalidated_ShouldReturnFalse_WhenKeyNotExists() {
+        // Arrange
+        String token = "test-csrf-token";
+        when(redisTemplate.hasKey("csrfTk:" + token)).thenReturn(false);
+
+        // Act
+        boolean result = tokenService.isCsrfTokenInvalidated(token);
+
+        // Assert
+        assertFalse(result);
+        verify(redisTemplate).hasKey("csrfTk:" + token);
+    }
 }

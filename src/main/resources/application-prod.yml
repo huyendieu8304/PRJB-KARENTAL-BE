@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    driverClassName: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+front-end:
+  base-url: ${FE_BASE_URL}
+payment:
+  vnpay:
+    return-url: ${VNPAY_RETURN_URL}
+application:
+  domain: ${DOMAIN_NAME}
+cloud:
+  aws:
+    region:
+      static: ${AWS_REGION}
+    s3:
+      buckets:
+        name: ${AWS_S3_BUCKETNAME}

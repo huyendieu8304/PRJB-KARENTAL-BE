@@ -1,6 +1,5 @@
 package com.mp.karental.security.auth;
 
-import com.mp.karental.configuration.SecurityConfig;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.security.JwtUtils;
@@ -47,6 +46,16 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @NonFinal
     private String accessTokenCookieName;
 
+    @Value("${application.security.jwt.csrf-token-header-name}")
+    @NonFinal
+    private String csrfTokenHeaderName;
+
+
+
+    @Value("${application.security.public-endpoints}")
+    @NonFinal
+    private String[] publicEndpoints;
+
     JwtUtils jwtUtils;
     UserDetailsServiceImpl userDetailsService;
     TokenService tokenService;
@@ -65,7 +74,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         //skip authentication with public endpoints
         PathPatternParser pathPatternParser = new PathPatternParser();
-        if (Arrays.stream(SecurityConfig.PUBLIC_ENDPOINTS)
+        if (Arrays
+                .stream(publicEndpoints)
                 .anyMatch(endpoint -> pathPatternParser.parse(endpoint)
                         .matches(PathContainer.parsePath(path)))) {
             log.info("Public endpoint: {}, skipping authentication", path);
@@ -73,41 +83,73 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        String jwt = null;
-        Cookie cookie = WebUtils.getCookie(request, accessTokenCookieName);
-        if (cookie != null) {
-            jwt = cookie.getValue();
-        } else {
-            log.info("Missing access token cookie");
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        try {
+
+            //get access token from cookie
+            String accessToken = null;
+            Cookie cookie = WebUtils.getCookie(request, accessTokenCookieName);
+            if (cookie != null) {
+                accessToken = cookie.getValue();
+                log.info("Cookie found token: {}", accessToken);
+            } else {
+                log.info("Missing access token cookie");
+                throw new AppException(ErrorCode.UNAUTHENTICATED);
+            }
+
+            //get csrf token from header
+            String csrfToken = request.getHeader(csrfTokenHeaderName);
+            if (csrfToken == null || csrfToken.trim().isEmpty()) {
+                log.info("Missing CSRF token in header");
+                throw new AppException(ErrorCode.INVALID_CSRF_TOKEN);
+            }
+
+            //validate accessToken
+            jwtUtils.validateJwtAccessToken(accessToken);
+
+            //validate csrf token
+            jwtUtils.validateJwtCsrfToken(csrfToken);
+
+
+
+            //is the email in the csrf token same as the one in access token
+            String email = jwtUtils.getUserEmailFromAccessToken(accessToken);
+            String csrfEmail = jwtUtils.getUserEmailFromCsrfToken(csrfToken);
+            if (!email.equalsIgnoreCase(csrfEmail)) {
+                log.info("The email in access token {} is different from the one in csrf token {}", email, csrfEmail);
+                throw new AppException(ErrorCode.UNAUTHENTICATED);
+            }
+
+            //access token and csrf still valid -> check whether it invalidated (by logout or refresh)
+            if(tokenService.isAccessTokenInvalidated(accessToken)){
+                //access token is invalidated
+                log.info("The access token is invalidated, {}", accessToken);
+                throw new AppException(ErrorCode.UNAUTHENTICATED);
+            }
+
+            if (tokenService.isCsrfTokenInvalidated(csrfToken)) {
+                log.info("The csrf token is invalidated, {}", csrfToken);
+                throw new AppException(ErrorCode.INVALID_CSRF_TOKEN);
+            }
+            //Load UserDetails (the information of authenticated user)
+            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userDetails,
+                            null, //authenticated request, so that doesn't need password
+                            userDetails.getAuthorities());
+
+            //save the information's of request to authentication object to used later
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+            //set up UserDetails in current SecurityContext
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        } catch (Exception e) {
+            String exceptionMessage = e.getMessage();
+            if (e instanceof AppException) {
+                exceptionMessage =  ((AppException) e).getErrorCode().toString();
+            }
+            request.setAttribute("ERROR_CODE", exceptionMessage);
         }
-
-        //validate jwt
-        jwtUtils.validateJwtAccessToken(jwt);
-
-        //token still valid -> check whether it invalidated (by logout)
-        if(tokenService.isAccessTokenInvalidated(jwt)){
-            //access token is invalidated
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
-
-        // JWT is valid
-        //get the email of the user to
-        String email = jwtUtils.getUserEmailFromAccessToken(jwt);
-
-        //Load UserDetails (the information of authenticated user)
-        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(userDetails,
-                        null, //authenticated request, so that doesn't need password
-                        userDetails.getAuthorities());
-
-        //save the information's of request to authentication object to used later
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-        //set up UserDetails in current SecurityContext
-        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         //continue filter chain
         filterChain.doFilter(request, response);

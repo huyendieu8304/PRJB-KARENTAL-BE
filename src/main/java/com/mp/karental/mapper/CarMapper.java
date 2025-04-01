@@ -3,6 +3,7 @@ package com.mp.karental.mapper;
 import com.mp.karental.dto.request.car.AddCarRequest;
 import com.mp.karental.dto.request.car.EditCarRequest;
 import com.mp.karental.dto.response.car.CarDetailResponse;
+import com.mp.karental.dto.response.car.CarDocumentsResponse;
 import com.mp.karental.dto.response.car.CarResponse;
 import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.entity.Car;
@@ -110,5 +111,14 @@ public interface CarMapper {
     @Mapping(target = "carImageRight", ignore = true)
     CarThumbnailResponse toSearchCar(Car car, long noOfRides);
 
+    /**
+     * Converts a {@link Car} entity to a {@link CarDocumentsResponse} DTO.
+     *
+     * <p>The returned object contains details about the car's documents, including their verification status.</p>
+     *
+     * @param car The {@link Car} entity to be converted.
+     * @return A {@link CarDocumentsResponse} containing document-related details.
+     */
+    CarDocumentsResponse toCarDocumentsResponse(Car car);
 
 }

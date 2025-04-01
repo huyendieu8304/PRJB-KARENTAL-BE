@@ -8,6 +8,7 @@ import com.mp.karental.dto.response.booking.BookingResponse;
 import com.mp.karental.dto.response.booking.WalletResponse;
 import com.mp.karental.service.BookingService;
 import com.mp.karental.dto.response.booking.BookingListResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -18,11 +19,12 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/booking")
+@RequestMapping(value = "/booking", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 @Validated
+@Tag(name = "Booking", description = "API for managing booking")
 public class BookingController {
 
     BookingService bookingService;  // Service layer dependency for handling business logic
@@ -173,6 +175,27 @@ public class BookingController {
     public ApiResponse<BookingResponse> returnCar(@PathVariable String bookingNumber) {
         return ApiResponse.<BookingResponse>builder()
                 .data(bookingService.returnCar(bookingNumber))
+                .build();
+    }
+
+    @PutMapping("/car-owner/confirm-early-return/{bookingNumber}")
+    public ApiResponse<BookingResponse> confirmEarlyReturnCar(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.confirmEarlyReturnCar(bookingNumber))
+                .build();
+    }
+
+    @PutMapping("/car-owner/reject-early-return/{bookingNumber}")
+    public ApiResponse<BookingResponse> rejectEarlyReturnCar(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.rejectWaitingConfirmedEarlyReturnCarBooking(bookingNumber))
+                .build();
+    }
+
+    @PutMapping("/car-owner/reject-booking/{bookingNumber}")
+    public ApiResponse<BookingResponse> rejectBooking(@PathVariable String bookingNumber){
+        return ApiResponse.<BookingResponse>builder()
+                .data(bookingService.rejectWaitingConfirmedBooking(bookingNumber))
                 .build();
     }
 

@@ -46,10 +46,9 @@ import java.util.Optional;
 @Slf4j
 public class UserService {
 
-    //TODO: sửa lại khi deploy
-    @Value("${front-end.domain-name}")
+    @Value("${front-end.base-url}")
     @NonFinal
-    private String frontEndDomainName;
+    private String frontEndBaseUrl;
 
     AccountRepository accountRepository;
     UserProfileRepository userProfileRepository;
@@ -64,7 +63,7 @@ public class UserService {
     RedisUtil redisUtil;
 
     /**
-     * Creates a new user account along with the associated user profile.
+     * Creates a new Customer or CarOwner account along with the associated user profile.
      *
      * @param request the account registration request containing the user's details
      * @return a {@code UserResponse} DTO containing the details of the newly created account and profile
@@ -80,6 +79,7 @@ public class UserService {
         if (role.isPresent()){
             account.setRole(role.get());
         } else {
+            log.info("Create new account failed");
             throw new AppException(ErrorCode.ROLE_NOT_FOUND_IN_DB);
         }
         account.setActive(false); //set status of the account, this will change after the email is verified
@@ -100,7 +100,7 @@ public class UserService {
         walletRepository.save(wallet);
 
         sendVerifyEmail(account);
-        log.info("Account created, email={}", account.getEmail());
+        log.info("Account created successfully, email={}, accountId={}", account.getEmail(), account.getId());
         return userMapper.toUserResponse(account, userProfile);
     }
 
@@ -122,7 +122,7 @@ public class UserService {
         log.info("Send verify email to user.");
         //send email to verified user email
         String verifyEmailToken = redisUtil.generateVerifyEmailToken(account.getId());
-        String confirmUrl = frontEndDomainName + "/user/verify-email?t=" + verifyEmailToken;
+        String confirmUrl = frontEndBaseUrl + "/user/verify-email?t=" + verifyEmailToken;
         log.info("Verify email url: {}", confirmUrl);
         //sending email
         emailService.sendRegisterEmail(account.getEmail(), confirmUrl);
