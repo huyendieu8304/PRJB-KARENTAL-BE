@@ -37,17 +37,22 @@ public class Wallet {
 
     @PostPersist
     public void onPostPersist() {
-        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
-        log.info("Account: {} - Successfully created Wallet with id: {}", accountId, this.id);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = this.id;
+        }
+        log.info("By: {} - Successfully created Wallet with id: {}", accountId, this.id);
     }
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("Account: {} - Updating Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updating Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("Account: {} - Updated Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updated Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 }

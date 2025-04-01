@@ -39,17 +39,17 @@ public class Role {
 
     @PostPersist
     public void onPostPersist() {
-        log.info("Account: {} - Successfully created Role with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
+        log.info("By: {} - Successfully created Role with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
     }
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("Account: {} - Updating Role: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updating Role: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("Account: {} - Updated Role: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updated Role: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
 }

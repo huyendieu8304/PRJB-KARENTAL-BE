@@ -66,8 +66,8 @@ or if you want to run the application with a specific profile `-Dspring-boot.run
 ## APIDocument
 This application has already implemented Spring doc, Swagger API, to get file .yml of this application, please do following steps:
 1. Run the application in active profile is "dev"
-2. Open browser
-3. Access http://localhost:8080/karental/v3/api-docs.yaml
+2. Open browser and access http://localhost:8080/karental/swagger-ui.html
+3. Access http://localhost:8080/karental/v3/api-docs.yaml to download swagger file
 4. Save the file to your device
 
 ## Build application

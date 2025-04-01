@@ -52,16 +52,16 @@ public class Feedback {
 
     @PostPersist
     public void onPostPersist() {
-        log.info("Account: {} - Successfully created Feedback with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
+        log.info("By: {} - Successfully created Feedback with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
     }
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("Account: {} - Updating Feedback: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updating Feedback: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("Account: {} - Updated Feedback: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updated Feedback: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 }

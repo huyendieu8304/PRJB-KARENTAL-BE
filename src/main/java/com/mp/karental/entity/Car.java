@@ -133,17 +133,17 @@ public class Car {
 
     @PostPersist
     public void onPostPersist() {
-        log.info("Account: {} - Successfully created Car with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
+        log.info("By: {} - Successfully created Car with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
     }
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("Account: {} - Updating Car: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updating Car: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("Account: {} - Updated Car: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updated Car: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
 }

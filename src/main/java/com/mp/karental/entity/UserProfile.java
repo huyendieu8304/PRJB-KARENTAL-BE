@@ -58,19 +58,22 @@ public class UserProfile {
 
     @PostPersist
     public void onPostPersist() {
-        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
-        log.info("Account: {} - Successfully created UserProfile with id: {}", accountId, this.id);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = this.id;
+        }
+        log.info("By: {} - Successfully created UserProfile with id: {}", accountId, this.id);
     }
 
     @PreUpdate
     public void onPreUpdate() {
-        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
-        log.info("Account: {} - Updating UserProfile: {}", accountId, this);
+        log.info("By: {} - Updating UserProfile: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
-        log.info("Account: {} - Updated UserProfile: {}", accountId, this);
+        log.info("By: {} - Updated UserProfile: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 }
