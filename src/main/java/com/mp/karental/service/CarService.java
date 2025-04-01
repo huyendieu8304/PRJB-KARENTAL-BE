@@ -31,10 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service class for handling car operations.
@@ -80,6 +78,7 @@ public class CarService {
 
         // Associate the car with the current account
         car.setAccount(account);
+        car.setCreatedAt(LocalDateTime.now());
 
         // Set default status for the new car
         car.setStatus(ECarStatus.NOT_VERIFIED);
@@ -87,6 +86,7 @@ public class CarService {
         // Set transmission and fuel type based on request
         car.setAutomatic(request.isAutomatic());
         car.setGasoline(request.isGasoline());
+        car.setUpdateBy(accountId);
 
         // Set car address components from request
         setCarAddress(request, car);
@@ -160,7 +160,7 @@ public class CarService {
         if (newStatus == ECarStatus.STOPPED) {
             cancelPendingDepositsForStoppedCar(car.getId());
         }
-
+        car.setUpdateBy(accountId);
         // Update the car's address details
         setCarAddress(request, car);
 
@@ -274,12 +274,12 @@ public class CarService {
         String address = null;
 
         // Check if the request is an instance of AddCarRequest and retrieve the address
-        if (request instanceof AddCarRequest) {
-            address = ((AddCarRequest) request).getAddress();
+        if (request instanceof AddCarRequest addCarRequest) {
+            address = addCarRequest.getAddress();
         }
         // Check if the request is an instance of EditCarRequest and retrieve the address
-        else if (request instanceof EditCarRequest) {
-            address = ((EditCarRequest) request).getAddress();
+        else if (request instanceof EditCarRequest editCarRequest) {
+            address = editCarRequest.getAddress();
         }
 
         // If an address is provided and is not empty, split it into components
@@ -325,14 +325,14 @@ public class CarService {
         MultipartFile imageRight;
 
         // If the request is an AddCarRequest, handle document and image uploads
-        if (request instanceof AddCarRequest) {
-            registrationPaper = ((AddCarRequest) request).getRegistrationPaper();
-            certificateOfInspection = ((AddCarRequest) request).getCertificateOfInspection();
-            insurance = ((AddCarRequest) request).getInsurance();
-            imageFront = ((AddCarRequest) request).getCarImageFront();
-            imageBack = ((AddCarRequest) request).getCarImageBack();
-            imageLeft = ((AddCarRequest) request).getCarImageLeft();
-            imageRight = ((AddCarRequest) request).getCarImageRight();
+        if (request instanceof AddCarRequest addCarRequest) {
+            registrationPaper = addCarRequest.getRegistrationPaper();
+            certificateOfInspection = addCarRequest.getCertificateOfInspection();
+            insurance = addCarRequest.getInsurance();
+            imageFront = addCarRequest.getCarImageFront();
+            imageBack = addCarRequest.getCarImageBack();
+            imageLeft = addCarRequest.getCarImageLeft();
+            imageRight = addCarRequest.getCarImageRight();
 
             // Construct S3 keys for document files
             String s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(registrationPaper);
@@ -366,25 +366,44 @@ public class CarService {
         }
 
         // If the request is an EditCarRequest, only update image files
-        if (request instanceof EditCarRequest) {
-            if (((EditCarRequest) request).getCarImageFront() != null && !((EditCarRequest) request).getCarImageFront().isEmpty()) {
-                s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(((EditCarRequest) request).getCarImageFront());
-                fileService.uploadFile(((EditCarRequest) request).getCarImageFront(), s3KeyImageFront);
+        if (request instanceof EditCarRequest editCarRequest) {
+            //when car status is not verify, owner can change the documents to have valid document to verify by operator
+            if (car.getStatus() == ECarStatus.NOT_VERIFIED || car.getStatus() == ECarStatus.STOPPED) {
+                if (editCarRequest.getRegistrationPaper() != null && !editCarRequest.getRegistrationPaper().isEmpty()) {
+                    String s3KeyRegistration = baseDocumentsUri + "registration-paper" + fileService.getFileExtension(editCarRequest.getRegistrationPaper());
+                    fileService.uploadFile(editCarRequest.getRegistrationPaper(), s3KeyRegistration);
+                    car.setRegistrationPaperUri(s3KeyRegistration);
+                }
+                if (editCarRequest.getCertificateOfInspection() != null && !editCarRequest.getCertificateOfInspection().isEmpty()) {
+                    String s3KeyCertificate = baseDocumentsUri + "certificate-of-inspection" + fileService.getFileExtension(editCarRequest.getCertificateOfInspection());
+                    fileService.uploadFile(editCarRequest.getCertificateOfInspection(), s3KeyCertificate);
+                    car.setCertificateOfInspectionUri(s3KeyCertificate);
+                }
+                if (editCarRequest.getInsurance() != null && !editCarRequest.getInsurance().isEmpty()) {
+                    String s3KeyInsurance = baseDocumentsUri + "insurance" + fileService.getFileExtension(editCarRequest.getInsurance());
+                    fileService.uploadFile(editCarRequest.getInsurance(), s3KeyInsurance);
+                    car.setInsuranceUri(s3KeyInsurance);
+                }
+            }
+
+            if (editCarRequest.getCarImageFront() != null && !editCarRequest.getCarImageFront().isEmpty()) {
+                s3KeyImageFront = baseImagesUri + "front" + fileService.getFileExtension(editCarRequest.getCarImageFront());
+                fileService.uploadFile(editCarRequest.getCarImageFront(), s3KeyImageFront);
                 car.setCarImageFront(s3KeyImageFront);
             }
-            if (((EditCarRequest) request).getCarImageBack() != null && !((EditCarRequest) request).getCarImageBack().isEmpty()) {
+            if (editCarRequest.getCarImageBack() != null && !editCarRequest.getCarImageBack().isEmpty()) {
                 s3KeyImageBack = baseImagesUri + "back" + fileService.getFileExtension(((EditCarRequest) request).getCarImageBack());
                 fileService.uploadFile(((EditCarRequest) request).getCarImageBack(), s3KeyImageBack);
                 car.setCarImageBack(s3KeyImageBack);
             }
-            if (((EditCarRequest) request).getCarImageLeft() != null && !((EditCarRequest) request).getCarImageLeft().isEmpty()) {
-                s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(((EditCarRequest) request).getCarImageLeft());
-                fileService.uploadFile(((EditCarRequest) request).getCarImageLeft(), s3KeyImageLeft);
+            if (editCarRequest.getCarImageLeft() != null && !editCarRequest.getCarImageLeft().isEmpty()) {
+                s3KeyImageLeft = baseImagesUri + "left" + fileService.getFileExtension(editCarRequest.getCarImageLeft());
+                fileService.uploadFile(editCarRequest.getCarImageLeft(), s3KeyImageLeft);
                 car.setCarImageLeft(s3KeyImageLeft);
             }
-            if (((EditCarRequest) request).getCarImageRight() != null && !((EditCarRequest) request).getCarImageRight().isEmpty()) {
-                s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(((EditCarRequest) request).getCarImageRight());
-                fileService.uploadFile(((EditCarRequest) request).getCarImageRight(), s3KeyImageRight);
+            if (editCarRequest.getCarImageRight() != null && !(editCarRequest.getCarImageRight().isEmpty())) {
+                s3KeyImageRight = baseImagesUri + "right" + fileService.getFileExtension(editCarRequest.getCarImageRight());
+                fileService.uploadFile(editCarRequest.getCarImageRight(), s3KeyImageRight);
                 car.setCarImageRight(s3KeyImageRight);
             }
         }
@@ -407,6 +426,7 @@ public class CarService {
 
         // Retrieve the list of cars owned by the current user
         Page<Car> cars = carRepository.findByAccountId(accountId, pageable);
+        log.info("Successfully access to car information, number of records: {}, accessBy {}", cars.getTotalElements(), accountId);
 
         return cars.map(car -> {
             CarThumbnailResponse response = carMapper.toCarThumbnailResponse(car);
@@ -437,17 +457,22 @@ public class CarService {
 
         // Validate that the pick-up date is before the drop-off date
         if (request.getPickUpTime().isAfter(request.getDropOffTime())) {
+            log.info("Fail access to car's information, invalid date range, accessBy {}", accountId);
             throw new AppException(ErrorCode.INVALID_DATE_RANGE);
         }
 
         // Retrieve car details from the database
         Car car = carRepository.findById(request.getCarId())
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> {
+                    log.info("Fail access to car's information, carId: {}, accessBy {}", request.getCarId(), accountId);
+                    return new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB);
+                });
 
         double averageRating = getAverageRatingByCar(request.getCarId());
 
         // Check if the car is verified
         if (car.getStatus() != ECarStatus.VERIFIED) {
+            log.info("Fail access to car's information, carId: {}, car is not verified, accessBy {}", request.getCarId(), accountId);
             throw new AppException(ErrorCode.CAR_NOT_VERIFIED);
         }
 
@@ -502,6 +527,7 @@ public class CarService {
         // Count the number of completed bookings for this car and set it
         long noOfRides = bookingRepository.countCompletedBookingsByCar(request.getCarId());
         response.setNoOfRides(noOfRides);
+        log.info("Successfully access to car's information, carId: {}, accessBy {}", request.getCarId(), accountId);
 
         return response;
     }
@@ -642,7 +668,8 @@ public class CarService {
             response.setNoOfRides(noOfRides);
             availableCars.add(response);
         }
-
+        log.info("Successfully completed search request, total available cars: {}, accessBy: {}",
+                availableCars.size(), SecurityUtil.getCurrentAccountId());
         return new PageImpl<>(availableCars, pageable, verifiedCars.getTotalElements());
     }
 
@@ -656,14 +683,18 @@ public class CarService {
     public CarResponse getCarById(String id) {
         // Retrieve the current user account ID to ensure the user is logged in
         String accountId = SecurityUtil.getCurrentAccountId();
-
+        log.info("User {} is attempting to access car details with carId: {}", accountId, id);
         // Fetch the car details from the database, or throw an error if the car is not found
         Car car = carRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> {
+                    log.info("Failed to access car's information, carId: {}, accessed by: {}", id, accountId);
+                    return new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB);
+                });
 
         // Check if the car belongs to the current logged-in user
         if (!car.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS); // Custom error for unauthorized access
+            log.info("Failed to access car's information due to forbidden access, carId: {}, accessed by: {}", car.getId(), accountId);
+            throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
 
         // Get average rating of car
@@ -680,7 +711,7 @@ public class CarService {
 
         // Set file URLs for car images and documents
         setCarResponseUrls(carResponse, car);
-
+        log.info("Successfully accessed car's information, carId: {}, accessed by: {}", car.getId(), accountId);
         return carResponse;
     }
 
@@ -706,11 +737,14 @@ public class CarService {
      * @return A page of CarThumbnailResponse objects containing summarized car information.
      */
     public Page<CarThumbnailResponse> getAllCarsForOperator(int page, int size, String sort, ECarStatus status) {
+        log.info("Operator {} is requesting all cars with status {}", SecurityUtil.getCurrentAccountId(), status);
+
         // Create a pageable object with sorting based on the provided parameters
         Pageable pageable = createPageableForOperator(page, size, sort);
 
         // Fetch cars from the repository, filtering by status if provided
         Page<Car> cars = carRepository.findCars(status, pageable);
+        log.info("Successfully retrieved {} cars for operator {}, status: {}", cars.getTotalElements(), SecurityUtil.getCurrentAccountId(), status);
 
         // Convert each Car entity into a CarThumbnailResponse DTO
         return cars.map(car -> {
@@ -745,16 +779,18 @@ public class CarService {
      * @return Pageable object with sorting applied.
      */
     private Pageable createPageableForOperator(int page, int size, String sort) {
-        // Ensure page size is within valid limits (default 10, max 100)
+        // Ensure the page size is within a valid range (default 10, max 100)
         size = (size > 0 && size <= 100) ? size : 10;
 
-        // Ensure page index is non-negative
+        // Ensure the page index is non-negative
         page = Math.max(page, 0);
 
-        // Default sorting by updatedAt in descending order
-        Sort defaultSort = Sort.by(Sort.Direction.DESC, "updatedAt");
+        // List of allowed fields for sorting
+        List<String> allowedSortFields = List.of("updatedAt", "basePrice", "productionYear");
 
-        // Apply custom sorting if a valid sort parameter is provided
+        Sort sortCriteria = null;
+
+        // Check if sorting parameters are provided
         if (sort != null && !sort.isBlank()) {
             String[] sortParams = sort.split(",");
             if (sortParams.length == 2) {
@@ -762,15 +798,21 @@ public class CarService {
                 String requestedDirection = sortParams[1].trim().toUpperCase();
                 Sort.Direction direction = "ASC".equals(requestedDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
-                // Allow sorting only by updateAt
-                if ("updatedAt".equals(requestedField)) {
-                    defaultSort = Sort.by(direction, requestedField);
+                // Apply sorting only if the requested field is allowed
+                if (allowedSortFields.contains(requestedField)) {
+                    sortCriteria = Sort.by(direction, requestedField);
                 }
             }
         }
 
-        return PageRequest.of(page, size, defaultSort);
+        // If no valid sorting parameter is provided, default to sorting by updatedAt (descending)
+        if (sortCriteria == null) {
+            sortCriteria = Sort.by(Sort.Direction.DESC, "updatedAt");
+        }
+
+        return PageRequest.of(page, size, sortCriteria);
     }
+
 
     /**
      * Retrieves the document details of a specific car.
@@ -785,8 +827,15 @@ public class CarService {
      */
     @Transactional(readOnly = true)
     public CarDocumentsResponse getCarDocuments(String carId) {
+        log.info("User {} is requesting documents for car {}", SecurityUtil.getCurrentAccountId(), carId);
+
         Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> {
+                    log.warn("Fail access to car's documents, carId: {}, accessBy: {}", carId, SecurityUtil.getCurrentAccountId());
+                    return new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB);
+                });
+
+        log.info("Successfully accessed car's documents, carId: {}, accessBy: {}", carId, SecurityUtil.getCurrentAccountId());
 
         // Map entity to DTO and update URLs
         return carMapper.toCarDocumentsResponse(car).toBuilder()
@@ -810,10 +859,15 @@ public class CarService {
 
         // Retrieve car from database
         Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB));
+                .orElseThrow(() -> {
+                    log.warn("Fail access to car verification, carId: {}, accessBy: {}", carId, SecurityUtil.getCurrentAccountId());
+                    return new AppException(ErrorCode.CAR_NOT_FOUND_IN_DB);
+                });
 
         // Validate that the car is in NOT_VERIFIED status
         if (!ECarStatus.NOT_VERIFIED.equals(car.getStatus())) {
+            log.warn("Invalid car status for verification, carId: {}, currentStatus: {}, accessBy: {}",
+                    carId, car.getStatus(), SecurityUtil.getCurrentAccountId());
             throw new AppException(ErrorCode.INVALID_CAR_STATUS);
         }
 

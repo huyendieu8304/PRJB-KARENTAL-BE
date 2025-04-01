@@ -173,6 +173,9 @@ public class TransactionService {
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
         Wallet adminWallet = walletRepository.findById(accountRepository.findByRoleId(3).getId())
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
+        if(userWallet.getBalance() < amount){
+            throw new AppException(ErrorCode.INSUFFICIENT_BALANCE);
+        }
         // deduct from customer wallet
         userWallet.setBalance(userWallet.getBalance() - amount);
         // plus to admin wallet
