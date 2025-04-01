@@ -15,8 +15,8 @@ import java.time.LocalTime;
 public class BookingTimeValidator implements ConstraintValidator<ValidBookingTime, CreateBookingRequest> {
 
     @Override
-    public boolean isValid(CreateBookingRequest CreateBookingRequest, ConstraintValidatorContext context) {
-        if (CreateBookingRequest.getPickUpTime() == null || CreateBookingRequest.getDropOffTime() == null) {
+    public boolean isValid(CreateBookingRequest createBookingRequest, ConstraintValidatorContext context) {
+        if (createBookingRequest.getPickUpTime() == null || createBookingRequest.getDropOffTime() == null) {
             return false;
         }
 
@@ -24,8 +24,8 @@ public class BookingTimeValidator implements ConstraintValidator<ValidBookingTim
         LocalDate today = now.toLocalDate();
         LocalTime nowTime = now.toLocalTime();
 
-        LocalDateTime pickUpDateTime = CreateBookingRequest.getPickUpTime();
-        LocalDateTime dropOffDateTime = CreateBookingRequest.getDropOffTime();
+        LocalDateTime pickUpDateTime = createBookingRequest.getPickUpTime();
+        LocalDateTime dropOffDateTime = createBookingRequest.getDropOffTime();
 
         // Pick-up time cannot be in the past and must be before drop-off
         if (pickUpDateTime.isBefore(now) || pickUpDateTime.isAfter(dropOffDateTime)) {
@@ -40,17 +40,19 @@ public class BookingTimeValidator implements ConstraintValidator<ValidBookingTim
 
         // Check if pick-up time is within allowed range (06:00 - 22:00)
         LocalTime pickUpTime = pickUpDateTime.toLocalTime();
+        LocalDate pickUpDate = pickUpDateTime.toLocalDate();
+        LocalDate dropOffDate = dropOffDateTime.toLocalDate();
         if (pickUpTime.isBefore(PICKUP_START_TIME) || pickUpTime.isAfter(PICKUP_END_TIME)) {
             return false;
         }
 
         // Pick-up must be at least 2 hours after booking and within 60 days
-        if (pickUpDateTime.isBefore(now.plusHours(2)) || pickUpDateTime.toLocalDate().isAfter(today.plusDays(60))) {
+        if (pickUpDateTime.isBefore(now.plusHours(2)) || pickUpDate.isAfter(today.plusDays(60))) {
             return false;
         }
 
-        // Drop-off must be at least 4 hours after booking and within 30 days
-        if (dropOffDateTime.isBefore(now.plusHours(4)) || dropOffDateTime.toLocalDate().isAfter(today.plusDays(30))) {
+        // Drop-off must be at least 4 hours after booking and within 30 days until pick update date
+        if (dropOffDateTime.isBefore(now.plusHours(4)) || dropOffDate.isAfter(pickUpDate.plusDays(30))) {
             return false;
         }
         if(pickUpDateTime.isAfter(dropOffDateTime.minusHours(2))){
