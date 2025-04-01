@@ -128,11 +128,13 @@ public class AuthenticationService {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
 
+
         //put user's role and fullname in response
         String role = userDetails.getRole().getName().toString();
         String fullName = userProfileRepository.findById(userDetails.getAccoutnId()).get().getFullName();
+        String csrfToken = jwtUtils.generateCsrfTokenFromUserEmail(userDetails.getEmail());
         ApiResponse<LoginResponse> apiResponse = ApiResponse.<LoginResponse>builder()
-                .data(new LoginResponse(role, fullName))
+                .data(new LoginResponse(role, fullName, csrfToken))
                 .build();
         log.info("Account with email={} logged in successfully", request.getEmail());
         return sendApiResponseResponseEntity(userDetails.getEmail(), userDetails.getAccoutnId(), apiResponse);
@@ -141,19 +143,16 @@ public class AuthenticationService {
     private <T> ResponseEntity<ApiResponse<T>> sendApiResponseResponseEntity(String email, String accountId, ApiResponse<T> apiResponse) {
         //generate tokens
         String accessToken = jwtUtils.generateAccessTokenFromUserEmail(email);
-        String csrfToken = jwtUtils.generateCsrfTokenFromUserEmail(email);
         String refreshToken = jwtUtils.generateRefreshTokenFromAccountId(accountId);
 
         //Generate token cookie
         ResponseCookie accessTokenCookie = generateCookie(accessTokenCookieName, accessToken, contextPath, accessTokenExpiration, true);
-        ResponseCookie csrfTokenCookie = generateCookie(csrfTokenCookieName, csrfToken, contextPath, refreshTokenExpiration, false);
         ResponseCookie refreshTokenCookie = generateCookie(refreshTokenCookieName, refreshToken, refreshTokenUrl, refreshTokenExpiration, true);
         ResponseCookie refreshTokenCookieLogout = generateCookie(refreshTokenCookieName, refreshToken, logoutUrl, refreshTokenExpiration, true);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, csrfTokenCookie.toString())
                 .header(HttpHeaders.SET_COOKIE,refreshTokenCookieLogout.toString())
                 .body(apiResponse);
     }
@@ -183,9 +182,10 @@ public class AuthenticationService {
         if (!account.isActive()) {
             throw new AppException(ErrorCode.ACCOUNT_IS_INACTIVE);
         }
+        String csrfToken = jwtUtils.generateCsrfTokenFromUserEmail(account.getEmail());
 
         ApiResponse<String> apiResponse = ApiResponse.<String>builder()
-                .data("Successfully refresh token")
+                .data(csrfToken)
                 .build();
         log.info("New refresh token is generated for account with email={}", account.getEmail());
         return sendApiResponseResponseEntity(account.getEmail(), account.getId(), apiResponse);
@@ -206,14 +206,12 @@ public class AuthenticationService {
     private <T> ResponseEntity<ApiResponse<T>> sendLogoutApiResponseResponseEntity(ApiResponse<T> apiResponse) {
         //Generate token cookie
         ResponseCookie accessTokenCookie = generateCookie(accessTokenCookieName, null, contextPath, 0, true);
-        ResponseCookie csrfTokenCookie = generateCookie(csrfTokenCookieName, null, contextPath, 0, false);
         ResponseCookie refreshTokenCookie = generateCookie(refreshTokenCookieName, null, refreshTokenUrl, 0, true);
         ResponseCookie refreshTokenCookieLogout = generateCookie(refreshTokenCookieName, null, logoutUrl, 0, true);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, csrfTokenCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookieLogout.toString())
                 .body(apiResponse);
     }

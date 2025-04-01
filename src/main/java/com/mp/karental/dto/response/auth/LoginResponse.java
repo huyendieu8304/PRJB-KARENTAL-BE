@@ -25,5 +25,7 @@ public class LoginResponse {
     String userRole;
     @Schema(example = "Nguyễn Thị Bích")
     String fullName;
+    @Schema(example = "hoadsfhiawuehdsgvf")
+    String csrfToken;
 
 }
