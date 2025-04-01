@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -51,9 +52,6 @@ class FeedbackServiceTest {
 
     private final String MOCK_USER_ID = "user123";
     private final String MOCK_CAR_ID = "car123";
-
-    @Mock
-    private SecurityUtil securityUtil;
 
     @InjectMocks
     private FeedbackService feedbackService;
@@ -443,7 +441,40 @@ class FeedbackServiceTest {
             assertEquals(0L, response.getRatingCounts().get(1));
         }
     }
+    @Test
+    public void testGetAverageRatingAndCountByCarOwner() {
+        try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+            mockedSecurityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(MOCK_USER_ID);
+            // Dữ liệu giả lập carIds và feedback
+            List<String> carIds = Arrays.asList("car1", "car2");
 
+            // Giả lập dữ liệu trả về từ carRepository
+            when(carRepository.findCarIdsByOwnerId(anyString())).thenReturn(carIds);
+
+            // Giả lập dữ liệu trả về từ feedbackRepository
+            when(feedbackRepository.calculateAverageRatingByOwner(carIds)).thenReturn(4.2);
+
+            // Giả lập feedback count (sử dụng phương thức private)
+            List<Object[]> ratingCountData = Arrays.asList(
+                    new Object[]{1, 5L},  // Rating 1, count 5
+                    new Object[]{1, 3L},  // Rating 1, count 5
+                    new Object[]{2, 10L}, // Rating 2, count 10
+                    new Object[]{3, 7L}   // Rating 3, count 7
+            );
+            when(feedbackRepository.countFeedbackByRating(carIds)).thenReturn(ratingCountData);
+
+            // Gọi hàm public getAverageRatingAndCountByCarOwner
+            RatingResponse response = feedbackService.getAverageRatingAndCountByCarOwner();
+
+            // Kiểm tra giá trị trong RatingResponse
+            assertEquals(4.2, response.getAverageRatingByOwner(), 0.01); // Kiểm tra giá trị rating
+            assertEquals(5L, response.getRatingCounts().get(1).longValue()); // Kiểm tra count cho rating 1
+            assertEquals(10L, response.getRatingCounts().get(2).longValue()); // Kiểm tra count cho rating 2
+            assertEquals(7L, response.getRatingCounts().get(3).longValue()); // Kiểm tra count cho rating 3
+            assertEquals(0L, response.getRatingCounts().get(4).longValue()); // Kiểm tra rating 4, mặc định 0L
+            assertEquals(0L, response.getRatingCounts().get(5).longValue()); // Kiểm tra rating 5, mặc định 0L
+        }
+    }
 
 }
 
