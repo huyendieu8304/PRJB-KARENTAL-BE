@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -38,6 +39,10 @@ public class EmailService {
     @NonFinal
     private String fromEmail;
 
+    private static final int MAX_RETRIES = 3; // the max number retry send email
+    private static final long BASE_DELAY_MS = 5000; // the first delay each attempt
+    private static final long BACKOFF_MULTIPLIER = 2; // each attempt delay x2
+
     //REGISTER
 
     /**
@@ -46,6 +51,7 @@ public class EmailService {
      * @param to         Recipient's email address.
      * @param confirmUrl URL for email verification.
      */
+    @Async
     public void sendRegisterEmail(String to, String confirmUrl) {
         String subject = "Welcome to Karental, " + to;
         String htmlContent = "<p><strong>Thank you for registering to our system!</strong></p>"
@@ -53,11 +59,7 @@ public class EmailService {
                 + "<p><a href=\"" + confirmUrl + "\" style=\"color: blue; font-weight: bold;\">Verify Email</a></p>"
                 + "<p>If you did not sign up for this service, please ignore this email.</p>";
 
-        try {
-            sendEmail(to, subject, htmlContent);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_VERIFY_EMAIL_TO_USER_FAIL);
-        }
+        sendEmailWithRetry(to,subject,htmlContent,ErrorCode.SEND_VERIFY_EMAIL_TO_USER_FAIL);
     }
 
     //FORGOT PASSWORD
@@ -68,19 +70,17 @@ public class EmailService {
      * @param to                Recipient's email address.
      * @param forgotPasswordUrl URL for password reset.
      */
+    @Async
     public void sendForgotPasswordEmail(String to, String forgotPasswordUrl) {
         String subject = "Rent-a-car Password Reset";
         String htmlContent = "<p>We have just received a password reset request for " + to + ".</p>"
                 + "<p>Please click <a href=\"" + forgotPasswordUrl + "\">here</a> to reset your password.</p>"
                 + "<p>For your security, the link will expire in 24 hours or immediately after you reset your password.</p>";
-        try {
-            sendEmail(to, subject, htmlContent);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL);
-        }
+        sendEmailWithRetry(to,subject,htmlContent,ErrorCode.SEND_FORGOT_PASSWORD_EMAIL_TO_USER_FAIL);
     }
 
     //RENT CAR
+    @Async
     public void sendWaitingConfirmedEmail(String toCustomer, String toCarOwner, String carName, String bookingNumber) {
         String subjectToCustomer = "Your Booking is waiting for confirmation";
         String bodyToCustomer = String.format(
@@ -100,14 +100,10 @@ public class EmailService {
                         + "<p>Thank you!</p>",
                 carName, bookingNumber);
 
-        try {
-            sendEmail(toCustomer, subjectToCustomer, bodyToCustomer);
-            sendEmail(toCarOwner, subjectToCarOwner, bodyToCarOwner);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_WAITING_CONFIRM_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(toCustomer, subjectToCustomer, bodyToCustomer,ErrorCode.SEND_WAITING_CONFIRM_EMAIL_FAIL);
+        sendEmailWithRetry(toCarOwner,subjectToCarOwner,bodyToCarOwner,ErrorCode.SEND_WAITING_CONFIRM_EMAIL_FAIL);
     }
-
+    @Async
     public void sendCancelledBookingEmail(String toCustomer, String carName, String reason) {
         String subject = "Your Booking Has Been Cancelled";
         String body = String.format(
@@ -115,15 +111,12 @@ public class EmailService {
                         + "<p>Your booking for the car <strong>%s</strong> has been <strong>cancelled</strong> due to: <strong>%s</strong>.</p>"
                         + "<p>Thank you!</p>",
                 carName, reason);
-        try {
-            sendEmail(toCustomer, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_CANCELLED_BOOKING_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(toCustomer, subject, body,ErrorCode.SEND_CANCELLED_BOOKING_EMAIL_FAIL);
     }
 
 
     //    //CANCEL BOOKING
+    @Async
     public void sendBookingCancellationEmailToCustomer(String to, EBookingStatus bookingStatus, String bookingNumber, String carName) {
         String subject;
         String body;
@@ -165,13 +158,9 @@ public class EmailService {
             default:
                 return; // Do nothing for other statuses
         }
-        try {
-            sendEmail(to, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_CANCELLED_BOOKING_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to,subject,body,ErrorCode.SEND_CANCELLED_BOOKING_EMAIL_FAIL);
     }
-
+    @Async
     public void sendBookingCancellationEmailToCarOwner(String to, String bookingNumber, String carName) {
         String subject = "Booking Cancellation Notification";
         String body = String.format(
@@ -180,11 +169,7 @@ public class EmailService {
                         + "<p>You will receive 22%% deposit of the booking it shortly.</p>"
                         + "<p>Thank you!</p>",
                 bookingNumber, carName);
-        try {
-            sendEmail(to, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_CANCELLED_BOOKING_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to,subject,body,ErrorCode.SEND_CANCELLED_BOOKING_EMAIL_FAIL);
     }
 
     //CONFIRM PICKUP
@@ -196,6 +181,7 @@ public class EmailService {
      * @param carName       The name of the booked car.
      * @param bookingNumber The unique booking number.
      */
+    @Async
     public void sendConfirmBookingEmail(String to, String carName, String bookingNumber) {
         // Email subject including the booking number
         String subject = "Booking Confirmed - " + bookingNumber;
@@ -207,15 +193,11 @@ public class EmailService {
                 + "Thank you for choosing our service!\n"
                 + "Best regards,\n";
 
-        // Sending the email
-        try {
-            sendEmail(to, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_CONFIRMED_BOOKING_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to,subject,body,ErrorCode.SEND_CONFIRMED_BOOKING_EMAIL_FAIL);
     }
 
     //RETURN CAR
+    @Async
     public void sendPaymentEmailToCustomer(String to, String bookingNumber, long amount, boolean isRefund)  {
         String subject = "Car Returned - Payment Deducted (Booking No: " + bookingNumber + ")";
         String body = String.format(
@@ -239,14 +221,9 @@ public class EmailService {
                     bookingNumber, amount);
         }
 
-
-        try {
-            sendEmail(to, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_COMPLETED_BOOKING_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to,subject,body,ErrorCode.SEND_COMPLETED_BOOKING_EMAIL_FAIL);
     }
-
+    @Async
     public void sendPaymentEmailToCarOwner(String to, String bookingNumber, long amount) {
         String subject = "Car Returned - Payment Processed (Booking No: " + bookingNumber + ")";
         String body = String.format(
@@ -256,14 +233,10 @@ public class EmailService {
                         + "Thank you for listing your car with us!\n"
                         + "Best regards,\n",
                 bookingNumber, amount);
-        try {
-            sendEmail(to, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_COMPLETED_BOOKING_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to,subject,body,ErrorCode.SEND_COMPLETED_BOOKING_EMAIL_FAIL);
     }
 
-
+    @Async
     public void sendPendingPaymentEmail(String to, String bookingNumber, long amount) {
         String subject = "Car Returned - Payment Due (Booking No: " + bookingNumber + ")";
         String body = String.format(
@@ -275,13 +248,9 @@ public class EmailService {
                         + "Best regards,\n"
                         + "Your Car Rental Team",
                 bookingNumber, amount);
-        try {
-            sendEmail(to, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to, subject, body,ErrorCode.SEND_PENDING_PAYMENT_BOOKING_EMAIL_FAIL);
     }
-
+    @Async
     public void sendWaitingConfirmReturnCarEmail(String to, String bookingNumber) {
         String subject = "Early Car Return Request - Booking No: " + bookingNumber;
         String body = String.format(
@@ -296,13 +265,9 @@ public class EmailService {
                         + "Best regards,\n"
                         + "Your Car Rental Team",
                 bookingNumber);
-        try {
-            sendEmail(to, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_WAITING_CONFIRMED_RETURN_CAR_BOOKING_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to,subject,body,ErrorCode.SEND_WAITING_CONFIRMED_RETURN_CAR_BOOKING_EMAIL_FAIL);
     }
-
+    @Async
     public void sendEarlyReturnRejectedEmail(String to, String bookingNumber) {
         String subject = "Early Car Return Request Rejected - Booking No: " + bookingNumber;
         String body = String.format(
@@ -314,14 +279,11 @@ public class EmailService {
                         + "Best regards,\n"
                         + "Your Car Rental Team",
                 bookingNumber);
-        try {
-            sendEmail(to, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_EARLY_RETURN_REJECTED_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to,subject,body,ErrorCode.SEND_EARLY_RETURN_REJECTED_EMAIL_FAIL);
     }
 
     // reminder overdue pick up
+    @Async
     public void sendPickUpReminderEmail(Booking booking) {
         String subject = "Reminder: Pick up your rental car - Booking #" + booking.getBookingNumber();
         String message = "Dear " + booking.getAccount().getProfile().getFullName() + ",\n\n"
@@ -332,13 +294,10 @@ public class EmailService {
                 + "Thank you!\n"
                 + "Best regards,\n"
                 + "Rental Car Service Team";
-        try {
-            sendEmail(booking.getAccount().getEmail(), subject, message);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_REMINDER_PICK_UP_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(booking.getAccount().getEmail(), subject, message,ErrorCode.SEND_REMINDER_PICK_UP_EMAIL_FAIL);
     }
     // reminder overdue pick up
+    @Async
     public void sendDropOffReminderEmail(Booking booking) {
         String subject = "Reminder: Return your rental car - Booking #" + booking.getBookingNumber();
         String message = "Dear " + booking.getAccount().getProfile().getFullName() + ",\n\n"
@@ -350,15 +309,31 @@ public class EmailService {
                 + "Best regards,\n"
                 + "Rental Car Service Team";
 
-        try {
-            sendEmail(booking.getAccount().getEmail(), subject, message);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_REMINDER_DROP_OFF_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(booking.getAccount().getEmail(), subject, message,ErrorCode.SEND_REMINDER_DROP_OFF_EMAIL_FAIL);
     }
 
 
-
+    private void sendEmailWithRetry(String to, String subject, String body, ErrorCode errorCode) {
+        long delay = BASE_DELAY_MS;
+        //try until reach max retries
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                sendEmail(to, subject, body);
+                return;
+            } catch (MessagingException e) {
+                if (attempt == MAX_RETRIES) {
+                    throw new AppException(errorCode);
+                }
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();  //remain interrupt
+                    throw new AppException(errorCode);
+                }
+                delay *= BACKOFF_MULTIPLIER;
+            }
+        }
+    }
 
     /**
      * Helper method to send an email with the given parameters.
@@ -368,7 +343,8 @@ public class EmailService {
      * @param htmlContent HTML-formatted email content.
      * @throws MessagingException If an error occurs while sending the email.
      */
-    private void sendEmail(String to, String subject, String htmlContent) throws MessagingException {
+    @Async
+    public void sendEmail(String to, String subject, String htmlContent) throws MessagingException {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
         helper.setTo(to);
@@ -386,6 +362,7 @@ public class EmailService {
      * @param to        Recipient's email address.
      * @param walletUrl URL to view the wallet balance and transactions.
      */
+    @Async
     public void sendWalletUpdateEmail(String to, String walletUrl){
         String subject = "There’s an update to your wallet";
         String htmlContent = String.format(
@@ -393,11 +370,7 @@ public class EmailService {
                         + "<p>Please go to your <a href=\"%s\">wallet</a> and view the transactions for more details.</p>"
                         + "<p>Thank you!</p>",
                 getCurrentFormattedDateTime(), walletUrl);
-        try {
-            sendEmail(to, subject, htmlContent);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_WALLET_UPDATE_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to, subject, htmlContent, ErrorCode.SEND_WALLET_UPDATE_EMAIL_FAIL);
     }
 
     /**
@@ -417,6 +390,7 @@ public class EmailService {
      * @param carName The name of the car that has been verified.
      * @param carId   The unique identifier of the verified car.
      */
+    @Async
     public void sendCarVerificationEmail(String to, String carName, String carId) {
         String subject = "Car Verification Approved - " + carName;
         String body = String.format(
@@ -426,11 +400,7 @@ public class EmailService {
                         + "<p>Thank you for choosing our service!</p>",
                 carName, carId);
 
-        try {
-            sendEmail(to, subject, body);
-        } catch (MessagingException e) {
-            throw new AppException(ErrorCode.SEND_CAR_VERIFICATION_EMAIL_FAIL);
-        }
+        sendEmailWithRetry(to, subject, body, ErrorCode.SEND_CAR_VERIFICATION_EMAIL_FAIL);
     }
 
 }

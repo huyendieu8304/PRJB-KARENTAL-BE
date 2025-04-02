@@ -89,6 +89,99 @@ class CarServiceTest {
     }
 
     @Test
+    void editCar_ShouldUploadOnlyCertificateImage_WhenOnlyCertificateImageProvided() throws Exception  {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        EditCarRequest request = new EditCarRequest();
+        request.setCertificateOfInspection(mock(MultipartFile.class));
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        verify(fileService).uploadFile(any(MultipartFile.class), contains("certificate-of-inspection"));
+        verify(carRepository).save(car);
+    }
+
+    @Test
+    void editCar_ShouldUploadOnlyInsuranceImage_WhenOnlyInsuranceImageProvided() throws Exception {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        EditCarRequest request = new EditCarRequest();
+        request.setInsurance(mock(MultipartFile.class));
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        verify(fileService).uploadFile(any(MultipartFile.class), contains("insurance"));
+        verify(carRepository).save(car);
+    }
+
+    @Test
+    void editCar_ShouldUploadOnlyRegistrationImage_WhenOnlyRegistrationImageProvided() throws Exception {
+        // Given
+        String carId = "car123";
+        String accountId = "user123";
+
+        Account account = new Account();
+        account.setId(accountId);
+
+        Car car = new Car();
+        car.setId(carId);
+        car.setAccount(account);
+        car.setStatus(ECarStatus.NOT_VERIFIED);
+
+        EditCarRequest request = new EditCarRequest();
+        request.setRegistrationPaper(mock(MultipartFile.class));
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(SecurityUtil.getCurrentAccountId()).thenReturn(accountId);
+        when(carRepository.save(any(Car.class))).thenReturn(car);
+        when(carMapper.toCarResponse(any(Car.class))).thenReturn(new CarResponse());
+
+        // When
+        CarResponse response = carService.editCar(request, carId);
+
+        // Then
+        assertNotNull(response);
+        verify(fileService).uploadFile(any(MultipartFile.class), contains("registration-paper"));
+        verify(carRepository).save(car);
+    }
+
+    @Test
     void testEditCar_CancelPendingDepositsWhenCarStopped() {
         // Given
         String carId = "car123";
@@ -1560,10 +1653,13 @@ class CarServiceTest {
         mockOperator.setId("operator123");
 
         mockedSecurityUtil.when(SecurityUtil::getCurrentAccount).thenReturn(mockOperator);
-
+        Account owner = new Account();
+        owner.setId("owner123");
+        owner.setEmail("owner@gmail");
         Car car = new Car();
         car.setId(carId);
         car.setStatus(ECarStatus.NOT_VERIFIED);
+        car.setAccount(owner);
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         when(carRepository.saveAndFlush(any(Car.class))).thenReturn(car);
