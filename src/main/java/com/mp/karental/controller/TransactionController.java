@@ -11,7 +11,9 @@ import com.mp.karental.service.TransactionService;
 import com.mp.karental.util.RequestUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.SchemaProperty;
 
@@ -202,6 +204,23 @@ public class TransactionController {
     @Operation(
             summary = "Top up wallet",
             description = "Add funds to user's wallet",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Withdrawal request details",
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = TransactionRequest.class),
+                            examples = @ExampleObject(value = """
+                {
+                  "type": "TOP_UP",
+                  "bookingNo": "",
+                  "carName": "",
+                  "amount": 10000000,
+                  "message": "string",
+                  "ipAddress": "127.2.0.34"
+                }
+            """)
+                    )
+            ),
             responses = {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
                             responseCode = "200",
@@ -211,9 +230,20 @@ public class TransactionController {
                                     schemaProperties = {
                                             @SchemaProperty(name = "code", schema = @Schema(type = "string", example = "1000")),
                                             @SchemaProperty(name = "message", schema = @Schema(type = "string", example = "Success")),
-                                            @SchemaProperty(name = "data", schema = @Schema(implementation = TransactionPaymentURLResponse.class))
+                                            @SchemaProperty(name = "data", schema = @Schema(example = """
+                                                {
+                                                    "createdAt": "2024-03-08T23:43:33",
+                                                    "type": "TOP_UP",
+                                                    "bookingNo": null,
+                                                    "carName": null,
+                                                    "amount": 10000000,
+                                                    "message": "Top-up successfully 10000000",
+                                                    "status": "SUCCESSFUL"
+                                                }
+                                                """))
                                     }
                             )
+
                     ),
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
                             responseCode = "400",
@@ -265,6 +295,23 @@ public class TransactionController {
     @Operation(
             summary = "Withdraw from wallet",
             description = "Withdraw funds from user's wallet",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Withdrawal request details",
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = TransactionRequest.class),
+                            examples = @ExampleObject(value = """
+                {
+                  "type": "WITHDRAW",
+                  "bookingNo": "",
+                  "carName": "",
+                  "amount": 1000000,
+                  "message": "string",
+                  "ipAddress": "127.2.0.34"
+                }
+            """)
+                    )
+            ),
             responses = {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
                             responseCode = "200",
@@ -274,7 +321,17 @@ public class TransactionController {
                                     schemaProperties = {
                                             @SchemaProperty(name = "code", schema = @Schema(type = "string", example = "1000")),
                                             @SchemaProperty(name = "message", schema = @Schema(type = "string", example = "Success")),
-                                            @SchemaProperty(name = "data", schema = @Schema(implementation = TransactionResponse.class))
+                                            @SchemaProperty(name = "data", schema = @Schema(example = """
+                                                {
+                                                    "createdAt": "2024-03-08T23:43:33",
+                                                    "type": "WITHDRAW",
+                                                    "bookingNo": null,
+                                                    "carName": null,
+                                                    "amount": 10000000,
+                                                    "message": "Transaction completed successfully",
+                                                    "status": "SUCCESSFUL"
+                                                }
+                                                """))
                                     }
                             )
                     ),
@@ -325,10 +382,25 @@ public class TransactionController {
     }
     @Operation(
             summary = "Get transaction status",
-            description = "Check the status of a specific transaction",
+            description = "Check the status of a specific transaction with VNPAY parameters",
             parameters = {
                     @Parameter(name = "transactionId", description = "Transaction ID to check", required = true,
-                            example = "TR202401010001")
+                            example = "TR202401010001", in = ParameterIn.PATH),
+                    @Parameter(name = "params", description = "VNPAY parameters (passed as query parameters)", examples = @ExampleObject(value = """
+                    {
+                        "vnp_Amount": "200000000",
+                        "vnp_BankCode": "NCB",
+                        "vnp_CardType": "ATM",
+                        "vnp_OrderInfo": "Top-Up+transaction+c08b884a-546d-48a2-8809-94ccdaa79abe",
+                        "vnp_PayDate": "20250308234333",
+                        "vnp_ResponseCode": "15",
+                        "vnp_TmnCode": "T3GTKJIG",
+                        "vnp_TransactionNo": "14836349",
+                        "vnp_TransactionStatus": "02",
+                        "vnp_TxnRef": "c08b884a-546d-48a2-8809-94ccdaa79abe",
+                        "vnp_SecureHash": "a4474bd3a8ccc017d075cff01d65564d28ca4039ce412..."
+                    }
+                """))
             },
             responses = {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -339,7 +411,18 @@ public class TransactionController {
                                     schemaProperties = {
                                             @SchemaProperty(name = "code", schema = @Schema(type = "string", example = "1000")),
                                             @SchemaProperty(name = "message", schema = @Schema(type = "string", example = "Success")),
-                                            @SchemaProperty(name = "data", schema = @Schema(implementation = TransactionResponse.class))
+                                            @SchemaProperty(name = "data", schema = @Schema(implementation = TransactionResponse.class,
+                                                    example = """
+                                                    {
+                                                        "createdAt": "2024-03-08T23:43:33",
+                                                        "type": "TOP_UP",
+                                                        "bookingNo": null,
+                                                        "carName": null,
+                                                        "amount": 200000000,
+                                                        "message": "Transaction completed successfully",
+                                                        "status": "SUCCESSFUL"
+                                                    }
+                                                    """))
                                     }
                             )
                     ),
