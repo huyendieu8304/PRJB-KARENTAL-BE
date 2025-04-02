@@ -28,7 +28,7 @@ public class OpenApiConfig {
                         .version("1.0"))
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:8080/karental/api")
+                                .url("http://localhost:8080/karental")
                                 .description("Local ENV")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("cookieAuth"))

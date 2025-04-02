@@ -60,6 +60,9 @@ public class TransactionServiceTest {
     private AccountRepository accountRepository;
 
     @Mock
+    private EmailService emailService;
+
+    @Mock
     private IpnHandler ipnHandler;
     private Wallet customerWallet;
     private Wallet carOwnerWallet;
@@ -123,6 +126,8 @@ public class TransactionServiceTest {
     void withdraw_WithSufficientBalance_ShouldSucceed() {
         // Arrange
         long withdrawAmount = 5000000;
+        when(SecurityUtil.getCurrentAccount()).thenReturn(loggedInUser.getAccount());
+
         when(walletRepository.findById(loggedInUser.getId())).thenReturn(Optional.of(loggedInUser));
 
         // Mock the transaction and response
@@ -139,7 +144,7 @@ public class TransactionServiceTest {
                 .amount(withdrawAmount)
                 .type(ETransactionType.WITHDRAW)
                 .build();
-        
+
         when(transactionRepository.save(any(Transaction.class))).thenReturn(expectedTransaction);
         when(transactionMapper.toTransactionResponse(any(Transaction.class))).thenReturn(expectedResponse);
         
@@ -434,6 +439,7 @@ public class TransactionServiceTest {
             .wallet(loggedInUser)
             .build();
 
+        when(SecurityUtil.getCurrentAccount()).thenReturn(loggedInUser.getAccount());
         when(ipnHandler.process(params)).thenReturn(VNPayIPNResponseConst.SUCCESS);
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
         when(walletRepository.findById(loggedInUser.getId())).thenReturn(Optional.of(loggedInUser));

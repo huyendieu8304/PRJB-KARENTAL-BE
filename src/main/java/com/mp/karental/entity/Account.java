@@ -63,19 +63,34 @@ public class Account {
 
     @PostPersist
     public void onPostPersist() {
-        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
-        log.info("Account: {} - Successfully created Account with id: {}", accountId, this.id);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = this.id;
+        }
+        log.info("By: {} - Successfully created Account with id: {}", accountId, this.id);
     }
 
     @PreUpdate
     public void onPreUpdate() {
-        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
-        log.info("Account: {} - Updating Account: {}", accountId, this);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = this.id;
+        }
+        log.info("By: {} - Updating Account: {}", accountId, this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        String accountId = SecurityUtil.getCurrentAccountId() == null ? "This user" : SecurityUtil.getCurrentAccountId();
-        log.info("Account: {} - Updated Account: {}", accountId, this);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = this.id;
+        }
+        log.info("By: {} - Updated Account: {}", accountId, this);
     }
 }

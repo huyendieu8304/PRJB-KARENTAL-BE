@@ -60,16 +60,16 @@ public class Transaction {
 
     @PostPersist
     public void onPostPersist() {
-        log.info("Account: {} - Successfully created Transaction with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
+        log.info("By: {} - Successfully created Transaction with id: {}", SecurityUtil.getCurrentAccountId(), this.id);
     }
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("Account: {} - Updating Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updating Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("Account: {} - Updated Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+        log.info("By: {} - Updated Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
     }
 }
