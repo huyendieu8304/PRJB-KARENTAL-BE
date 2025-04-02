@@ -26,7 +26,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -127,6 +127,7 @@ public class BookingService {
         // Store car deposit and base price at the time of booking.
         booking.setDeposit(car.getDeposit());
         booking.setBasePrice(car.getBasePrice());
+        booking.setUpdateBy(SecurityUtil.getCurrentAccountId());
 
         // Handle paying deposit.
         if (booking.getPaymentType().equals(EPaymentType.WALLET)
@@ -261,6 +262,7 @@ public class BookingService {
         }
 
         booking.setDriverDrivingLicenseUri(drivingLicenseKey);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccountId());
 
         // Save the booking to the database.
         bookingRepository.saveAndFlush(booking);
@@ -434,9 +436,43 @@ public class BookingService {
         bookings = (bookingStatus != null)
                 ? bookingRepository.findByAccountIdAndStatus(accountId, bookingStatus, pageable)
                 : bookingRepository.findByAccountId(accountId, pageable);
-
+        logBookingAccess(accountId, bookings.getTotalElements());
         // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings, true);
+    }
+
+    /**
+     * Retrieves the list of bookings for operator (based on accountId).
+     * If the status is null or invalid, it returns all bookings.
+     *
+     * @param page   the page number (starting from 0)
+     * @param size   the number of records per page
+     * @param sort   sorting string in the format "field,DIRECTION" (e.g., "updatedAt,DESC")
+     * @param status booking status (nullable to fetch all bookings)
+     * @return list of user bookings wrapped in `BookingListResponse`
+     */
+    public BookingListResponse getBookingsOfOperator(int page, int size, String sort, String status) {
+        // Retrieve the currently logged-in user's account ID
+        String accountId = SecurityUtil.getCurrentAccountId();
+
+        // Create a Pageable object for pagination and sorting
+        Pageable pageable = createPageable(page, size, sort);
+
+        Page<Booking> bookings;
+
+        // Convert the status string into the EBookingStatus enum
+        EBookingStatus bookingStatus = parseStatus(status);
+
+        // If the status is valid, fetch bookings filtered by status
+        // Otherwise, fetch all bookings for the user
+
+        List<EPaymentType> bankCashTypes = Arrays.asList(EPaymentType.BANK_TRANSFER, EPaymentType.CASH);
+        bookings = (bookingStatus != null)
+                ? bookingRepository.findBookingsByStatus(bookingStatus, pageable)
+                : bookingRepository.findAllBookings(bankCashTypes,pageable);
+        logBookingAccess(accountId, bookings.getTotalElements());
+        // Convert the list of bookings into a BookingListResponse object to return
+        return getBookingListResponse(bookings, false);
     }
 
 
@@ -455,8 +491,13 @@ public class BookingService {
         bookings = (bookingStatus != null)
                 ? bookingRepository.findBookingsByCarOwnerIdAndStatus(ownerId, bookingStatus, EBookingStatus.PENDING_DEPOSIT, pageable)
                 : bookingRepository.findBookingsByCarOwnerId(ownerId, EBookingStatus.PENDING_DEPOSIT, pageable);
-
+        logBookingAccess(ownerId, bookings.getTotalElements());
         return getBookingListResponse(bookings, false);
+    }
+
+    private void logBookingAccess(String accountId, long recordCount) {
+        log.info("Successfully accessed booking information, number of records: {}, accessed by: {}",
+                recordCount, accountId);
     }
 
     /**
@@ -478,6 +519,10 @@ public class BookingService {
 
             response.setNumberOfDay((int) numberOfDay);
             response.setTotalPrice(totalPrice);
+
+            response.setCustomerEmail(booking.getAccount().getEmail());
+            response.setCustomerPhoneNumber(booking.getAccount().getProfile().getPhoneNumber());
+            response.setPaymentType(booking.getPaymentType());
 
             // Retrieve car images
             response.setCarImageFrontUrl(fileService.getFileUrl(booking.getCar().getCarImageFront()));
@@ -599,9 +644,6 @@ public class BookingService {
      * @throws AppException If the booking is not found or the user does not have permission to access the booking.
      */
     public BookingResponse getBookingDetailsByBookingNumber(String bookingNumber) {
-        // Retrieve the currently logged-in user's account ID
-        String accountId = SecurityUtil.getCurrentAccountId();
-
         // Get the full account details of the currently logged-in user
         Account account = SecurityUtil.getCurrentAccount();
 
@@ -610,31 +652,17 @@ public class BookingService {
         // Check if the user is a CAR_OWNER
         if (ERole.CAR_OWNER.equals(account.getRole().getName())) {
             // Retrieve the booking details only if the booking is associated with the car owner's vehicles
-            booking = bookingRepository.findBookingByBookingNumberAndOwnerId(bookingNumber, accountId);
-
-            // If no booking is found, throw an exception indicating that it does not exist in the database
-            if (booking == null) {
-                throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
-            }
-            if (!booking.getCar().getAccount().getId().equals(accountId)) {
-                throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
-            }
+            booking = validateAndGetBookingCarOwner(bookingNumber);
 
             // Check if the user is a CUSTOMER
         } else if (ERole.CUSTOMER.equals(account.getRole().getName())) {
-            // Retrieve the booking details (without filtering by owner)
-            booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
-
-            // If the booking does not exist OR it does not belong to the current user, deny access
-            if (booking == null || !booking.getAccount().getId().equals(accountId)) {
-                throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
-            }
-
+            booking = validateAndGetBookingCustomer(bookingNumber);
             // If the user role is neither CAR_OWNER nor CUSTOMER, throw an unauthorized error
         } else {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
-
+        log.info("Successfully accessed booking's information, bookingNo: {}, accessed by: {}",
+                bookingNumber, account.getId());
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
 
     }
@@ -762,6 +790,8 @@ public class BookingService {
     public BookingResponse returnCar(String bookingNumber) {
         // Validate and retrieve the booking
         Booking booking = validateAndGetBookingCustomer(bookingNumber);
+        //WALLET is the only payment type when return car
+        booking.setPaymentType(EPaymentType.WALLET);
         // Ensure the booking is in progress and before drop-off time is not exceeded
         if (booking.getStatus() != EBookingStatus.IN_PROGRESS) {
             throw new AppException(ErrorCode.CAR_CANNOT_RETURN);
@@ -858,6 +888,121 @@ public class BookingService {
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
+
+    /**
+     * Handles the process for operator to confirm the deposit with payment type bank/cash
+     * pending->waiting confirm
+     * @param bookingNumber The booking number of the booking with status PENDING DEPOSIT and payment type not wallet.
+     */
+    public BookingResponse confirmDeposit(String bookingNumber) {
+        Booking booking = validateAndGetBookingOperator(bookingNumber);
+        // Retrieve customer and car owner email addresses
+        String customerEmail = booking.getAccount().getEmail();
+        String carOwnerEmail = booking.getCar().getAccount().getEmail();
+
+        //change the status to waiting confirmed and save the booking,
+        // then send email waiting confirmed to customer and owner
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        bookingRepository.saveAndFlush(booking);
+        emailService.sendWaitingConfirmedEmail(customerEmail,carOwnerEmail,
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),bookingNumber);
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
+
+    /**
+     * Handles the process for operator to reject the deposit with payment type bank/cash
+     * pending->cancelled
+     * @param bookingNumber The booking number of the booking with status PENDING DEPOSIT and payment type not wallet.
+     */
+    public BookingResponse rejectDeposit(String bookingNumber) {
+        Booking booking = validateAndGetBookingOperator(bookingNumber);
+        // Retrieve customer and car owner email addresses
+        String customerEmail = booking.getAccount().getEmail();
+
+        //change the status to cancelled and save the booking,
+        // then send email waiting confirmed to customer and owner
+        booking.setStatus(EBookingStatus.CANCELLED);
+        bookingRepository.saveAndFlush(booking);
+        emailService.sendCancelledBookingEmail(customerEmail,
+                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
+                "operator reject your booking");
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
+
+    /**
+     * allows customer to pay deposit again(wallet) if before the customer was not enough balance in wallet
+     * pending deposit->waiting confirm
+     * @param bookingNumber The booking number of the booking with status PENDING DEPOSIT of this current account(customer)
+     */
+    public BookingResponse payDepositAgain(String bookingNumber) {
+        //validate and get booking of customer
+        Booking booking = validateAndGetBookingCustomer(bookingNumber);
+        if(!EBookingStatus.PENDING_DEPOSIT.equals(booking.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+        if(!EPaymentType.WALLET.equals(booking.getPaymentType())) {
+            throw new AppException(ErrorCode.UNSUPPORTED_PAYMENT_TYPE);
+        }
+        //pay deposit again
+        payBookingDepositUsingWallet(booking);
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
+
+    /**
+     * allows customer to pay total payment again(wallet) if before the customer was not enough balance in wallet
+     * pending payment->completed
+     * @param bookingNumber The booking number of the booking with status PENDING PAYMENT of this current account(customer)
+     */
+    public BookingResponse payTotalPaymentAgain(String bookingNumber) {
+        //validate and get booking of customer
+        Booking booking = validateAndGetBookingCustomer(bookingNumber);
+        if(!EBookingStatus.PENDING_PAYMENT.equals(booking.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+        //pay total payment again
+        processPaymentAndFinalizeBooking(booking);
+        return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
+    }
+
+    /**
+     * Validates and retrieves a booking based on the booking number.
+     * Ensures that the booking exists and belongs to the currently authenticated user with role operator.
+     *
+     * @param bookingNumber The unique identifier of the booking.
+     * @return The validated Booking object.
+     * @throws AppException If the booking is not found or the user does not have permission to access it.
+     */
+    private Booking validateAndGetBookingOperator(String bookingNumber) {
+        // Retrieve the currently authenticated account(operator)
+        Account account = SecurityUtil.getCurrentAccount();
+        String accountId = account.getId();
+
+        // Fetch the booking from the database using the booking number
+        Booking booking = bookingRepository.findBookingByBookingNumber(bookingNumber);
+
+        // If no booking is found, throw an exception
+        if (booking == null) {
+            log.info("Failed to access booking's information, bookingNo: {}, accessed by: {} (Operator)",
+                    bookingNumber, accountId);
+            throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
+        }
+        // operator can only change when booking is pending deposit
+        if(!EBookingStatus.PENDING_DEPOSIT.equals(booking.getStatus())) {
+            log.info("Failed to access booking's information due to invalid status, bookingNo: {}, accessed by: {} (Operator)",
+                    bookingNumber, accountId);
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+        // if payment type of booking is wallet -> operator not supported, the system is handle
+        if(EPaymentType.WALLET.equals(booking.getPaymentType())) {
+            log.info("Failed to access booking's information due to unsupported payment type, bookingNo: {}, accessed by: {} (Operator)",
+                    bookingNumber, accountId);
+            throw new AppException(ErrorCode.UNSUPPORTED_PAYMENT_TYPE);
+        }
+        return booking;
+    }
+
+
+
     /**
      * Validates and retrieves a booking based on the booking number.
      * Ensures that the booking exists and belongs to the currently authenticated user with role customer.
@@ -875,10 +1020,14 @@ public class BookingService {
 
         // If no booking is found, throw an exception
         if (booking == null) {
+            log.info("Failed to access booking's information, bookingNo: {}, accessed by: {} (Customer)",
+                    bookingNumber, account.getId());
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
         }
         // Ensure the booking belongs to the current authenticated user
         if (!booking.getAccount().getId().equals(account.getId())) {
+            log.info("Failed to access booking's information due to forbidden access, bookingNo: {}, accessed by: {} (Customer)",
+                    bookingNumber, account.getId());
             throw new AppException(ErrorCode.FORBIDDEN_BOOKING_ACCESS);
         }
         return booking;
@@ -902,6 +1051,8 @@ public class BookingService {
 
         // If no booking is found, throw an exception indicating that the booking does not exist
         if (booking == null) {
+            log.info("Failed to access booking's information, bookingNo: {}, accessed by: {} (Car Owner)",
+                    bookingNumber, SecurityUtil.getCurrentAccountId());
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND_IN_DB);
         }
 
@@ -911,9 +1062,10 @@ public class BookingService {
         // Check if the booking belongs to the current car owner
         if (!booking.getCar().getAccount().getId().equals(accountId)) {
             // If the user is not the car owner, throw an exception indicating forbidden access
+            log.info("Failed to access booking's information due to forbidden access, bookingNo: {}, accessed by: {} (Car Owner)",
+                    bookingNumber, accountId);
             throw new AppException(ErrorCode.FORBIDDEN_CAR_ACCESS);
         }
-
         // Return the validated booking object
         return booking;
     }
@@ -953,16 +1105,16 @@ public class BookingService {
         if (remainingMoney < 0 && walletCustomer.getBalance() < -remainingMoney) {
             // Set booking status to pending payment
             booking.setStatus(EBookingStatus.PENDING_PAYMENT);
-            // Send an email to the customer notifying them of the pending payment
+            // Email the customer notifying them of the pending payment
             emailService.sendPendingPaymentEmail(customerEmail, booking.getBookingNumber(), -remainingMoney);
         } else {
             // Process the final payment transaction
             transactionService.offsetFinalPayment(booking);
             // Mark the booking as completed
             booking.setStatus(EBookingStatus.COMPLETED);
-            // Send an email to the car owner about the payment they received
+            // Email the car owner about the payment they received
             emailService.sendPaymentEmailToCarOwner(carOwnerEmail, booking.getBookingNumber(), carOwnerShare);
-            // Send an email to the customer confirming the payment and remaining balance (if any)
+            // Email the customer confirming the payment and remaining balance (if any)
             emailService.sendPaymentEmailToCustomer(
                     customerEmail,
                     booking.getBookingNumber(),

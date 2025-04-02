@@ -12,7 +12,8 @@ application:
       /v3/api-docs/**,
       /v3/api-docs.yaml,
       /swagger-config,
-      /swagger-resources/**
+      /swagger-resources/**,
+      /homepage/**
       "
 springdoc:
   swagger-ui:

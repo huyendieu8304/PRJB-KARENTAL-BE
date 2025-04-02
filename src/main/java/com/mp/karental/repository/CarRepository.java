@@ -69,8 +69,8 @@ public interface CarRepository extends JpaRepository<Car, String> {
     SELECT c FROM Car c
     WHERE (:status IS NULL OR c.status = :status)
     ORDER BY 
-        CASE WHEN c.status = 'NOT_VERIFIED' THEN 0 ELSE 1 END, 
-        c.updatedAt DESC
+        CASE WHEN c.status = 'NOT_VERIFIED' THEN 0 ELSE 1 END
+        
 """)
     Page<Car> findCars(@Param("status") ECarStatus status, Pageable pageable);
 
