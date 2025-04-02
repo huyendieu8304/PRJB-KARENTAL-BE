@@ -57,6 +57,7 @@ public class VNPayService implements PaymentService{
         var txnRef = request.getTxnRef();                       // 2. transactionId
         var returnUrl = buildReturnUrl(txnRef);                 // 3. FE redirect by returnUrl
         var vnCalendar = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+        vnCalendar.add(Calendar.HOUR_OF_DAY, 7); // Add 7 hours
         var createdDate = DateUtils.formatVnTime(vnCalendar);
         vnCalendar.add(Calendar.MINUTE, paymentTimeout);
         var expiredDate = DateUtils.formatVnTime(vnCalendar);    // 4. expiredDate for secure
