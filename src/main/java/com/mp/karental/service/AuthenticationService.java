@@ -308,7 +308,7 @@ public class AuthenticationService {
 
         //send email
         String changePasswordToken = redisUtil.generateForgotPasswordToken(account.getId());
-        String forgotPasswordUrl = frontEndBaseUrl + "/auth/forgot-password/verify?t=" + changePasswordToken;
+        String forgotPasswordUrl = frontEndBaseUrl + "/#/auth/forgot-password/verify?t=" + changePasswordToken;
         log.info("Verify email url: {}", forgotPasswordUrl);
         emailService.sendForgotPasswordEmail(email, forgotPasswordUrl);
     }

@@ -140,7 +140,7 @@ class UserServiceTest {
         verify(walletRepository).save(any(Wallet.class));
 
         //TODO: vieets laij choox nay khi noi voi front end
-        String expectedUrl = frontEndDomainName + "/user/verify-email?t=verifyEmailToken";
+        String expectedUrl = frontEndDomainName + "/#/user/verify-email?t=verifyEmailToken";
         verify(emailService).sendRegisterEmail(account.getEmail(), expectedUrl);
 
         assertFalse(account.isActive(), "Account must be inactive");
@@ -193,7 +193,7 @@ class UserServiceTest {
         String result = userService.resendVerifyEmail(email);
 
         // Then
-        String expectedUrl = frontEndDomainName + "/user/verify-email?t=mock-token";
+        String expectedUrl = frontEndDomainName + "/#/user/verify-email?t=mock-token";
         assertEquals("The verify email is sent successfully. Please check your inbox again and follow instructions to verify your email.", result);
         verify(emailService).sendRegisterEmail(email, expectedUrl);
     }

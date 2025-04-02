@@ -122,7 +122,7 @@ public class UserService {
         log.info("Send verify email to user.");
         //send email to verified user email
         String verifyEmailToken = redisUtil.generateVerifyEmailToken(account.getId());
-        String confirmUrl = frontEndBaseUrl + "/user/verify-email?t=" + verifyEmailToken;
+        String confirmUrl = frontEndBaseUrl + "/#/user/verify-email?t=" + verifyEmailToken;
         log.info("Verify email url: {}", confirmUrl);
         //sending email
         emailService.sendRegisterEmail(account.getEmail(), confirmUrl);
