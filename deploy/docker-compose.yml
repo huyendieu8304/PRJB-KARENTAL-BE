@@ -43,6 +43,8 @@ services:
       FE_BASE_URL: ${FE_BASE_URL}
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL}
       DOMAIN_NAME: ${DOMAIN_NAME}
+    volumes:
+      - ./logs:/app/logs
     depends_on:
       - redis
     networks:

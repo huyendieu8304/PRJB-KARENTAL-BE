@@ -94,8 +94,16 @@ class AuthTokenFilterTest {
 
     @Test
     void testDoFilterInternal_NoCSRFToken() throws ServletException, IOException {
+
+        String accessToken = "validJwtToken";
+
         when(request.getRequestURI()).thenReturn("/secure");
         when(request.getContextPath()).thenReturn("");
+
+        //get access token from cookie
+        Cookie jwtCookie = new Cookie(accessTokenCookieName, accessToken);
+        when(request.getCookies()).thenReturn(new Cookie[]{jwtCookie});
+
         when(request.getHeader(csrfTokenHeaderName)).thenReturn(null);
 
         authTokenFilter.doFilterInternal(request, response, filterChain);
@@ -105,9 +113,17 @@ class AuthTokenFilterTest {
 
     @Test
     void testDoFilterInternal_InvalidCSRFToken() throws ServletException, IOException {
+
+        String accessToken = "validJwtToken";
+
         when(request.getRequestURI()).thenReturn("/secure");
         when(request.getContextPath()).thenReturn("");
         when(request.getHeader(csrfTokenHeaderName)).thenReturn("invalidCsrfToken");
+
+        //get access token from cookie
+        Cookie jwtCookie = new Cookie(accessTokenCookieName, accessToken);
+        when(request.getCookies()).thenReturn(new Cookie[]{jwtCookie});
+        when(jwtUtils.validateJwtAccessToken(accessToken)).thenReturn(true);
 
         when(jwtUtils.validateJwtCsrfToken("invalidCsrfToken")).thenThrow(new AppException(ErrorCode.INVALID_CSRF_TOKEN));
 
@@ -121,8 +137,6 @@ class AuthTokenFilterTest {
         when(request.getRequestURI()).thenReturn("/secure");
         when(request.getContextPath()).thenReturn("");
 
-        when(request.getHeader(csrfTokenHeaderName)).thenReturn("validCsrfToken");
-        when(jwtUtils.validateJwtCsrfToken("validCsrfToken")).thenReturn(true);
 
         when(request.getCookies()).thenReturn(null);
 
