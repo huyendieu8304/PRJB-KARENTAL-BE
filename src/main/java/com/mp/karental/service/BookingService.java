@@ -180,43 +180,16 @@ public class BookingService {
     private void payBookingDepositUsingWallet(Booking booking) {
         // Process the deposit payment and update the booking status
         transactionService.payDeposit(booking);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
-
-        // Cancel overlapping pending deposit bookings for the same car
-        List<Booking> overlappingBookings = bookingRepository.findByCarIdAndStatusAndTimeOverlap(
-                booking.getCar().getId(),
-                EBookingStatus.PENDING_DEPOSIT,
-                booking.getPickUpTime(),
-                booking.getDropOffTime()
-        );
-
-        for (Booking pendingBooking : overlappingBookings) {
-            pendingBooking.setStatus(EBookingStatus.CANCELLED);
-            bookingRepository.saveAndFlush(pendingBooking);
-
-            // Notify the customer about the cancellation
-            String reason = "Your booking has been canceled because another customer has successfully placed a deposit for this car within the same rental period.";
-            emailService.sendCancelledBookingEmail(pendingBooking.getAccount().getEmail(),
-                    pendingBooking.getCar().getBrand() + " " + pendingBooking.getCar().getModel(),
-                    reason);
-
-        }
-
-        // Remove the cached pending deposit booking from Redis
-        redisUtil.removeCachePendingDepositBooking(booking.getBookingNumber());
-
-        // Send confirmation emails to both the customer and car owner
-        emailService.sendWaitingConfirmedEmail(booking.getAccount().getEmail(),
-                booking.getCar().getAccount().getEmail(),
-                booking.getCar().getBrand() + " " + booking.getCar().getModel(),
-                booking.getBookingNumber()
-        );
+        handleBookingConfirmation(booking);
     }
 
     private void confirmBookingDepositNotUsingWallet(Booking booking) {
+        handleBookingConfirmation(booking);
+    }
+
+    private void handleBookingConfirmation(Booking booking) {
         // Process the deposit payment and update the booking status
         booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
-
         // Cancel overlapping pending deposit bookings for the same car
         List<Booking> overlappingBookings = bookingRepository.findByCarIdAndStatusAndTimeOverlap(
                 booking.getCar().getId(),
@@ -247,6 +220,7 @@ public class BookingService {
                 booking.getBookingNumber()
         );
     }
+
 
     /**
      * Edits an existing booking based on the provided booking number and update request.
@@ -932,6 +906,8 @@ public class BookingService {
         Booking booking = validateAndGetBookingOperator(bookingNumber);
         //change the status to waiting confirmed and save the booking,
         confirmBookingDepositNotUsingWallet(booking);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
+        bookingRepository.saveAndFlush(booking);
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
@@ -948,6 +924,7 @@ public class BookingService {
         //change the status to cancelled and save the booking,
         // then send email waiting confirmed to customer and owner
         booking.setStatus(EBookingStatus.CANCELLED);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         bookingRepository.saveAndFlush(booking);
         emailService.sendCancelledBookingEmail(customerEmail,
                 booking.getCar().getBrand() + " " + booking.getCar().getModel(),
@@ -969,6 +946,7 @@ public class BookingService {
         if(!EPaymentType.WALLET.equals(booking.getPaymentType())) {
             throw new AppException(ErrorCode.UNSUPPORTED_PAYMENT_TYPE);
         }
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         //pay deposit again
         payBookingDepositUsingWallet(booking);
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());

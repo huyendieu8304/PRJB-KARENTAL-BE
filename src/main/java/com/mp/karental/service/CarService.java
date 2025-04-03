@@ -873,7 +873,9 @@ public class CarService {
 
         // Update status to VERIFIED
         car.setStatus(ECarStatus.VERIFIED);
-
+        car.setInsuranceUriIsVerified(true);
+        car.setRegistrationPaperUriIsVerified(true);
+        car.setCertificateOfInspectionUriIsVerified(true);
         car.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         carRepository.saveAndFlush(car);
 

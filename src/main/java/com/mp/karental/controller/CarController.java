@@ -1,10 +1,8 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.constant.ECarStatus;
-import com.mp.karental.dto.request.car.AddCarRequest;
-import com.mp.karental.dto.request.car.CarDetailRequest;
-import com.mp.karental.dto.request.car.EditCarRequest;
-import com.mp.karental.dto.request.car.SearchCarRequest;
+import com.mp.karental.dto.request.car.*;
+import com.mp.karental.dto.request.user.CheckUniqueEmailRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.car.CarDetailResponse;
 import com.mp.karental.dto.response.car.CarDocumentsResponse;
@@ -586,6 +584,51 @@ public class CarController {
     public ApiResponse<String> verifyCar(@PathVariable @Parameter(description = "The ID of the car", example = "car1") String carId) {
         return ApiResponse.<String>builder()
                 .data(carService.verifyCar(carId))
+                .build();
+    }
+
+    @Operation(
+            summary = "Check whether the license plate has existed in the database",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "License plate is unique.")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object")
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 2000 | {fieldName} is required.|
+                                    | 2007 | Invalid license plate format! Expected format: (11-99)(A-Z)-(000-999).(00-99). |
+                                    | 2008 | License plate already existed. Please try another license plate |
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
+    @PostMapping("/car-owner/check-unique-license-plate")
+    public ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueLicensePlate request) {
+        return ApiResponse.<String>builder()
+                .message("License plate is unique.")
                 .build();
     }
 
