@@ -708,6 +708,8 @@ public class CarService {
         CarResponse carResponse = carMapper.toCarResponse(car);
 
         carResponse.setAverageRatingByCar(averageRating);
+        long noOfRides = bookingRepository.countCompletedBookingsByCar(car.getId());
+        carResponse.setNoOfRides(noOfRides);
 
         // Concatenate address fields into a single string and set it in CarResponse
         carResponse.setAddress(car.getCityProvince() + ", " + car.getDistrict() + ", "

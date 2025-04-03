@@ -89,5 +89,7 @@ public class CarResponse {
 
     @Schema(example = "0")
     double averageRatingByCar;
+    @Schema(description = "Total number of rides the car has been booked for", example = "25")
+    long noOfRides;
 
 }
