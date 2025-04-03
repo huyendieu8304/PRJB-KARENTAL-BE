@@ -88,7 +88,7 @@ public class AuthenticationService {
     @NonFinal
     private String logoutUrl = "/karental/auth/logout";
 
-    @Value("${application.domain}")
+    @Value("${application.domain-name}")
     @NonFinal
     private String domain;
 

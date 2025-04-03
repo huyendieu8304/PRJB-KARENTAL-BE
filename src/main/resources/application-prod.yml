@@ -1,5 +1,5 @@
 application:
-  domain: ${DOMAIN_NAME}
+  domain-name: ${DOMAIN_NAME}
 front-end:
   base-url: ${FE_BASE_URL}
 spring:

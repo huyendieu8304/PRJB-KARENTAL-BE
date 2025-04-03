@@ -4,7 +4,7 @@ server:
     context-path: /karental
 
 application:
-  domain: localhost
+  domain-name: localhost
   email: ${APPLICATION_EMAIL}
   security:
     jwt:

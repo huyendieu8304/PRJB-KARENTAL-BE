@@ -43,7 +43,9 @@ public class JwtUtils {
     @NonFinal
     private String csrfTokenSecretKey;
 
-
+    @Value("${application.domain-name}")
+    @NonFinal
+    private String domainName;
 
     /**
      * get the jwt SecretKey from secret key in environment variable
@@ -78,7 +80,7 @@ public class JwtUtils {
     private String generateJwtToken(String email, String secretKey, long expiration){
         return Jwts.builder()
                 .subject(email)
-                .issuer("${spring.application.name}")
+                .issuer(domainName)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration)) //set expiration date for token
                 .signWith(getSecretKey(secretKey)) //the algorithm is automatically determine by the api of jjwt
