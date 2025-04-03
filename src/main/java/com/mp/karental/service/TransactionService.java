@@ -24,10 +24,13 @@ import com.mp.karental.repository.AccountRepository;
 import com.mp.karental.repository.TransactionRepository;
 import com.mp.karental.repository.WalletRepository;
 import com.mp.karental.security.SecurityUtil;
+import com.mp.karental.util.RedisUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +53,11 @@ public class TransactionService {
     EmailService emailService;
     private final ApplicationRunner init;
     IpnHandler ipnHandler;
+    private final RedisUtil redisUtil;
+
+    @Value("${payment.vnpay.return-url}")
+    @NonFinal
+    String walletUrl;
 
     // method serve withdraw transaction
     public TransactionResponse withdraw(long amount){
@@ -70,13 +78,11 @@ public class TransactionService {
         } else {
             transaction.setStatus(ETransactionStatus.SUCCESSFUL);
             wallet.setBalance(wallet.getBalance() - transaction.getAmount());
-
-
         }
         walletRepository.save(wallet);
         transactionRepository.save(transaction);
         //send email if withdraw successfully
-        emailService.sendWalletUpdateEmail(currentUser.getEmail(), "http://karental.okne.site/#/my-wallet");
+        emailService.sendWalletUpdateEmail(currentUser.getEmail(), walletUrl);
         TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(transaction);
         // return response for Withdraw transaction
         return transactionResponse;
@@ -93,7 +99,8 @@ public class TransactionService {
         Wallet wallet = walletRepository.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
         transaction.setWallet(wallet);
         transaction.setStatus(ETransactionStatus.PROCESSING);
-        transactionRepository.save(transaction);
+        Transaction transaction1 = transactionRepository.save(transaction);
+        redisUtil.cacheProcessingTransaction(transaction1.getId());
 
         TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(transaction);
 
@@ -125,7 +132,7 @@ public class TransactionService {
         Wallet wallet = walletRepository.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND_IN_DB));
         TransactionResponse transactionResponse = transactionMapper.toTransactionResponse(transaction);
         log.info("Transaction Status: transactionResponse={}", transactionResponse);
-        // if transaction status is PROCESSING
+        // if current transaction status is PROCESSING
         if (!transaction.getStatus().equals(ETransactionStatus.SUCCESSFUL) &&
                 !transaction.getStatus().equals(ETransactionStatus.FAILED)) {
             // if response from vnpay returnUrl is success
@@ -139,6 +146,7 @@ public class TransactionService {
                     wallet.setBalance(wallet.getBalance() + transaction.getAmount());
                     //send email if top-up successfully
                     emailService.sendWalletUpdateEmail(currentUser.getEmail(), "http://localhost:3000/#/my-wallet");
+                    redisUtil.removeCacheProcessingTransaction(transaction.getId());
                 }
                 //save balance
                 walletRepository.save(wallet);
