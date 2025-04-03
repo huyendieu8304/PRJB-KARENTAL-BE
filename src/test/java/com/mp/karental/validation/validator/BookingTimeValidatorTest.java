@@ -74,7 +74,7 @@ class BookingTimeValidatorTest {
 
             CreateBookingRequest request = new CreateBookingRequest();
             request.setPickUpTime(now.plusDays(1));
-            request.setDropOffTime(now.plusDays(31)); 
+            request.setDropOffTime(now.plusDays(91));
 
             assertFalse(bookingTimeValidator.isValid(request, context));
         }
@@ -409,7 +409,7 @@ class BookingTimeValidatorTest {
         
         LocalDateTime now = LocalDateTime.now().with(LocalTime.of(22, 30));
         LocalDateTime pickUp = now.plusDays(1).with(LocalTime.of(6, 30)); 
-        LocalDateTime dropOff = now.plusDays(31).with(LocalTime.of(9, 0)); 
+        LocalDateTime dropOff = now.plusDays(91).with(LocalTime.of(9, 0));
 
         CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);
@@ -663,7 +663,7 @@ class BookingTimeValidatorTest {
         LocalDate today = LocalDate.now();
         LocalDateTime now = today.atTime(22, 0);
         LocalDateTime pickUp = today.plusDays(1).atTime(6, 30); 
-        LocalDateTime dropOff = today.plusDays(31).atTime(10, 0); 
+        LocalDateTime dropOff = today.plusDays(91).atTime(10, 0);
 
         CreateBookingRequest request = new CreateBookingRequest();
         request.setPickUpTime(pickUp);

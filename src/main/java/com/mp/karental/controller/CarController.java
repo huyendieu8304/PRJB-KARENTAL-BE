@@ -1,10 +1,8 @@
 package com.mp.karental.controller;
 
 import com.mp.karental.constant.ECarStatus;
-import com.mp.karental.dto.request.car.AddCarRequest;
-import com.mp.karental.dto.request.car.CarDetailRequest;
-import com.mp.karental.dto.request.car.EditCarRequest;
-import com.mp.karental.dto.request.car.SearchCarRequest;
+import com.mp.karental.dto.request.car.*;
+import com.mp.karental.dto.request.user.CheckUniqueEmailRequest;
 import com.mp.karental.dto.response.ApiResponse;
 import com.mp.karental.dto.response.car.CarDetailResponse;
 import com.mp.karental.dto.response.car.CarDocumentsResponse;
@@ -13,6 +11,7 @@ import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.CarService;
+import com.mp.karental.validation.UniqueLicensePlate;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,6 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -586,6 +586,54 @@ public class CarController {
     public ApiResponse<String> verifyCar(@PathVariable @Parameter(description = "The ID of the car", example = "car1") String carId) {
         return ApiResponse.<String>builder()
                 .data(carService.verifyCar(carId))
+                .build();
+    }
+
+    @Operation(
+            summary = "Check whether the license plate has existed in the database",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Success",
+                            content = @Content(
+                                    schema = @Schema(type = "object"),
+                                    schemaProperties = {
+                                            @SchemaProperty(
+                                                    name = "code",
+                                                    schema = @Schema(type = "string", example = "1000")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "message",
+                                                    schema = @Schema(type = "string", example = "License plate is unique.")
+                                            ),
+                                            @SchemaProperty(
+                                                    name = "data",
+                                                    schema = @Schema(type = "object")
+                                            )
+                                    }
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = """
+                                    Bad request
+                                    |code  | message |
+                                    |------|-------------|
+                                    | 2000 | {fieldName} is required.|
+                                    | 2007 | Invalid license plate format! Expected format: (11-99)(A-Z)-(000-999).(00-99). |
+                                    | 2008 | License plate already existed. Please try another license plate |
+                                    """,
+                            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+                    )
+            }
+    )
+
+    @GetMapping("/car-owner/resend-unique-license-plate/{licensePlate}")
+    public ApiResponse<String> resendUniqueLicensePlate(@PathVariable("licensePlate")
+                                                 @UniqueLicensePlate(message = "NOT_UNIQUE_LICENSE")
+                                                 String licensePlate) {
+        return ApiResponse.<String>builder()
+                .message("The license plate is unique.")
                 .build();
     }
 

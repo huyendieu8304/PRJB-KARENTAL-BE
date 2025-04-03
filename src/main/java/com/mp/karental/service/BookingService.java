@@ -180,8 +180,16 @@ public class BookingService {
     private void payBookingDepositUsingWallet(Booking booking) {
         // Process the deposit payment and update the booking status
         transactionService.payDeposit(booking);
-        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        handleBookingConfirmation(booking);
+    }
 
+    private void confirmBookingDepositNotUsingWallet(Booking booking) {
+        handleBookingConfirmation(booking);
+    }
+
+    private void handleBookingConfirmation(Booking booking) {
+        // Process the deposit payment and update the booking status
+        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
         // Cancel overlapping pending deposit bookings for the same car
         List<Booking> overlappingBookings = bookingRepository.findByCarIdAndStatusAndTimeOverlap(
                 booking.getCar().getId(),
@@ -462,14 +470,10 @@ public class BookingService {
 
         // Convert the status string into the EBookingStatus enum
         EBookingStatus bookingStatus = parseStatus(status);
-
         // If the status is valid, fetch bookings filtered by status
-        // Otherwise, fetch all bookings for the user
-
-        List<EPaymentType> bankCashTypes = Arrays.asList(EPaymentType.BANK_TRANSFER, EPaymentType.CASH);
         bookings = (bookingStatus != null)
                 ? bookingRepository.findBookingsByStatus(bookingStatus, pageable)
-                : bookingRepository.findAllBookings(bankCashTypes,pageable);
+                : bookingRepository.findAllBookings(pageable);
         logBookingAccess(accountId, bookings.getTotalElements());
         // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings, false);
@@ -896,16 +900,10 @@ public class BookingService {
      */
     public BookingResponse confirmDeposit(String bookingNumber) {
         Booking booking = validateAndGetBookingOperator(bookingNumber);
-        // Retrieve customer and car owner email addresses
-        String customerEmail = booking.getAccount().getEmail();
-        String carOwnerEmail = booking.getCar().getAccount().getEmail();
-
         //change the status to waiting confirmed and save the booking,
-        // then send email waiting confirmed to customer and owner
-        booking.setStatus(EBookingStatus.WAITING_CONFIRMED);
+        confirmBookingDepositNotUsingWallet(booking);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         bookingRepository.saveAndFlush(booking);
-        emailService.sendWaitingConfirmedEmail(customerEmail,carOwnerEmail,
-                booking.getCar().getBrand() + " " + booking.getCar().getModel(),bookingNumber);
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
     }
 
@@ -922,6 +920,7 @@ public class BookingService {
         //change the status to cancelled and save the booking,
         // then send email waiting confirmed to customer and owner
         booking.setStatus(EBookingStatus.CANCELLED);
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         bookingRepository.saveAndFlush(booking);
         emailService.sendCancelledBookingEmail(customerEmail,
                 booking.getCar().getBrand() + " " + booking.getCar().getModel(),
@@ -943,6 +942,7 @@ public class BookingService {
         if(!EPaymentType.WALLET.equals(booking.getPaymentType())) {
             throw new AppException(ErrorCode.UNSUPPORTED_PAYMENT_TYPE);
         }
+        booking.setUpdateBy(SecurityUtil.getCurrentAccount().getId());
         //pay deposit again
         payBookingDepositUsingWallet(booking);
         return buildBookingResponse(booking, booking.getDriverDrivingLicenseUri());
