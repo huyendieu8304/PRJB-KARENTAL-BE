@@ -233,7 +233,7 @@ class BookingServiceTest {
 
         Page<Booking> bookingPage = new PageImpl<>(Collections.emptyList());
         List<EPaymentType> bankCashTypes = Arrays.asList(EPaymentType.BANK_TRANSFER, EPaymentType.CASH);
-        when(bookingRepository.findAllBookings(eq(bankCashTypes), eq(pageable))).thenReturn(bookingPage);
+        when(bookingRepository.findAllBookings(eq(pageable))).thenReturn(bookingPage);
 
         // When
         BookingListResponse response = bookingService.getBookingsOfOperator(0, 10, "updatedAt,DESC", status);
@@ -241,7 +241,7 @@ class BookingServiceTest {
         // Then
         assertNotNull(response);
         assertEquals(0, response.getBookings().getTotalElements());
-        verify(bookingRepository, times(1)).findAllBookings(eq(bankCashTypes), eq(pageable));
+        verify(bookingRepository, times(1)).findAllBookings(eq(pageable));
     }
 
     @Test

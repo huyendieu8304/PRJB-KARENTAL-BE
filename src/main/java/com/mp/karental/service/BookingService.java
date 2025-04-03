@@ -470,14 +470,10 @@ public class BookingService {
 
         // Convert the status string into the EBookingStatus enum
         EBookingStatus bookingStatus = parseStatus(status);
-
         // If the status is valid, fetch bookings filtered by status
-        // Otherwise, fetch all bookings for the user
-
-        List<EPaymentType> bankCashTypes = Arrays.asList(EPaymentType.BANK_TRANSFER, EPaymentType.CASH);
         bookings = (bookingStatus != null)
                 ? bookingRepository.findBookingsByStatus(bookingStatus, pageable)
-                : bookingRepository.findAllBookings(bankCashTypes,pageable);
+                : bookingRepository.findAllBookings(pageable);
         logBookingAccess(accountId, bookings.getTotalElements());
         // Convert the list of bookings into a BookingListResponse object to return
         return getBookingListResponse(bookings, false);

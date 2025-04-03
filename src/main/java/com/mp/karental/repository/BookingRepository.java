@@ -156,28 +156,21 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     @Query("SELECT b FROM Booking b " +
-            "WHERE (:status = 'ALL' OR b.status = :status)")
+            "WHERE (:status IS NULL OR b.status = :status)")
     Page<Booking> findBookingsByStatus(@Param("status") EBookingStatus status,
                                                Pageable pageable);
 
     @Query("SELECT b FROM Booking b " +
             "ORDER BY " +
             "   CASE " +
-            "       WHEN b.status = 'PENDING_DEPOSIT' THEN 1 " +
-            "       WHEN b.status = 'PENDING_PAYMENT' THEN 2 " +
-            "       WHEN b.status = 'WAITING_CONFIRMED_RETURN_CAR' THEN 3 " +
-            "       ELSE 4 END, " +
+            "       WHEN b.status = 'PENDING_DEPOSIT' THEN 0 " +
+            "       WHEN b.status = 'PENDING_PAYMENT' THEN 1 " +
+            "       WHEN b.status = 'WAITING_CONFIRMED_RETURN_CAR' THEN 2 " +
+            "       ELSE 3 END, " +
             "   CASE " +
-            "       WHEN b.paymentType IN (:bankCashTypes) THEN 1 " +
-            "       ELSE 2 END")
-    Page<Booking> findAllBookings(@Param("bankCashTypes") List<EPaymentType> bankCashTypes, Pageable pageable);
-
-
-//    @Query("SELECT b FROM Booking b " +
-//            "ORDER BY CASE WHEN :sort IS NULL AND b.status = :pendingStatus THEN 0 ELSE 1 END")
-//    Page<Booking> findWhenStatusNullBookings(@Param("pendingStatus") EBookingStatus pendingStatus,
-//                                             @Param("sort") String sort,
-//                                             Pageable pageable);
+            "       WHEN b.paymentType = 'BANK_TRANSFER' OR b.paymentType = 'CASH' THEN 0 " +
+            "       ELSE 1 END")
+    Page<Booking> findAllBookings(Pageable pageable);
 
     Optional<Booking> findByBookingNumber(String bookingNumber);
 
