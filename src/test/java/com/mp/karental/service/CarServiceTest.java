@@ -1165,29 +1165,26 @@ class CarServiceTest {
     }
     @Test
     void searchCars_ReturnsEmptyList() {
-        // Mock request
+        // Arrange
         SearchCarRequest request = new SearchCarRequest();
         request.setAddress("Hanoi");
         request.setPickUpTime(LocalDateTime.now().plusDays(1));
         request.setDropOffTime(LocalDateTime.now().plusDays(2));
 
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "productionYear"));
+        when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi"))
+                .thenReturn(Collections.emptyList()); // Mock trả về danh sách rỗng
 
-
-        Page<Car> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
-        when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable)).thenReturn(emptyPage);
-
-        // Call service
+        // Act
         Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
 
-
+        // Assert
         assertNotNull(result);
         assertTrue(result.getContent().isEmpty());
         assertEquals(0, result.getTotalElements());
 
-
-        verify(carRepository, times(1)).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable);
+        verify(carRepository, times(1)).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi");
     }
+
 
 
     @Test
@@ -1227,8 +1224,7 @@ class CarServiceTest {
 
     @Test
     void searchCars_ShouldReturnEmpty_WhenNoVerifiedCars() {
-
-        when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(Page.empty());
+        when(carRepository.findVerifiedCarsByAddress(any(), any())).thenReturn(Collections.emptyList());
 
         SearchCarRequest request = new SearchCarRequest();
         request.setAddress("Hanoi");
@@ -1238,6 +1234,7 @@ class CarServiceTest {
         Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
 
         assertEquals(0, result.getTotalElements());
+        verify(carRepository).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi");
     }
 
     @Test
@@ -1248,10 +1245,8 @@ class CarServiceTest {
         request.setPickUpTime(LocalDateTime.now().plusDays(1));
         request.setDropOffTime(LocalDateTime.now().plusDays(2));
 
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "productionYear"));
-
-        when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable))
-                .thenReturn(Page.empty());
+        when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi"))
+                .thenReturn(Collections.emptyList());
 
         // Act
         Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
@@ -1259,7 +1254,7 @@ class CarServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
-        verify(carRepository).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable);
+        verify(carRepository).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi");
     }
 
     @Test
@@ -1270,17 +1265,15 @@ class CarServiceTest {
         request.setPickUpTime(LocalDateTime.now().plusDays(1));
         request.setDropOffTime(LocalDateTime.now().plusDays(2));
 
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "productionYear"));
-
-        when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable))
-                .thenReturn(Page.empty());
+        when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi"))
+                .thenReturn(Collections.emptyList());
 
         // Act
         Page<CarThumbnailResponse> result = carService.searchCars(request, 0, -5, "productionYear,desc");
 
         // Assert
         assertEquals(0, result.getTotalElements()); // No cars
-        verify(carRepository).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable);
+        verify(carRepository).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi");
     }
 
     @Test
@@ -1291,18 +1284,17 @@ class CarServiceTest {
         request.setPickUpTime(LocalDateTime.now().plusDays(1));
         request.setDropOffTime(LocalDateTime.now().plusDays(2));
 
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "productionYear"));
-
-        when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable))
-                .thenReturn(Page.empty());
+        when(carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi"))
+                .thenReturn(Collections.emptyList());
 
         // Act
         Page<CarThumbnailResponse> result = carService.searchCars(request, -3, 10, "productionYear,desc");
 
         // Assert
         assertEquals(0, result.getTotalElements()); // No cars
-        verify(carRepository).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi", pageable);
+        verify(carRepository).findVerifiedCarsByAddress(ECarStatus.VERIFIED, "Hanoi");
     }
+
 
     @Test
     void testGetCarDetail_CarNotFound_ThrowsException() {
@@ -1762,25 +1754,27 @@ class CarServiceTest {
 
     @Test
     void searchCars_ShouldReturnEmpty_WhenNoAvailableCars() {
+        // Arrange
         Car car = new Car();
         car.setId("car123");
 
-        Page<Car> verifiedCars = new PageImpl<>(List.of(car));
-
-        when(carRepository.findVerifiedCarsByAddress(any(), any(), any())).thenReturn(verifiedCars);
+        when(carRepository.findVerifiedCarsByAddress(any(), any())).thenReturn(List.of(car));
         when(carRepository.findById(any())).thenReturn(Optional.of(car));
         when(bookingRepository.findActiveBookingsByCarIdAndTimeRange(any(), any(), any()))
-                .thenReturn(List.of(new Booking()));
+                .thenReturn(List.of(new Booking())); // Có booking => xe không AVAILABLE
 
         SearchCarRequest request = new SearchCarRequest();
         request.setAddress("Hanoi");
         request.setPickUpTime(LocalDateTime.now().plusDays(1));
         request.setDropOffTime(LocalDateTime.now().plusDays(2));
 
+        // Act
         Page<CarThumbnailResponse> result = carService.searchCars(request, 0, 10, "productionYear,desc");
 
+        // Assert
         assertNotNull(result);
-        assertEquals(1, result.getTotalElements());
+        assertEquals(0, result.getTotalElements()); // Không có xe AVAILABLE
     }
+
 
 }
