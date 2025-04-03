@@ -11,6 +11,7 @@ import com.mp.karental.dto.response.car.CarThumbnailResponse;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.service.CarService;
+import com.mp.karental.validation.UniqueLicensePlate;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,6 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -625,10 +627,13 @@ public class CarController {
                     )
             }
     )
-    @PostMapping("/car-owner/check-unique-license-plate")
-    public ApiResponse<String> checkUniqueEmail(@RequestBody @Valid CheckUniqueLicensePlate request) {
+
+    @GetMapping("/car-owner/resend-unique-license-plate/{licensePlate}")
+    public ApiResponse<String> resendUniqueLicensePlate(@PathVariable("licensePlate")
+                                                 @UniqueLicensePlate(message = "NOT_UNIQUE_LICENSE")
+                                                 String licensePlate) {
         return ApiResponse.<String>builder()
-                .message("License plate is unique.")
+                .message("The license plate is unique.")
                 .build();
     }
 

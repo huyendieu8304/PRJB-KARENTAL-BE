@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
  * QuangPM20
  * @version 1.0
  */
-@Target({ElementType.FIELD})
+@Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = UniqueLicensePlateValidator.class)
 public @interface UniqueLicensePlate {
