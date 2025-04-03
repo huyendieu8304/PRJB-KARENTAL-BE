@@ -28,6 +28,8 @@ application:
       /homepage/**"
 ##      FOR TEST
 
+front-end:
+  base-url: http://localhost:3000
 
 spring:
   profiles:
@@ -80,8 +82,7 @@ cloud:
     s3:
       buckets:
         name: karental
-front-end:
-  base-url: http://localhost:3000
+
 
 payment:
   vnpay:
