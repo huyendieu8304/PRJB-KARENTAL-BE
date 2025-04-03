@@ -634,11 +634,8 @@ public class CarService {
         log.info("Search request received - Address: {}, PickUp: {}, DropOff: {}",
                 request.getAddress(), request.getPickUpTime(), request.getDropOffTime());
 
-        // Validate page, size and sort
-        Pageable pageable = getPageable(page, size, sort);
-
         // Get list car is VERIFIED with pagination
-        Page<Car> verifiedCars = carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, request.getAddress(), pageable);
+        List<Car> verifiedCars = carRepository.findVerifiedCarsByAddress(ECarStatus.VERIFIED, request.getAddress());
 
         // Filter to take car is AVAILABLE
         List<CarThumbnailResponse> availableCars = new ArrayList<>();
@@ -668,9 +665,16 @@ public class CarService {
             response.setNoOfRides(noOfRides);
             availableCars.add(response);
         }
+        // Use pageable after filter
+        Pageable pageable = getPageable(page, size, sort);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), availableCars.size());
+        List<CarThumbnailResponse> pagedCars = availableCars.subList(start, end);
+
         log.info("Successfully completed search request, total available cars: {}, accessBy: {}",
                 availableCars.size(), SecurityUtil.getCurrentAccountId());
-        return new PageImpl<>(availableCars, pageable, verifiedCars.getTotalElements());
+
+        return new PageImpl<>(pagedCars, pageable, availableCars.size());
     }
 
     /**

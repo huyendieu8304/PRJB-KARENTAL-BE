@@ -41,9 +41,9 @@ public interface CarRepository extends JpaRepository<Car, String> {
     AND LOWER(REPLACE(CONCAT(c.cityProvince, ' ', c.district, ' ', c.ward), ',', '')) 
         LIKE LOWER(REPLACE(CONCAT('%', :address, '%'), ',', ''))
 """)
-    Page<Car> findVerifiedCarsByAddress(@Param("status") ECarStatus status,
-                                        @Param("address") String address,
-                                        Pageable pageable);
+    List<Car> findVerifiedCarsByAddress(@Param("status") ECarStatus status,
+                                        @Param("address") String address);
+
 
     @Query("SELECT c.id FROM Car c WHERE c.account.id = :ownerId")
     List<String> findCarIdsByOwnerId(@Param("ownerId") String ownerId);
