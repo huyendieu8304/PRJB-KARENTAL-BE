@@ -112,11 +112,22 @@ public class Booking {
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("By: {} - Updating Booking: {}", SecurityUtil.getCurrentAccountId(), this);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = "System";
+        }
+        log.info("By: {} - Updating Booking: {}", accountId, this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("By: {} - Updated Booking: {}", SecurityUtil.getCurrentAccountId(), this);
-    }
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = "System";
+        }
+        log.info("By: {} - Updated Booking: {}", accountId, this);    }
 }

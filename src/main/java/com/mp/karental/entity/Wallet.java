@@ -48,11 +48,22 @@ public class Wallet {
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("By: {} - Updating Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = "System";
+        }log.info("By: {} - Updating Wallet: {}", accountId, this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("By: {} - Updated Wallet: {}", SecurityUtil.getCurrentAccountId(), this);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = "System";
+        }
+        log.info("By: {} - Updated Wallet: {}", accountId, this);
     }
 }

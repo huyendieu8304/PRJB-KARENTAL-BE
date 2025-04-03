@@ -65,11 +65,23 @@ public class Transaction {
 
     @PreUpdate
     public void onPreUpdate() {
-        log.info("By: {} - Updating Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = "System";
+        }
+        log.info("By: {} - Updating Transaction: {}", accountId, this);
     }
 
     @PostUpdate
     public void onPostUpdate() {
-        log.info("By: {} - Updated Transaction: {}", SecurityUtil.getCurrentAccountId(), this);
+        String accountId;
+        try {
+            accountId = SecurityUtil.getCurrentAccountId();
+        } catch (Exception e) {
+            accountId = "System";
+        }
+        log.info("By: {} - Updated Transaction: {}", accountId, this);
     }
 }
