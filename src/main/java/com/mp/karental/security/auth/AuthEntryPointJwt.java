@@ -34,7 +34,7 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
             throws IOException, ServletException {
 
 
-        log.info("go to AuthEntryPointJwt commence");
+        log.info("Exception occurs during authenticate -> go to AuthEntryPointJwt commence");
 
         // Is request response with 404
         if (response.getStatus() == HttpStatus.NOT_FOUND.value()) {

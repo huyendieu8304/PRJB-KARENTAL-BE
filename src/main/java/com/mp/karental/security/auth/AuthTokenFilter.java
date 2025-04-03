@@ -90,7 +90,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             Cookie cookie = WebUtils.getCookie(request, accessTokenCookieName);
             if (cookie != null) {
                 accessToken = cookie.getValue();
-                log.info("Cookie found token: {}", accessToken);
+//                log.info("Cookie found token: {}", accessToken);
             } else {
                 log.info("Missing access token cookie");
                 throw new AppException(ErrorCode.UNAUTHENTICATED);
@@ -143,6 +143,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
             //set up UserDetails in current SecurityContext
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.info("Authenticate user successfully! email: {}", email);
         } catch (Exception e) {
             String exceptionMessage = e.getMessage();
             if (e instanceof AppException) {
