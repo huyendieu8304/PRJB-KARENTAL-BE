@@ -3,10 +3,12 @@ package com.mp.karental.listener;
 import com.mp.karental.constant.EBookingStatus;
 import com.mp.karental.constant.ERole;
 import com.mp.karental.constant.ETransactionStatus;
+import com.mp.karental.entity.Wallet;
 import com.mp.karental.exception.AppException;
 import com.mp.karental.exception.ErrorCode;
 import com.mp.karental.repository.BookingRepository;
 import com.mp.karental.repository.TransactionRepository;
+import com.mp.karental.repository.WalletRepository;
 import com.mp.karental.service.EmailService;
 import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
@@ -28,7 +30,7 @@ public class RedisPendingDepositExpiredListener implements MessageListener {
     BookingRepository bookingRepository;
     EmailService emailService;
     TransactionRepository transactionRepository;
-
+    WalletRepository walletRepository;
     private static final String PROCESSING_TRANSACTION_PREFIX = "trans:";
     private static final String PENDING_DEPOSIT_BOOKING_KEY = "booking:";
 
@@ -56,6 +58,9 @@ public class RedisPendingDepositExpiredListener implements MessageListener {
             transactionRepository.findById(transactionId).ifPresent(transaction -> {
                 if (transaction.getStatus().equals(ETransactionStatus.PROCESSING)){
                     transaction.setStatus(ETransactionStatus.FAILED);
+                    Wallet wallet = transaction.getWallet();
+                    wallet.setBalance(wallet.getBalance() - transaction.getAmount());
+                    walletRepository.save(wallet);
                     log.info("Transaction: {} has been cancelled due to expired of paying transaction time.",  transactionId);
                     transactionRepository.save(transaction);
                 }
