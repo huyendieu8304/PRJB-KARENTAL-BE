@@ -145,7 +145,7 @@ public class TransactionService {
                     // set balance for wallet
                     wallet.setBalance(wallet.getBalance() + transaction.getAmount());
                     //send email if top-up successfully
-                    emailService.sendWalletUpdateEmail(currentUser.getEmail(), "http://localhost:3000/#/my-wallet");
+                    emailService.sendWalletUpdateEmail(currentUser.getEmail(), walletUrl);
                     redisUtil.removeCacheProcessingTransaction(transaction.getId());
                 }
                 //save balance
