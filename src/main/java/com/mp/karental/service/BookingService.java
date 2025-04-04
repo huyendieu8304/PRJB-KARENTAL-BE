@@ -745,7 +745,7 @@ public class BookingService {
         }
 
         //the booking is in PENDING_DEPOSIT status, only send a cancellation email to the customer
-        emailService.sendBookingCancellationEmailToCustomer(customerId, bookingStatus, bookingNumber, carName);
+        emailService.sendBookingCancellationEmailToCustomer(booking.getAccount().getEmail(), bookingStatus, bookingNumber, carName);
 
         // Update the booking status to CANCELLED
         booking.setStatus(EBookingStatus.CANCELLED);
