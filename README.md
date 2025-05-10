@@ -1,92 +1,89 @@
-# Rent Car
 
+***
+# Karental - Rent a car
 
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
-
+Executable code are in branch dev
 ```
 cd existing_repo
 git remote add origin http://git.fa.edu.vn/hn25_cpl_pjb_01/hn25_cpl_pjb_01_g2/rent-car.git
 git branch -M main
 git push -uf origin main
 ```
+## Tech stack
+* Build tool: maven >= 3.9.0
+* Java: 17
+* Framework: Spring boot 3.4.2
+* DBMS: MySql 8.0.41, Redis 7.4.2
+* Reverse Proxy: Nginx
 
-## Integrate with your tools
+## Prerequisites to run application
+* Java JDK 17
+* Docker engine
 
-- [ ] [Set up project integrations](http://git.fa.edu.vn/hn25_cpl_pjb_01/hn25_cpl_pjb_01_g2/rent-car/-/settings/integrations)
+## Run Docker compose
+In the root directory of the project, run
+  `docker compose up -d`
 
-## Collaborate with your team
+After run docker compose, you should run the following command to check whether the config of redis RDB and AOF is right
+```
+docker exec -it redis redis-cli
+INFO Persistence
+CONFIG GET notify-keyspace-events
+```
+If you see `aof_enabled:1`, `rdb_changes_since_last_save`,`1) "notify-keyspace-events"` and
+`2) "xE"` then every thing is alright!
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+## Start application
+To run the application, first you have to provide following environment variables:
 
-## Test and Deploy
+| Environment Variable   | What is it used for                                                                                                 |
+|------------------------|---------------------------------------------------------------------------------------------------------------------|
+| AWS_REGION             | The AWS region where you choose to run S3 on                                                                        |
+| AWS_S3_BUCKETNAME      | The S3 bucket name that you use to save file                                                                        |
+| APPLICATION_EMAIL      | The email address that all the mail in the system is sent from                                                      |
+| AWS_ACCESS_KEY_ID      | The key id to access AWS, this is used to access AWS S3                                                             |
+| AWS_ACCESS_KEY         | The key to access AWS, this is used to access AWS S3                                                                |
+| DB_URL                 | The url of the datasource                                                                                           |
+| DB_PASSWORD            | The password used to access database                                                                                |
+| DB_USERNAME            | The username used to access database                                                                                |
+| DOMAIN_NAME            | The domain of the website where you access it, if you run this application in local, input "localhost"              |
+| EMAIL_PASSWORD         | The password of the application's email, this is used in Spring mail                                                |
+| EMAIL_USERNAME         | The username of the application's email, eg: karental@gmail.com                                                     |
+| FE_BASE_URL            | The base url of the front end, eg: if you have a react app run local it would be http://localhost:3000              |
+| JWT_ACCESS_SECRET_KEY  | The key to sign JWT access token                                                                                    |
+| JWT_REFRESH_SECRET_KEY | The key to sign JWT refresh token                                                                                   |
+| SPRING_DATA_REDIS_HOST | The host where Redis run, eg: localhost for Redis running on local                                                  |
+| TMN_CODE=T3GTKJIG      | The VNPay params to verify request                                                                                  |
+| VNPAY_SECRET_KEY       | The VNPay params to verify request                                                                                  |
+| VNPAY_RETURN_URL       | The address directed after successfully make transaction, eg: http://localhost:3000/#/my-wallet                     |
+| MAILTRAP_PASSWORD      | If you not run the app in "prod" profile, please use Mailtrap, put Mailtrap password of your inbox in this variable |
+| MAILTRAP_USERNAME      | If you not run the app in "prod" profile, please use Mailtrap, put Mailtrap username of your inbox in this variable |
 
-Use the built-in continuous integration in GitLab.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
 
-***
+After having necessary environment variable, you could open terminal and run `mvn spring-boot:run`
+or if you want to run the application with a specific profile `-Dspring-boot.run.profiles=prod`
 
-# Editing this README
+## APIDocument
+This application has already implemented Spring doc, Swagger API, to get file .yml of this application, please do following steps:
+1. Run the application in active profile is "dev"
+2. Open browser and access http://localhost:8080/karental/swagger-ui.html
+3. Access http://localhost:8080/karental/v3/api-docs.yaml to download swagger file
+4. Save the file to your device
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## Build application
+`mvn clean package `
+Or you want to build the project but skip testing
+`mvn clean package -DskipTests `
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+If your computer doesn't have Maven, you can replace `mvn` with `./mvnw`, which reside in the source root.
 
-## Name
-Choose a self-explaining name for your project.
+## Build docker image
+In root directory of the source code run `docker build -t <your-dockerhub-username>/karental:<tagname> .`
+then push the image to docker hub `docker push <your-dockerhub-username>/karental:<tagname>`
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+## Run docker compose
+To run docker compose you have to :
+1. install docker compose on your server
+2. upload all the directory /deploy to your server 
+3. cd to deploy , run `docker compose down` then `docker compose up`
