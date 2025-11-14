@@ -4,7 +4,7 @@
 
 ```
 cd existing_repo
-git remote add origin http://git.fa.edu.vn/hn25_cpl_pjb_01/hn25_cpl_pjb_01_g2/rent-car.git
+git remote add origin https://github.com/huyendieu8304/PRJB-KARENTAL-BE.git
 git branch -M main
 git push -uf origin main
 ```
